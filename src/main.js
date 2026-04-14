@@ -1,8 +1,9 @@
 import './styles.css';
 
-const releaseTag = 'v0.6.0';
+const releaseTag = 'v0.7.0';
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
+const shellStorageKey = 'opencode-mobile.shell-v1';
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
 
 const screens = {
@@ -10,38 +11,45 @@ const screens = {
     label: 'Sessions',
     kicker: 'Browse',
     title: 'Sessions',
-    description: 'Recent work now stays local to this device so it is easy to reopen without losing the mobile flow.',
+    description: 'Recent work stays local to this device, and the shell is now tuned for installable relaunches on mobile.',
   },
   task: {
     label: 'Task',
     kicker: 'Work',
     title: 'Task',
     description:
-      'The selected session keeps chat, tool output, file viewing, and diff review together in one thumb-friendly work surface.',
+      'The selected session keeps chat, tool output, file viewing, and diff review together in one relaunch-friendly mobile work surface.',
   },
   settings: {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while task work becomes more useful with mobile diff and file review.',
-    emptyTitle: 'Settings remain lightweight.',
+    description: 'Settings stays intentionally light while the shell now exposes install and connection guidance for mobile use.',
+    emptyTitle: 'Settings still stay lightweight.',
     emptyBody:
-      'Advanced preferences, install prompts, and broader app controls are still outside the active phase.',
+      'Advanced preferences and broader app controls are still outside the active phase, even though install guidance now exists in the shell.',
     details: [
       ['Current state', 'Lightweight placeholder'],
-      ['What changed this phase', 'Task now opens narrow-screen diff review alongside mobile file output'],
-      ['Still out of scope', 'Advanced settings, install UX, and patch editing'],
+      ['What changed this phase', 'The shell now exposes install readiness and honest online or offline guidance'],
+      ['Still out of scope', 'Advanced settings, push notifications, and native wrapper work'],
     ],
   },
 };
 
 const navigationOrder = ['sessions', 'task', 'settings'];
 const app = document.querySelector('#app');
+const initialShellState = getStoredShellState();
 
 const appState = {
   sessions: [],
   selectedSessionId: null,
   isHydratingSessions: true,
+  shell: {
+    isOnline: window.navigator.onLine,
+    isStandalone: isStandaloneMode(),
+    installPromptEvent: null,
+    lastScreenId: initialShellState.lastScreenId,
+  },
   toolDrawer: {
     isOpen: false,
     view: 'list',
@@ -69,6 +77,73 @@ function escapeHtml(value) {
 
 function compactText(value) {
   return String(value).replace(/\s+/g, ' ').trim();
+}
+
+function isStandaloneMode() {
+  return window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function getStoredShellState() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(shellStorageKey) ?? 'null');
+
+    return {
+      lastScreenId: navigationOrder.includes(stored?.lastScreenId) ? stored.lastScreenId : 'sessions',
+    };
+  } catch {
+    return { lastScreenId: 'sessions' };
+  }
+}
+
+function persistShellState() {
+  try {
+    window.localStorage.setItem(
+      shellStorageKey,
+      JSON.stringify({
+        lastScreenId: appState.shell.lastScreenId,
+      }),
+    );
+  } catch {
+    // Keep shell state in memory if local storage is unavailable.
+  }
+}
+
+function getConnectionTone() {
+  return appState.shell.isOnline ? 'online' : 'offline';
+}
+
+function getConnectionLabel() {
+  return appState.shell.isOnline ? 'Online' : 'Offline';
+}
+
+function getConnectionMessage() {
+  return appState.shell.isOnline
+    ? 'Connected and ready. Recent local work still stays available if the connection drops.'
+    : 'You are offline. Existing local sessions stay readable, but new network-backed work may be limited until connection returns.';
+}
+
+function getInstallHint() {
+  if (appState.shell.isStandalone) {
+    return 'Installed to Home Screen';
+  }
+
+  if (appState.shell.installPromptEvent) {
+    return 'Install ready';
+  }
+
+  return 'Add to Home Screen available';
+}
+
+function getInstallBody() {
+  if (appState.shell.isStandalone) {
+    return 'This app now launches like an installed mobile app and keeps your last screen close at hand.';
+  }
+
+  if (appState.shell.installPromptEvent) {
+    return 'This device can install the current shell for quicker relaunches and a more app-like experience.';
+  }
+
+  return 'Use Safari or browser share controls to add this client to your Home Screen for faster relaunches.';
 }
 
 function trimText(value, maxLength = 96) {
@@ -531,6 +606,9 @@ function navigateTo(screenId) {
     resetToolDrawer();
   }
 
+  appState.shell.lastScreenId = navigationOrder.includes(screenId) ? screenId : 'sessions';
+  persistShellState();
+
   const nextHash = `#${screenId}`;
 
   if (window.location.hash === nextHash) {
@@ -548,8 +626,12 @@ function getActiveScreenId() {
     return candidate;
   }
 
-  window.history.replaceState(null, '', '#sessions');
-  return 'sessions';
+  const fallbackScreen = navigationOrder.includes(appState.shell.lastScreenId)
+    ? appState.shell.lastScreenId
+    : 'sessions';
+
+  window.history.replaceState(null, '', `#${fallbackScreen}`);
+  return fallbackScreen;
 }
 
 function syncViewportHeight() {
@@ -589,6 +671,43 @@ function renderDetails(details) {
       `,
     )
     .join('');
+}
+
+function renderShellStatusBanner() {
+  return `
+    <section class="shell-status-banner is-${getConnectionTone()}" aria-live="polite">
+      <div class="shell-status-copy">
+        <p class="eyebrow">Connection</p>
+        <p class="shell-status-title">${getConnectionLabel()}</p>
+        <p class="shell-status-text">${getConnectionMessage()}</p>
+      </div>
+      <span class="shell-status-pill">${getInstallHint()}</span>
+    </section>
+  `;
+}
+
+function renderInstallCard() {
+  const action = appState.shell.installPromptEvent ? 'prompt-install' : '';
+
+  return `
+    <section class="screen-card install-card">
+      <p class="eyebrow">Install</p>
+      <div class="hero-heading install-heading">
+        <div>
+          <h3>${appState.shell.isStandalone ? 'Installed and relaunch-ready' : 'Keep OpenCode close on iPhone'}</h3>
+          <p class="screen-copy">${getInstallBody()}</p>
+        </div>
+        <span class="location-chip">${appState.shell.isStandalone ? 'Standalone' : 'PWA shell'}</span>
+      </div>
+      <div class="state-actions">
+        ${
+          action
+            ? '<button class="primary-button" type="button" data-action="prompt-install">Install app</button>'
+            : '<button class="secondary-button" type="button" disabled>Use browser add-to-home action</button>'
+        }
+      </div>
+    </section>
+  `;
 }
 
 function renderNavigation(activeId) {
@@ -722,6 +841,9 @@ function renderSessionCard(session) {
 function renderSessionsScreen() {
   if (appState.isHydratingSessions) {
     return `
+      ${renderShellStatusBanner()}
+      ${renderInstallCard()}
+
       <section class="screen-card hero-card">
         <p class="eyebrow">Sessions</p>
         <div class="hero-heading">
@@ -737,6 +859,9 @@ function renderSessionsScreen() {
 
   if (!appState.sessions.length) {
     return `
+      ${renderShellStatusBanner()}
+      ${renderInstallCard()}
+
       <section class="screen-card hero-card">
         <p class="eyebrow">Sessions</p>
         <div class="hero-heading">
@@ -759,6 +884,9 @@ function renderSessionsScreen() {
   }
 
   return `
+    ${renderShellStatusBanner()}
+    ${renderInstallCard()}
+
     <section class="screen-card hero-card">
       <p class="eyebrow">Sessions</p>
       <div class="hero-heading">
@@ -786,6 +914,8 @@ function renderTaskNoSessionState() {
   const hasSessions = appState.sessions.length > 0;
 
   return `
+    ${renderShellStatusBanner()}
+
     <section class="screen-card hero-card">
       <p class="eyebrow">Task view</p>
       <div class="hero-heading">
@@ -816,6 +946,8 @@ function renderTaskNoSessionState() {
 function renderTaskScreen() {
   if (appState.isHydratingSessions) {
     return `
+      ${renderShellStatusBanner()}
+
       <section class="screen-card hero-card">
         <p class="eyebrow">Task view</p>
         <div class="hero-heading">
@@ -842,6 +974,8 @@ function renderTaskScreen() {
   const latestDiffFileCount = getDiffFiles(latestDiffResult).length;
 
   return `
+    ${renderShellStatusBanner()}
+
     <section class="screen-card hero-card">
       <p class="eyebrow">Task view</p>
       <div class="hero-heading">
@@ -1147,6 +1281,9 @@ function renderToolDrawer(session) {
 
 function renderPlaceholderScreen(screen) {
   return `
+    ${renderShellStatusBanner()}
+    ${renderInstallCard()}
+
     <section class="screen-card hero-card">
       <p class="eyebrow">Current destination</p>
       <div class="hero-heading">
@@ -1335,6 +1472,10 @@ function renderApp() {
   const activeId = getActiveScreenId();
   const selectedSession = getSelectedSession();
 
+  appState.shell.lastScreenId = activeId;
+  appState.shell.isStandalone = isStandaloneMode();
+  persistShellState();
+
   if (activeId !== 'task' && appState.toolDrawer.isOpen) {
     resetToolDrawer();
   }
@@ -1365,7 +1506,10 @@ function renderApp() {
             <p class="eyebrow">OpenCode mobile</p>
             <h1>${frameTitle}</h1>
           </div>
-          <span class="status-badge">${releaseTag}</span>
+          <div class="header-status-group">
+            <span class="status-badge status-badge-${getConnectionTone()}">${getConnectionLabel()}</span>
+            <span class="status-badge">${releaseTag}</span>
+          </div>
         </div>
         <p class="frame-copy">${frameCopy}</p>
       </header>
@@ -1460,8 +1604,20 @@ app.addEventListener('click', (event) => {
   const openToolDiffButton = event.target.closest('[data-action="open-tool-diff"]');
   const closeToolDrawerButton = event.target.closest('[data-action="close-tool-drawer"]');
   const backToToolListButton = event.target.closest('[data-action="back-to-tool-list"]');
+  const promptInstallButton = event.target.closest('[data-action="prompt-install"]');
   const diffFileButton = event.target.closest('[data-action="select-diff-file"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
+
+  if (promptInstallButton && appState.shell.installPromptEvent) {
+    const promptEvent = appState.shell.installPromptEvent;
+    appState.shell.installPromptEvent = null;
+    promptEvent.prompt();
+    promptEvent.userChoice.finally(() => {
+      renderApp();
+    });
+    renderApp();
+    return;
+  }
 
   if (closeToolDrawerButton) {
     resetToolDrawer();
@@ -1569,8 +1725,33 @@ app.addEventListener('click', (event) => {
 
 window.addEventListener('hashchange', renderApp);
 window.addEventListener('resize', syncViewportHeight);
+window.addEventListener('online', () => {
+  appState.shell.isOnline = true;
+  renderApp();
+});
+window.addEventListener('offline', () => {
+  appState.shell.isOnline = false;
+  renderApp();
+});
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  appState.shell.installPromptEvent = event;
+  renderApp();
+});
+window.addEventListener('appinstalled', () => {
+  appState.shell.installPromptEvent = null;
+  appState.shell.isStandalone = true;
+  renderApp();
+});
 window.visualViewport?.addEventListener('resize', syncViewportHeight);
 window.visualViewport?.addEventListener('scroll', syncViewportHeight);
 
 syncViewportHeight();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      // Keep the shell usable even if service worker registration fails.
+    });
+  });
+}
 hydrateSessions();

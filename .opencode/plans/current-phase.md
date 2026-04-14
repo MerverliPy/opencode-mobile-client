@@ -1,59 +1,61 @@
 # Current Phase
 
 Status: complete
-Release: v0.6.0
-Phase file: docs/releases/phase-06-mobile-diff-review.md
+Release: v0.7.0
+Phase file: docs/releases/phase-07-pwa-install-and-offline-shell.md
 
 ## Goal
 
-Add a narrow-screen diff review experience that is usable on a phone.
+Make the client feel installable and resilient as a mobile web app.
 
 ## Why this phase is next
 
-After file reading exists, mobile review needs a practical way to inspect code changes.
+Once the core interaction surfaces work, the app should feel more persistent and app-like on iPhone.
 
 ## In scope
 
-- mobile diff review surface
-- narrow-screen diff presentation
-- file-level change navigation
-- readable added/removed context
-- clean exit back to task view
+- install-ready app behavior
+- app icon and app-shell polish
+- explicit online/offline state
+- basic offline-aware shell messaging
+- stable relaunch behavior
 
 ## Out of scope
 
-- desktop-style side-by-side diff
-- advanced patch editing
-- merge conflict resolution
-- large-screen-only review features
+- full offline command execution
+- background sync guarantees
+- push notifications
+- native wrapper work
 
 ## Primary files
 
-- diff viewer files
-- file change navigation files
-- task integration files
+- app manifest-related files
+- app icon assets
+- install guidance UX files
+- offline-state UX files
 
 ## Expected max files changed
 
-10
+9
 
 ## Acceptance criteria
 
-- diffs are understandable on iPhone
-- change navigation is clear
-- primary review content remains readable on narrow screens
-- release adds real code-review value
+- app can be used as an install-oriented mobile web app
+- online/offline messaging is honest and clear
+- relaunch feels stable
+- release improves daily-driver viability
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run build` passes, confirming the Phase 06 app ships as a working bundle.
-- `src/main.js` adds a task-integrated diff review flow: diff tool results can be opened from task messages or the tool list, reviewed inside the existing mobile drawer, and closed back to the same task view.
-- `src/main.js` adds file-level change navigation with selectable changed-file cards, per-file status, and per-file add/remove counts, satisfying the in-scope navigation requirement.
-- `src/main.js` and `src/styles.css` render diffs as a stacked narrow-screen surface with wrapped code lines, line numbers, add/remove markers, and hunk headers instead of a desktop side-by-side layout.
-- Reviewed changes remain within scope: no patch editing, merge conflict workflow, or large-screen-only diff features were introduced.
+- `index.html`, `public/manifest.webmanifest`, and the generated `public/icon-192.png` / `public/icon-512.png` add the expected install metadata and app icon assets for an install-oriented mobile web app shell.
+- `src/main.js` adds explicit online/offline shell state, install guidance, and last-screen persistence, which aligns with the phase goal and stays within scope.
+- `npm run build` passes, so the current changes produce a working production bundle.
+- `public/sw.js` now fetches `/index.html` during install, extracts same-origin `/assets/...` references, and pre-caches the built bundle files required to boot the app offline.
+- Built output confirms the relaunch-critical assets exist and are covered: `dist/index.html` references `/assets/index-rsKhARMr.js` and `/assets/index-D8eQ7LEE.css`, and the service worker's install path caches those alongside `/`, `/index.html`, the manifest, and icons.
+- Reviewed changes remain within scope: they add install-ready behavior, shell messaging, icons, and offline-aware relaunch support without introducing offline command execution, background sync, push notifications, or native wrapper work.
 
 Blockers:
 - none
@@ -63,9 +65,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added a task-integrated mobile diff review flow with file-level change navigation.
-- Added stacked narrow-screen diff rendering with readable added, removed, and context lines.
+- Added install-ready shell metadata, app icons, and in-app install guidance for mobile use.
+- Added explicit online/offline shell messaging and offline relaunch support by caching the built app bundle.
 
 ## Completion summary
 
-Phase 06 made code review usable on mobile by extending the task drawer with a phone-friendly diff viewer that keeps the current task context intact.
+Phase 07 made the client feel more app-like on iPhone by adding installable PWA shell behavior, clear connection state, and a reliable offline relaunch path.
