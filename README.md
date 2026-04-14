@@ -30,6 +30,8 @@ The normal workflow is:
 - No hidden scope expansion
 - Current phase state lives in `.opencode/plans/current-phase.md`
 - Release tracking lives in `docs/releases/phase-registry.md`
+- `/ship-phase` creates the release commit automatically
+- `/ship-phase` pushes to `origin main` only when the current branch is already `main`
 
 ## UX rules
 
