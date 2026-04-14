@@ -1,51 +1,48 @@
 # Current Phase
 
 Status: complete
-Release: v0.3.0
-Phase file: docs/releases/phase-03-conversation-and-composer.md
+Release: v0.4.0
+Phase file: docs/releases/phase-04-sessions-and-state.md
 
 ## Goal
 
-Deliver the first useful task screen with readable output and a mobile-appropriate composer.
+Add a usable sessions surface and minimal local state so the client feels persistent.
 
 ## Why this phase is next
 
-The product becomes meaningfully useful once the user can read output and type comfortably on iPhone.
+A mobile client becomes more practical when the user can return to prior work and see session structure.
 
 ## In scope
 
-- conversation/task screen
-- readable vertical message flow
-- bottom composer
-- keyboard-safe layout behavior
-- loading and interrupted states
-- copy-friendly message content
+- sessions list screen
+- minimal session metadata display
+- local session state handling
+- empty, loading, and no-session states
+- clean transition between Sessions and Task
 
 ## Out of scope
 
-- sessions persistence
-- tool drawer
-- file viewer
-- diff viewer
-- push or install prompts
+- cloud sync
+- advanced search
+- multi-account support
+- tool/file/diff surfaces
 
 ## Primary files
 
-- conversation screen files
-- composer files
-- message rendering files
-- keyboard handling files
+- sessions screen files
+- local state files
+- session routing files
 
 ## Expected max files changed
 
-10
+9
 
 ## Acceptance criteria
 
-- user can read and scroll long output on a narrow screen
-- composer remains usable while keyboard is open
-- no primary text surface requires horizontal scrolling
-- task view feels intentionally mobile
+- sessions surface is understandable on iPhone
+- user can move between Sessions and Task cleanly
+- state survives normal in-app navigation
+- release improves daily usability
 
 ## Validation
 
@@ -53,10 +50,10 @@ Status: PASS
 
 Evidence:
 - `npm run build` passes, confirming the phase ships as a working app bundle.
-- `src/main.js` replaces the Task placeholder with a usable conversation screen, bottom composer, loading state, and interrupted-state recovery prompt while keeping Sessions and Settings as placeholders.
-- `src/styles.css` keeps primary message content in a vertical, wrapped flow (`white-space: pre-wrap`, `overflow-wrap: anywhere`) so narrow-screen reading does not require horizontal scrolling.
-- The layout adds viewport-height syncing, sticky composer behavior, and safe-area-aware spacing so the composer remains positioned for mobile use when the keyboard changes the viewport.
-- Delivered work stays within scope: no sessions persistence, tool drawer, file viewer, diff viewer, or install/push prompt work was added.
+- `src/main.js` replaces the Sessions placeholder with a real sessions surface that includes loading, empty, and no-session states plus one-tap transitions between Sessions and Task.
+- `src/main.js` adds minimal local session state via `localStorage`, restoring sessions, selected session, and per-session drafts so state survives normal in-app navigation and reload.
+- `src/main.js` and `src/styles.css` show lightweight session metadata (title, updated time, message count, preview) in a narrow-screen card layout that remains understandable on iPhone.
+- Delivered work stays within scope: no cloud sync, advanced search, multi-account, or tool/file/diff surface work was added.
 
 Blockers:
 - none
@@ -66,9 +63,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added the first usable task conversation view with readable, vertically stacked mobile output.
-- Added a bottom composer with loading and interrupted-state handling tuned for narrow-screen use.
+- Added a mobile sessions list with lightweight metadata and one-tap reopen behavior.
+- Added local session state for saved threads, selected session, and per-session drafts across normal navigation and reload.
 
 ## Completion summary
 
-Phase 03 shipped the first useful mobile task surface, combining readable conversation output with a thumb-friendly composer while staying within narrow-screen and keyboard-safe constraints.
+Phase 04 made the client feel more persistent by adding a usable sessions surface and minimal local state while keeping the mobile task flow narrow-screen friendly.
