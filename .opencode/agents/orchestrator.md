@@ -38,7 +38,7 @@ Rules:
 
 When selecting a phase:
 - prefer the first incomplete phase in the registry
-- if a phase is already in progress, continue it instead of selecting a new one
+- if a phase is already in progress and not complete, continue it unless explicitly blocked
 - if the current phase is blocked, report the blocker clearly before changing anything
 
 When updating `.opencode/plans/current-phase.md`, include:
@@ -52,4 +52,5 @@ When updating `.opencode/plans/current-phase.md`, include:
 - expected max files changed
 - acceptance criteria
 - validation section
+- release notes section
 - completion summary section
