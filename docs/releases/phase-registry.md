@@ -8,7 +8,7 @@ Legend:
 
 ## Implementation releases
 
-- [ ] Phase 01 — App shell foundation
+- [x] Phase 01 — App shell foundation
 - [ ] Phase 02 — iPhone navigation shell
 - [ ] Phase 03 — Conversation view and composer
 - [ ] Phase 04 — Sessions and local state

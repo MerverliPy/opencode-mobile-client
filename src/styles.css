@@ -1,0 +1,222 @@
+:root {
+  color-scheme: dark;
+  --bg: #020814;
+  --shell: #07111f;
+  --surface: rgba(12, 26, 45, 0.88);
+  --surface-strong: rgba(15, 33, 56, 0.96);
+  --border: rgba(144, 179, 255, 0.16);
+  --text: #f4f7fb;
+  --muted: #aac0de;
+  --accent: #7cc4ff;
+  --accent-soft: rgba(124, 196, 255, 0.14);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(49, 93, 168, 0.3), transparent 36%),
+    linear-gradient(180deg, #06101d 0%, #020814 100%);
+  color: var(--text);
+}
+
+body {
+  min-height: 100dvh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+.app-shell {
+  min-height: 100dvh;
+  max-width: 30rem;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(7, 17, 31, 0.96) 0%, rgba(5, 13, 24, 0.98) 100%);
+  box-shadow: var(--shadow);
+}
+
+.top-frame,
+.bottom-frame {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.top-frame {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: 0.875rem;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(13, 28, 48, 0.98), rgba(9, 20, 36, 0.94));
+  backdrop-filter: blur(18px);
+}
+
+.bottom-frame {
+  padding-top: 0.875rem;
+  padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(8, 18, 31, 0.94), rgba(5, 12, 22, 0.98));
+}
+
+.brand-row,
+.bottom-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.875rem;
+}
+
+.brand-row h1,
+.hero-card h2 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.brand-row h1 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.frame-copy,
+.hero-card p,
+.bottom-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.frame-copy {
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.launch-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.hero-card,
+.placeholder-card,
+.bottom-panel {
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  background: var(--surface);
+}
+
+.hero-card,
+.placeholder-card {
+  padding: 1.1rem;
+}
+
+.hero-card {
+  background: linear-gradient(180deg, rgba(15, 33, 56, 0.98), rgba(10, 24, 41, 0.96));
+}
+
+.hero-card h2 {
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.8rem;
+  line-height: 1.12;
+}
+
+.placeholder-card {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 12rem;
+}
+
+.placeholder-notch,
+.placeholder-line,
+.placeholder-block {
+  background: var(--accent-soft);
+  border-radius: 999px;
+}
+
+.placeholder-notch {
+  width: 5.25rem;
+  height: 0.35rem;
+}
+
+.placeholder-line {
+  width: 100%;
+  height: 0.85rem;
+}
+
+.placeholder-line.short {
+  width: 62%;
+}
+
+.placeholder-block {
+  height: 100%;
+  min-height: 5.5rem;
+  border-radius: 1rem;
+}
+
+.eyebrow,
+.status-badge {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+}
+
+.status-badge {
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(124, 196, 255, 0.08);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.bottom-panel {
+  justify-content: flex-start;
+  padding: 0.85rem 1rem;
+  background: var(--surface-strong);
+}
+
+.online-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #7ef0a5;
+  box-shadow: 0 0 0 0.25rem rgba(126, 240, 165, 0.12);
+}
+
+@media (min-width: 48rem) {
+  body {
+    padding: 1rem;
+  }
+
+  .app-shell {
+    border: 1px solid var(--border);
+    border-radius: 2rem;
+    overflow: hidden;
+    min-height: calc(100dvh - 2rem);
+  }
+}
