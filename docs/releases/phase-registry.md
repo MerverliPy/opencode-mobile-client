@@ -13,6 +13,6 @@ Legend:
 - [x] Phase 03 — Conversation view and composer
 - [x] Phase 04 — Sessions and local state
 - [x] Phase 05 — Tool drawer and file viewer
-- [ ] Phase 06 — Mobile diff review
+- [x] Phase 06 — Mobile diff review
 - [ ] Phase 07 — PWA install and offline-aware shell
 - [ ] Phase 08 — Accessibility and release polish

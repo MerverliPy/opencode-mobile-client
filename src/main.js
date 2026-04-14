@@ -1,6 +1,6 @@
 import './styles.css';
 
-const releaseTag = 'v0.5.0';
+const releaseTag = 'v0.6.0';
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
@@ -17,20 +17,20 @@ const screens = {
     kicker: 'Work',
     title: 'Task',
     description:
-      'The selected session keeps chat, tool output, and file viewing together in one thumb-friendly work surface.',
+      'The selected session keeps chat, tool output, file viewing, and diff review together in one thumb-friendly work surface.',
   },
   settings: {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while task work becomes more useful with mobile tool viewing.',
+    description: 'Settings stays intentionally light while task work becomes more useful with mobile diff and file review.',
     emptyTitle: 'Settings remain lightweight.',
     emptyBody:
       'Advanced preferences, install prompts, and broader app controls are still outside the active phase.',
     details: [
       ['Current state', 'Lightweight placeholder'],
-      ['What changed this phase', 'Task now opens tool output and files in a mobile drawer'],
-      ['Still out of scope', 'Advanced settings, install UX, and diff review'],
+      ['What changed this phase', 'Task now opens narrow-screen diff review alongside mobile file output'],
+      ['Still out of scope', 'Advanced settings, install UX, and patch editing'],
     ],
   },
 };
@@ -46,6 +46,7 @@ const appState = {
     isOpen: false,
     view: 'list',
     toolId: null,
+    changePath: null,
   },
 };
 
@@ -88,16 +89,37 @@ function slugifySegment(value) {
   );
 }
 
-function createToolResult({ label = 'Read file', toolName = 'read_file', path, summary, content }) {
+function createToolResult({
+  kind = 'file',
+  label = 'Read file',
+  toolName = 'read_file',
+  path,
+  summary,
+  content = '',
+  files = [],
+}) {
   return {
     id: createId('tool'),
+    kind,
     label,
     toolName,
     path,
     summary,
     content,
+    files,
     createdAt: Date.now(),
   };
+}
+
+function createDiffToolResult({ label = 'Review diff', toolName = 'git_diff', path, summary, files }) {
+  return createToolResult({
+    kind: 'diff',
+    label,
+    toolName,
+    path,
+    summary,
+    files,
+  });
 }
 
 function createStarterToolResult() {
@@ -116,7 +138,77 @@ function createStarterToolResult() {
   });
 }
 
-function createStarterMessages(toolResultId) {
+function createStarterDiffResult() {
+  return createDiffToolResult({
+    path: 'reviews/mobile-diff-review.diff',
+    summary: 'Three changed files are ready for narrow-screen review.',
+    files: [
+      {
+        path: 'src/main.js',
+        status: 'M',
+        summary: 'Adds a task entry point that opens diff review without leaving the thread.',
+        hunks: [
+          {
+            header: '@@ -660,6 +660,11 @@ function renderTaskScreen() {',
+            lines: [
+              { type: 'context', oldNumber: 660, newNumber: 660, text: '  const toolResults = getToolResults(session);' },
+              { type: 'remove', oldNumber: 661, newNumber: null, text: '  const latestToolResult = toolResults[0] ?? null;' },
+              {
+                type: 'add',
+                oldNumber: null,
+                newNumber: 661,
+                text: "  const latestReview = toolResults.find((toolResult) => toolResult.kind === 'diff') ?? toolResults[0] ?? null;",
+              },
+              {
+                type: 'add',
+                oldNumber: null,
+                newNumber: 662,
+                text: '  const reviewCount = getDiffFiles(latestReview).length;',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'src/styles.css',
+        status: 'M',
+        summary: 'Keeps added and removed lines stacked and readable on a phone.',
+        hunks: [
+          {
+            header: '@@ -702,0 +703,12 @@ .diff-viewer-surface {',
+            lines: [
+              { type: 'add', oldNumber: null, newNumber: 703, text: '.diff-line {' },
+              { type: 'add', oldNumber: null, newNumber: 704, text: '  display: grid;' },
+              { type: 'add', oldNumber: null, newNumber: 705, text: '  grid-template-columns: 3.3rem 3.3rem 1rem minmax(0, 1fr);' },
+              { type: 'add', oldNumber: null, newNumber: 706, text: '  gap: 0.55rem;' },
+              { type: 'add', oldNumber: null, newNumber: 707, text: '  overflow-wrap: anywhere;' },
+              { type: 'add', oldNumber: null, newNumber: 708, text: '}' },
+            ],
+          },
+        ],
+      },
+      {
+        path: 'notes/mobile-review-checklist.md',
+        status: 'A',
+        summary: 'Adds a short checklist for reviewing changes from an iPhone.',
+        hunks: [
+          {
+            header: '@@ -0,0 +1,6 @@',
+            lines: [
+              { type: 'add', oldNumber: null, newNumber: 1, text: '# Mobile review checklist' },
+              { type: 'add', oldNumber: null, newNumber: 2, text: '' },
+              { type: 'add', oldNumber: null, newNumber: 3, text: '- Start from the changed-file list.' },
+              { type: 'add', oldNumber: null, newNumber: 4, text: '- Read additions and removals in one vertical flow.' },
+              { type: 'add', oldNumber: null, newNumber: 5, text: '- Close the drawer to return directly to Task.' },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
+function createStarterMessages(diffToolResultId) {
   return [
     {
       id: createId('msg'),
@@ -129,8 +221,8 @@ function createStarterMessages(toolResultId) {
       id: createId('msg'),
       role: 'assistant',
       label: 'OpenCode',
-      text: 'A starter file output is ready too, so you can check a readable mobile drawer without leaving this thread.',
-      toolResultId,
+      text: 'A starter diff review is ready, and the tools drawer still keeps file output nearby without leaving this thread.',
+      toolResultId: diffToolResultId,
     },
     {
       id: createId('msg'),
@@ -142,6 +234,108 @@ function createStarterMessages(toolResultId) {
       actionLabel: 'Use retry prompt',
     },
   ];
+}
+
+function getToolResultKind(toolResult) {
+  return toolResult?.kind === 'diff' ? 'diff' : 'file';
+}
+
+function getDiffFiles(toolResult) {
+  return getToolResultKind(toolResult) === 'diff' && Array.isArray(toolResult?.files)
+    ? toolResult.files
+    : [];
+}
+
+function getDiffFile(toolResult, changePath) {
+  const diffFiles = getDiffFiles(toolResult);
+
+  if (!diffFiles.length) {
+    return null;
+  }
+
+  return diffFiles.find((file) => file.path === changePath) ?? diffFiles[0];
+}
+
+function getDiffStatusLabel(status) {
+  if (status === 'A') {
+    return 'Added';
+  }
+
+  if (status === 'D') {
+    return 'Deleted';
+  }
+
+  return 'Modified';
+}
+
+function getDiffLineCount(diffFile, type) {
+  return (diffFile?.hunks ?? []).reduce(
+    (count, hunk) =>
+      count + (hunk.lines ?? []).filter((line) => (type ? line.type === type : true)).length,
+    0,
+  );
+}
+
+function normalizeDiffFile(diffFile) {
+  if (!diffFile || typeof diffFile.path !== 'string') {
+    return null;
+  }
+
+  return {
+    path: diffFile.path,
+    status: typeof diffFile.status === 'string' ? diffFile.status : 'M',
+    summary: typeof diffFile.summary === 'string' ? diffFile.summary : 'Changed file',
+    hunks: Array.isArray(diffFile.hunks)
+      ? diffFile.hunks
+          .map((hunk) => {
+            if (!hunk || typeof hunk.header !== 'string') {
+              return null;
+            }
+
+            return {
+              header: hunk.header,
+              lines: Array.isArray(hunk.lines)
+                ? hunk.lines
+                    .filter((line) => line && typeof line.text === 'string')
+                    .map((line) => ({
+                      type: line.type === 'add' || line.type === 'remove' ? line.type : 'context',
+                      oldNumber: Number.isFinite(line.oldNumber) ? line.oldNumber : null,
+                      newNumber: Number.isFinite(line.newNumber) ? line.newNumber : null,
+                      text: line.text,
+                    }))
+                : [],
+            };
+          })
+          .filter(Boolean)
+      : [],
+  };
+}
+
+function normalizeToolResult(toolResult) {
+  if (
+    !toolResult ||
+    typeof toolResult.id !== 'string' ||
+    typeof toolResult.path !== 'string' ||
+    typeof toolResult.summary !== 'string'
+  ) {
+    return null;
+  }
+
+  const kind = toolResult.kind === 'diff' || Array.isArray(toolResult.files) ? 'diff' : 'file';
+
+  return {
+    id: toolResult.id,
+    kind,
+    label: typeof toolResult.label === 'string' ? toolResult.label : kind === 'diff' ? 'Review diff' : 'Read file',
+    toolName: typeof toolResult.toolName === 'string' ? toolResult.toolName : kind === 'diff' ? 'git_diff' : 'read_file',
+    path: toolResult.path,
+    summary: toolResult.summary,
+    content: typeof toolResult.content === 'string' ? toolResult.content : '',
+    files: kind === 'diff'
+      ? (Array.isArray(toolResult.files) ? toolResult.files.map(normalizeDiffFile).filter(Boolean) : [])
+      : [],
+    createdAt: Number(toolResult.createdAt) || Date.now(),
+  };
 }
 
 function persistSessionState() {
@@ -174,6 +368,7 @@ function resetToolDrawer() {
   appState.toolDrawer.isOpen = false;
   appState.toolDrawer.view = 'list';
   appState.toolDrawer.toolId = null;
+  appState.toolDrawer.changePath = null;
 }
 
 function getSessionTitle(session) {
@@ -257,14 +452,15 @@ function updateSessionById(sessionId, updater) {
 function createSession() {
   const now = Date.now();
   const starterToolResult = createStarterToolResult();
+  const starterDiffResult = createStarterDiffResult();
   const session = {
     id: createId('session'),
     createdAt: now,
     updatedAt: now,
     draft: '',
     isLoading: false,
-    messages: createStarterMessages(starterToolResult.id),
-    toolResults: [starterToolResult],
+    messages: createStarterMessages(starterDiffResult.id),
+    toolResults: [starterDiffResult, starterToolResult],
   };
 
   appState.sessions = [session, ...appState.sessions];
@@ -296,25 +492,7 @@ function hydrateSessions() {
           draft: typeof session.draft === 'string' ? session.draft : '',
           isLoading: false,
           toolResults: Array.isArray(session.toolResults)
-            ? session.toolResults
-                .filter(
-                  (toolResult) =>
-                    toolResult &&
-                    typeof toolResult.id === 'string' &&
-                    typeof toolResult.path === 'string' &&
-                    typeof toolResult.summary === 'string' &&
-                    typeof toolResult.content === 'string',
-                )
-                .map((toolResult) => ({
-                  id: toolResult.id,
-                  label: typeof toolResult.label === 'string' ? toolResult.label : 'Read file',
-                  toolName:
-                    typeof toolResult.toolName === 'string' ? toolResult.toolName : 'read_file',
-                  path: toolResult.path,
-                  summary: toolResult.summary,
-                  content: toolResult.content,
-                  createdAt: Number(toolResult.createdAt) || Date.now(),
-                }))
+            ? session.toolResults.map(normalizeToolResult).filter(Boolean)
             : [],
           messages: session.messages
             .filter(
@@ -436,6 +614,7 @@ function renderNavigation(activeId) {
 function renderMessage(message) {
   const session = getSelectedSession();
   const toolResult = message.toolResultId ? getToolResult(session, message.toolResultId) : null;
+  const isDiffResult = getToolResultKind(toolResult) === 'diff';
 
   return `
     <li class="message-row is-${message.role}${message.tone ? ` is-${message.tone}` : ''}">
@@ -458,10 +637,10 @@ function renderMessage(message) {
                   <button
                     class="secondary-button tool-inline-button"
                     type="button"
-                    data-action="open-tool-file"
+                    data-action="${isDiffResult ? 'open-tool-diff' : 'open-tool-file'}"
                     data-tool-id="${toolResult.id}"
                   >
-                    Open file
+                    ${isDiffResult ? 'Review diff' : 'Open file'}
                   </button>
                   <button class="ghost-button tool-inline-button" type="button" data-action="open-tool-drawer">
                     All tools
@@ -659,6 +838,8 @@ function renderTaskScreen() {
   const messageCount = getVisibleMessageCount(session);
   const toolResults = getToolResults(session);
   const latestToolResult = toolResults[0] ?? null;
+  const latestDiffResult = toolResults.find((toolResult) => getToolResultKind(toolResult) === 'diff') ?? null;
+  const latestDiffFileCount = getDiffFiles(latestDiffResult).length;
 
   return `
     <section class="screen-card hero-card">
@@ -672,6 +853,13 @@ function renderTaskScreen() {
         <span class="meta-pill">Updated ${escapeHtml(formatSessionTime(session.updatedAt))}</span>
         <span class="meta-pill">${messageCount} ${messageCount === 1 ? 'message' : 'messages'}</span>
         <span class="meta-pill">${toolResults.length} ${toolResults.length === 1 ? 'tool output' : 'tool outputs'}</span>
+        ${
+          latestDiffResult
+            ? `<span class="meta-pill">${latestDiffFileCount} ${
+                latestDiffFileCount === 1 ? 'changed file' : 'changed files'
+              }</span>`
+            : ''
+        }
         <span class="meta-pill">Local only</span>
       </div>
       <div class="state-actions">
@@ -689,8 +877,12 @@ function renderTaskScreen() {
       <div class="conversation-summary">
         <p class="eyebrow">Readable output</p>
         <p class="conversation-copy">${
-          latestToolResult
-            ? `Tool output opens in a drawer, so you can inspect ${escapeHtml(latestToolResult.path)} without losing the thread.`
+          latestDiffResult
+            ? `Diff review opens in the drawer, so you can inspect ${latestDiffFileCount} changed ${
+                latestDiffFileCount === 1 ? 'file' : 'files'
+              } without losing the task thread.`
+            : latestToolResult
+              ? `Tool output opens in a drawer, so you can inspect ${escapeHtml(latestToolResult.path)} without losing the thread.`
             : 'This selected session stays readable, copy-friendly, and available while you move back to Sessions.'
         }</p>
       </div>
@@ -726,11 +918,14 @@ function renderTaskScreen() {
 }
 
 function renderToolResultCard(toolResult) {
+  const isDiffResult = getToolResultKind(toolResult) === 'diff';
+  const diffFiles = getDiffFiles(toolResult);
+
   return `
     <button
       class="tool-result-card"
       type="button"
-      data-action="open-tool-file"
+      data-action="${isDiffResult ? 'open-tool-diff' : 'open-tool-file'}"
       data-tool-id="${toolResult.id}"
     >
       <div class="tool-result-header">
@@ -742,6 +937,11 @@ function renderToolResultCard(toolResult) {
       </div>
       <div class="tool-result-meta">
         <span class="tool-badge">${escapeHtml(toolResult.toolName)}</span>
+        ${
+          isDiffResult
+            ? `<span class="tool-command">${diffFiles.length} ${diffFiles.length === 1 ? 'changed file' : 'changed files'}</span>`
+            : ''
+        }
         <span class="tool-timestamp">${escapeHtml(formatSessionTime(toolResult.createdAt))}</span>
       </div>
     </button>
@@ -778,6 +978,96 @@ function renderFileViewer(toolResult) {
   `;
 }
 
+function renderDiffLine(line) {
+  const marker = line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' ';
+
+  return `
+    <li class="diff-line is-${line.type}">
+      <span class="diff-line-number">${line.oldNumber ?? ''}</span>
+      <span class="diff-line-number">${line.newNumber ?? ''}</span>
+      <span class="diff-line-marker" aria-hidden="true">${marker}</span>
+      <code class="diff-line-copy">${line.text ? escapeHtml(line.text) : '&nbsp;'}</code>
+    </li>
+  `;
+}
+
+function renderDiffFileNavigation(toolResult, activeChangePath) {
+  const diffFiles = getDiffFiles(toolResult);
+
+  return `
+    <nav class="diff-file-nav" aria-label="Changed files">
+      ${diffFiles
+        .map((diffFile) => {
+          const isActive = diffFile.path === activeChangePath;
+          const additions = getDiffLineCount(diffFile, 'add');
+          const removals = getDiffLineCount(diffFile, 'remove');
+
+          return `
+            <button
+              class="diff-file-card${isActive ? ' is-active' : ''}"
+              type="button"
+              data-action="select-diff-file"
+              data-change-path="${escapeHtml(diffFile.path)}"
+            >
+              <div class="diff-file-header">
+                <p class="tool-path">${escapeHtml(diffFile.path)}</p>
+                <span class="session-status">${getDiffStatusLabel(diffFile.status)}</span>
+              </div>
+              <p class="tool-summary">${escapeHtml(diffFile.summary)}</p>
+              <div class="tool-result-meta">
+                <span class="tool-badge">+${additions}</span>
+                <span class="tool-badge">−${removals}</span>
+              </div>
+            </button>
+          `;
+        })
+        .join('')}
+    </nav>
+  `;
+}
+
+function renderDiffViewer(toolResult, activeChangePath) {
+  const activeDiffFile = getDiffFile(toolResult, activeChangePath);
+
+  if (!activeDiffFile) {
+    return '';
+  }
+
+  return `
+    <div class="diff-viewer">
+      ${renderDiffFileNavigation(toolResult, activeDiffFile.path)}
+
+      <section class="diff-viewer-panel">
+        <div class="file-viewer-meta">
+          <span class="meta-pill">${escapeHtml(getDiffStatusLabel(activeDiffFile.status))}</span>
+          <span class="meta-pill">${getDiffLineCount(activeDiffFile, 'add')} additions</span>
+          <span class="meta-pill">${getDiffLineCount(activeDiffFile, 'remove')} removals</span>
+        </div>
+
+        <div class="diff-viewer-copy">
+          <p class="tool-path">${escapeHtml(activeDiffFile.path)}</p>
+          <p class="tool-summary">${escapeHtml(activeDiffFile.summary)}</p>
+        </div>
+
+        <section class="diff-viewer-surface" aria-label="Diff contents">
+          ${(activeDiffFile.hunks ?? [])
+            .map(
+              (hunk) => `
+                <section class="diff-hunk">
+                  <p class="diff-hunk-header">${escapeHtml(hunk.header)}</p>
+                  <ol class="diff-line-list">
+                    ${(hunk.lines ?? []).map(renderDiffLine).join('')}
+                  </ol>
+                </section>
+              `,
+            )
+            .join('')}
+        </section>
+      </section>
+    </div>
+  `;
+}
+
 function renderToolDrawer(session) {
   if (!session || !appState.toolDrawer.isOpen) {
     return '';
@@ -788,11 +1078,20 @@ function renderToolDrawer(session) {
     ? getToolResult(session, appState.toolDrawer.toolId)
     : null;
   const isFileView = appState.toolDrawer.view === 'file' && activeTool;
-  const title = isFileView ? activeTool.path : 'Tool output';
+  const isDiffView = appState.toolDrawer.view === 'diff' && activeTool;
+  const diffFiles = getDiffFiles(activeTool);
+  const activeDiffFile = isDiffView ? getDiffFile(activeTool, appState.toolDrawer.changePath) : null;
+  const title = isFileView
+    ? activeTool.path
+    : isDiffView
+      ? activeDiffFile?.path ?? activeTool.path
+      : 'Tool output';
   const body = isFileView
     ? activeTool.summary
+    : isDiffView
+      ? activeDiffFile?.summary ?? `Review ${diffFiles.length} changed ${diffFiles.length === 1 ? 'file' : 'files'} in one vertical flow.`
     : toolResults.length
-      ? 'Open a file output without leaving the current task thread.'
+      ? 'Open file output or diff review without leaving the current task thread.'
       : 'Tool output will appear here after the task creates something readable.';
 
   return `
@@ -809,14 +1108,14 @@ function renderToolDrawer(session) {
 
         <header class="tool-drawer-header">
           <div class="tool-drawer-copy">
-            <p class="eyebrow">${isFileView ? 'File viewer' : 'Tool output'}</p>
+            <p class="eyebrow">${isFileView ? 'File viewer' : isDiffView ? 'Diff review' : 'Tool output'}</p>
             <h3>${escapeHtml(title)}</h3>
             <p class="screen-copy">${escapeHtml(body)}</p>
           </div>
 
           <div class="tool-drawer-actions">
             ${
-              isFileView
+              isFileView || isDiffView
                 ? '<button class="ghost-button tool-nav-button" type="button" data-action="back-to-tool-list">All tools</button>'
                 : ''
             }
@@ -828,6 +1127,8 @@ function renderToolDrawer(session) {
           ${
             isFileView
               ? renderFileViewer(activeTool)
+              : isDiffView
+                ? renderDiffViewer(activeTool, activeDiffFile?.path)
               : toolResults.length
                 ? `<div class="tool-result-list">${toolResults.map(renderToolResultCard).join('')}</div>`
                 : `
@@ -893,17 +1194,64 @@ function createGeneratedToolResult(session, prompt) {
   });
 }
 
+function createGeneratedDiffResult(session, prompt) {
+  const promptSummary = trimText(compactText(prompt), 36);
+
+  return createDiffToolResult({
+    path: `reviews/${slugifySegment(promptSummary)}.diff`,
+    summary: 'Prepared a mobile diff snapshot for the latest task context.',
+    files: [
+      {
+        path: 'src/main.js',
+        status: 'M',
+        summary: 'Updates the task thread so diff review opens in the mobile drawer.',
+        hunks: [
+          {
+            header: '@@ -1050,3 +1050,4 @@ function buildAssistantReply(prompt) {',
+            lines: [
+              { type: 'context', oldNumber: 1050, newNumber: 1050, text: 'function buildAssistantReply(prompt) {' },
+              { type: 'context', oldNumber: 1051, newNumber: 1051, text: '  return `Working from your latest message:' },
+              { type: 'remove', oldNumber: 1053, newNumber: null, text: '- file content now opens in a drawer with a clear return path' },
+              { type: 'add', oldNumber: null, newNumber: 1053, text: '- diff review and file content stay in the drawer with a clear return path' },
+              { type: 'add', oldNumber: null, newNumber: 1054, text: '- changed files stay readable in one stacked mobile flow' },
+            ],
+          },
+        ],
+      },
+      {
+        path: `notes/${slugifySegment(promptSummary)}-review.md`,
+        status: 'A',
+        summary: 'Captures the latest mobile review notes as a new file.',
+        hunks: [
+          {
+            header: '@@ -0,0 +1,7 @@',
+            lines: [
+              { type: 'add', oldNumber: null, newNumber: 1, text: `# Review notes for ${getSessionTitle(session)}` },
+              { type: 'add', oldNumber: null, newNumber: 2, text: '' },
+              { type: 'add', oldNumber: null, newNumber: 3, text: 'Prompt' },
+              { type: 'add', oldNumber: null, newNumber: 4, text: prompt },
+              { type: 'add', oldNumber: null, newNumber: 5, text: '' },
+              { type: 'add', oldNumber: null, newNumber: 6, text: '- Review additions and removals in one vertical mobile flow.' },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
 function finishAssistantReply(sessionId, prompt) {
   responseTimers.delete(sessionId);
 
   const updatedSession = updateSessionById(sessionId, (session) => {
     const toolResult = createGeneratedToolResult(session, prompt);
+    const diffResult = createGeneratedDiffResult(session, prompt);
 
     return {
       ...session,
       isLoading: false,
       updatedAt: Date.now(),
-      toolResults: [toolResult, ...getToolResults(session)],
+      toolResults: [diffResult, toolResult, ...getToolResults(session)],
       messages: [
         ...session.messages,
         {
@@ -911,7 +1259,7 @@ function finishAssistantReply(sessionId, prompt) {
           role: 'assistant',
           label: 'OpenCode',
           text: buildAssistantReply(prompt),
-          toolResultId: toolResult.id,
+          toolResultId: diffResult.id,
         },
       ],
     };
@@ -1109,8 +1457,10 @@ app.addEventListener('click', (event) => {
   const openSelectedSessionButton = event.target.closest('[data-action="open-selected-session"]');
   const openToolDrawerButton = event.target.closest('[data-action="open-tool-drawer"]');
   const openToolFileButton = event.target.closest('[data-action="open-tool-file"]');
+  const openToolDiffButton = event.target.closest('[data-action="open-tool-diff"]');
   const closeToolDrawerButton = event.target.closest('[data-action="close-tool-drawer"]');
   const backToToolListButton = event.target.closest('[data-action="back-to-tool-list"]');
+  const diffFileButton = event.target.closest('[data-action="select-diff-file"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
 
   if (closeToolDrawerButton) {
@@ -1123,6 +1473,7 @@ app.addEventListener('click', (event) => {
     appState.toolDrawer.isOpen = true;
     appState.toolDrawer.view = 'list';
     appState.toolDrawer.toolId = null;
+    appState.toolDrawer.changePath = null;
     renderApp();
     return;
   }
@@ -1131,6 +1482,7 @@ app.addEventListener('click', (event) => {
     appState.toolDrawer.isOpen = true;
     appState.toolDrawer.view = 'list';
     appState.toolDrawer.toolId = null;
+    appState.toolDrawer.changePath = null;
     renderApp();
     return;
   }
@@ -1142,6 +1494,34 @@ app.addEventListener('click', (event) => {
       appState.toolDrawer.isOpen = true;
       appState.toolDrawer.view = 'file';
       appState.toolDrawer.toolId = toolId;
+      appState.toolDrawer.changePath = null;
+      renderApp();
+    }
+
+    return;
+  }
+
+  if (openToolDiffButton instanceof HTMLElement) {
+    const { toolId } = openToolDiffButton.dataset;
+    const toolResult = toolId ? getToolResult(getSelectedSession(), toolId) : null;
+    const firstDiffFile = getDiffFiles(toolResult)[0] ?? null;
+
+    if (toolResult && getToolResultKind(toolResult) === 'diff') {
+      appState.toolDrawer.isOpen = true;
+      appState.toolDrawer.view = 'diff';
+      appState.toolDrawer.toolId = toolId;
+      appState.toolDrawer.changePath = firstDiffFile?.path ?? null;
+      renderApp();
+    }
+
+    return;
+  }
+
+  if (diffFileButton instanceof HTMLElement) {
+    const { changePath } = diffFileButton.dataset;
+
+    if (changePath) {
+      appState.toolDrawer.changePath = changePath;
       renderApp();
     }
 

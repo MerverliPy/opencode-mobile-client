@@ -1,37 +1,37 @@
 # Current Phase
 
 Status: complete
-Release: v0.5.0
-Phase file: docs/releases/phase-05-tool-drawer-and-file-viewer.md
+Release: v0.6.0
+Phase file: docs/releases/phase-06-mobile-diff-review.md
 
 ## Goal
 
-Add a mobile-friendly tool output drawer and readable file viewer.
+Add a narrow-screen diff review experience that is usable on a phone.
 
 ## Why this phase is next
 
-The mobile client becomes much more valuable when it can show more than plain chat output.
+After file reading exists, mobile review needs a practical way to inspect code changes.
 
 ## In scope
 
-- tool output drawer or panel
-- clear open/close behavior
-- readable file content surface
-- clean return path back to task view
-- narrow-screen readability
+- mobile diff review surface
+- narrow-screen diff presentation
+- file-level change navigation
+- readable added/removed context
+- clean exit back to task view
 
 ## Out of scope
 
-- full editing workflow
-- diff review
-- repo-wide search
-- advanced file management
+- desktop-style side-by-side diff
+- advanced patch editing
+- merge conflict resolution
+- large-screen-only review features
 
 ## Primary files
 
-- tool drawer files
-- file viewer files
-- task-to-tool transition files
+- diff viewer files
+- file change navigation files
+- task integration files
 
 ## Expected max files changed
 
@@ -39,21 +39,21 @@ The mobile client becomes much more valuable when it can show more than plain ch
 
 ## Acceptance criteria
 
-- user can open and dismiss tool output reliably
-- file contents are readable on iPhone
-- chat context is not lost while inspecting a file
-- result does not feel like a compressed desktop panel
+- diffs are understandable on iPhone
+- change navigation is clear
+- primary review content remains readable on narrow screens
+- release adds real code-review value
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run build` passes, confirming the phase ships as a working app bundle.
-- `src/main.js` adds a task-scoped tool drawer with explicit open actions, close button, scrim dismissal, and an in-drawer back action from file view to the tool list.
-- `src/main.js` keeps the Task conversation mounted while the drawer is open, so inspecting a file does not discard chat context and closing returns directly to the same task view.
-- `src/main.js` and `src/styles.css` add a readable mobile file surface with wrapped lines, line numbers, and a bottom-sheet presentation sized for narrow screens instead of a desktop-style side panel.
-- Reviewed changes stay within scope: no editing workflow, diff review, repo-wide search, or advanced file management was introduced.
+- `npm run build` passes, confirming the Phase 06 app ships as a working bundle.
+- `src/main.js` adds a task-integrated diff review flow: diff tool results can be opened from task messages or the tool list, reviewed inside the existing mobile drawer, and closed back to the same task view.
+- `src/main.js` adds file-level change navigation with selectable changed-file cards, per-file status, and per-file add/remove counts, satisfying the in-scope navigation requirement.
+- `src/main.js` and `src/styles.css` render diffs as a stacked narrow-screen surface with wrapped code lines, line numbers, add/remove markers, and hunk headers instead of a desktop side-by-side layout.
+- Reviewed changes remain within scope: no patch editing, merge conflict workflow, or large-screen-only diff features were introduced.
 
 Blockers:
 - none
@@ -63,9 +63,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added a task-scoped mobile tool drawer with clear open, close, and back actions.
-- Added a readable narrow-screen file viewer with wrapped lines and preserved task context.
+- Added a task-integrated mobile diff review flow with file-level change navigation.
+- Added stacked narrow-screen diff rendering with readable added, removed, and context lines.
 
 ## Completion summary
 
-Phase 05 made tool output usable on mobile by adding a bottom-sheet drawer and file viewer that keep the current task conversation visible and easy to return to.
+Phase 06 made code review usable on mobile by extending the task drawer with a phone-friendly diff viewer that keeps the current task context intact.
