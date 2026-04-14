@@ -15,4 +15,4 @@ Legend:
 - [x] Phase 05 — Tool drawer and file viewer
 - [x] Phase 06 — Mobile diff review
 - [x] Phase 07 — PWA install and offline-aware shell
-- [ ] Phase 08 — Accessibility and release polish
+- [x] Phase 08 — Accessibility and release polish

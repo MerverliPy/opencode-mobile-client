@@ -1,6 +1,6 @@
 import './styles.css';
 
-const releaseTag = 'v0.7.0';
+const releaseTag = 'v0.8.0';
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
 const shellStorageKey = 'opencode-mobile.shell-v1';
@@ -44,6 +44,9 @@ const appState = {
   sessions: [],
   selectedSessionId: null,
   isHydratingSessions: true,
+  ui: {
+    notice: null,
+  },
   shell: {
     isOnline: window.navigator.onLine,
     isStandalone: isStandaloneMode(),
@@ -61,6 +64,8 @@ const appState = {
 const responseTimers = new Map();
 let shouldScrollTaskToEnd = false;
 let shouldFocusComposer = false;
+let shouldFocusDrawerClose = false;
+let shouldRestoreTaskFocus = false;
 
 function createId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 8)}${Date.now().toString(36).slice(-6)}`;
@@ -152,6 +157,33 @@ function trimText(value, maxLength = 96) {
   }
 
   return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function setUiNotice({ tone = 'info', title, body }) {
+  appState.ui.notice = title && body ? { tone, title, body } : null;
+}
+
+function clearUiNotice() {
+  appState.ui.notice = null;
+}
+
+function renderUiNotice() {
+  const notice = appState.ui.notice;
+
+  if (!notice) {
+    return '';
+  }
+
+  return `
+    <section class="app-notice is-${notice.tone}" role="${notice.tone === 'error' ? 'alert' : 'status'}" aria-live="${notice.tone === 'error' ? 'assertive' : 'polite'}">
+      <div class="app-notice-copy">
+        <p class="eyebrow">${escapeHtml(notice.tone)}</p>
+        <p class="app-notice-title">${escapeHtml(notice.title)}</p>
+        <p class="app-notice-body">${escapeHtml(notice.body)}</p>
+      </div>
+      <button class="ghost-button notice-dismiss-button" type="button" data-action="dismiss-ui-notice">Dismiss</button>
+    </section>
+  `;
 }
 
 function slugifySegment(value) {
@@ -587,6 +619,11 @@ function hydrateSessions() {
     } catch {
       nextSessions = [];
       nextSelectedSessionId = null;
+      setUiNotice({
+        tone: 'warning',
+        title: 'Saved sessions could not be restored.',
+        body: 'You can keep using the app and start a fresh session, but previous local state was unavailable on this device.',
+      });
     }
 
     appState.sessions = nextSessions;
@@ -734,6 +771,8 @@ function renderMessage(message) {
   const session = getSelectedSession();
   const toolResult = message.toolResultId ? getToolResult(session, message.toolResultId) : null;
   const isDiffResult = getToolResultKind(toolResult) === 'diff';
+  const isToolDrawerOpen = appState.toolDrawer.isOpen;
+  const isActiveTool = isToolDrawerOpen && appState.toolDrawer.toolId === toolResult?.id;
 
   return `
     <li class="message-row is-${message.role}${message.tone ? ` is-${message.tone}` : ''}">
@@ -753,15 +792,19 @@ function renderMessage(message) {
                 <p class="tool-path">${escapeHtml(toolResult.path)}</p>
                 <p class="tool-summary">${escapeHtml(toolResult.summary)}</p>
                 <div class="tool-action-row">
-                  <button
-                    class="secondary-button tool-inline-button"
-                    type="button"
-                    data-action="${isDiffResult ? 'open-tool-diff' : 'open-tool-file'}"
-                    data-tool-id="${toolResult.id}"
-                  >
-                    ${isDiffResult ? 'Review diff' : 'Open file'}
-                  </button>
-                  <button class="ghost-button tool-inline-button" type="button" data-action="open-tool-drawer">
+                   <button
+                     class="secondary-button tool-inline-button"
+                     type="button"
+                     data-action="${isDiffResult ? 'open-tool-diff' : 'open-tool-file'}"
+                     data-tool-id="${toolResult.id}"
+                     aria-label="${escapeHtml(isDiffResult ? `Review diff ${toolResult.path}` : `Open file ${toolResult.path}`)}"
+                     aria-haspopup="dialog"
+                     aria-controls="tool-drawer"
+                     aria-expanded="${isActiveTool ? 'true' : 'false'}"
+                   >
+                     ${isDiffResult ? 'Review diff' : 'Open file'}
+                   </button>
+                  <button class="ghost-button tool-inline-button" type="button" data-action="open-tool-drawer" aria-label="Open all tool output" aria-haspopup="dialog" aria-controls="tool-drawer" aria-expanded="${isToolDrawerOpen && appState.toolDrawer.view === 'list' ? 'true' : 'false'}">
                     All tools
                   </button>
                 </div>
@@ -793,7 +836,7 @@ function renderLoadingMessage() {
           <span class="message-label">OpenCode</span>
           <span class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></span>
         </div>
-        <p class="loading-copy">Thinking through the next reply…</p>
+        <p class="loading-copy">Thinking through the next reply while keeping this thread readable.</p>
       </article>
     </li>
   `;
@@ -823,6 +866,7 @@ function renderSessionCard(session) {
       type="button"
       data-action="select-session"
       data-session-id="${session.id}"
+      aria-label="${escapeHtml(`Open session ${getSessionTitle(session)}. Updated ${formatSessionTime(session.updatedAt)}.`)}"
     >
       <div class="session-item-header">
         <div class="session-item-copy">
@@ -1007,7 +1051,7 @@ function renderTaskScreen() {
       </div>
     </section>
 
-    <section class="screen-card conversation-card" aria-label="Task conversation">
+    <section class="screen-card conversation-card" aria-label="Task conversation" aria-busy="${session.isLoading ? 'true' : 'false'}">
       <div class="conversation-summary">
         <p class="eyebrow">Readable output</p>
         <p class="conversation-copy">${
@@ -1037,10 +1081,11 @@ function renderTaskScreen() {
           rows="1"
           maxlength="1200"
           placeholder="Continue this session, summarize output, or continue the interrupted reply."
+          aria-describedby="composer-hint"
         >${escapeHtml(session.draft)}</textarea>
         <div class="composer-footer">
-          <p class="composer-hint">Drafts stay with this session while you browse the rest of the app.</p>
-          <button class="send-button" type="submit" ${
+          <p class="composer-hint" id="composer-hint">Drafts stay with this session while you browse the rest of the app.</p>
+          <button class="send-button" type="submit" aria-label="${session.isLoading ? 'Sending reply' : 'Send reply'}" ${
             session.draft.trim() && !session.isLoading ? '' : 'disabled'
           }>
             ${session.isLoading ? 'Sending' : 'Send'}
@@ -1061,6 +1106,7 @@ function renderToolResultCard(toolResult) {
       type="button"
       data-action="${isDiffResult ? 'open-tool-diff' : 'open-tool-file'}"
       data-tool-id="${toolResult.id}"
+      aria-label="${escapeHtml(isDiffResult ? `Review diff ${toolResult.path}` : `Open file ${toolResult.path}`)}"
     >
       <div class="tool-result-header">
         <div class="tool-result-copy">
@@ -1142,6 +1188,8 @@ function renderDiffFileNavigation(toolResult, activeChangePath) {
               type="button"
               data-action="select-diff-file"
               data-change-path="${escapeHtml(diffFile.path)}"
+              aria-label="${escapeHtml(`Review changed file ${diffFile.path}`)}"
+              aria-current="${isActive ? 'true' : 'false'}"
             >
               <div class="diff-file-header">
                 <p class="tool-path">${escapeHtml(diffFile.path)}</p>
@@ -1237,14 +1285,14 @@ function renderToolDrawer(session) {
         aria-label="Close tool drawer"
       ></button>
 
-      <section class="tool-drawer" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+      <section class="tool-drawer" id="tool-drawer" role="dialog" aria-modal="true" aria-labelledby="tool-drawer-title" aria-describedby="tool-drawer-description">
         <div class="tool-drawer-handle" aria-hidden="true"></div>
 
         <header class="tool-drawer-header">
           <div class="tool-drawer-copy">
             <p class="eyebrow">${isFileView ? 'File viewer' : isDiffView ? 'Diff review' : 'Tool output'}</p>
-            <h3>${escapeHtml(title)}</h3>
-            <p class="screen-copy">${escapeHtml(body)}</p>
+            <h3 id="tool-drawer-title">${escapeHtml(title)}</h3>
+            <p class="screen-copy" id="tool-drawer-description">${escapeHtml(body)}</p>
           </div>
 
           <div class="tool-drawer-actions">
@@ -1308,7 +1356,7 @@ function renderPlaceholderScreen(screen) {
 }
 
 function buildAssistantReply(prompt) {
-  return `Working from your latest message:\n\n${prompt}\n\nMobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines keep the reading surface narrow-screen friendly`;
+  return `Working from your latest message:\n\n${prompt}\n\nMobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines and larger touch targets keep common mobile actions easier to use`;
 }
 
 function createGeneratedToolResult(session, prompt) {
@@ -1500,6 +1548,8 @@ function renderApp() {
 
   app.innerHTML = `
     <div class="app-shell">
+      <a class="skip-link" href="#main-content">Skip to content</a>
+
       <header class="top-frame">
         <div class="brand-row">
           <div>
@@ -1514,7 +1564,8 @@ function renderApp() {
         <p class="frame-copy">${frameCopy}</p>
       </header>
 
-      <main class="screen-area${activeId === 'task' ? ' is-task' : ''}" aria-labelledby="screen-title">
+      <main id="main-content" class="screen-area${activeId === 'task' ? ' is-task' : ''}" aria-labelledby="screen-title" tabindex="-1">
+        ${renderUiNotice()}
         ${
           activeId === 'sessions'
             ? renderSessionsScreen()
@@ -1536,6 +1587,20 @@ function renderApp() {
 
   const composerInput = app.querySelector('#composer-input');
   syncComposerControls();
+
+  if (shouldFocusDrawerClose) {
+    shouldFocusDrawerClose = false;
+    window.requestAnimationFrame(() => {
+      app.querySelector('[data-action="close-tool-drawer"]')?.focus();
+    });
+  }
+
+  if (shouldRestoreTaskFocus && activeId === 'task') {
+    shouldRestoreTaskFocus = false;
+    window.requestAnimationFrame(() => {
+      app.querySelector('[data-action="open-tool-drawer"], #composer-input, [data-action="open-sessions"]')?.focus();
+    });
+  }
 
   if (shouldFocusComposer && composerInput) {
     shouldFocusComposer = false;
@@ -1580,6 +1645,26 @@ app.addEventListener('focusin', (event) => {
   });
 });
 
+app.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') {
+    return;
+  }
+
+  if (appState.toolDrawer.isOpen) {
+    event.preventDefault();
+    resetToolDrawer();
+    shouldRestoreTaskFocus = true;
+    renderApp();
+    return;
+  }
+
+  if (appState.ui.notice) {
+    event.preventDefault();
+    clearUiNotice();
+    renderApp();
+  }
+});
+
 app.addEventListener('submit', (event) => {
   if (!(event.target instanceof HTMLFormElement) || event.target.id !== 'composer-form') {
     return;
@@ -1595,6 +1680,7 @@ app.addEventListener('click', (event) => {
   }
 
   const actionButton = event.target.closest('[data-action="use-retry-prompt"]');
+  const dismissNoticeButton = event.target.closest('[data-action="dismiss-ui-notice"]');
   const createSessionButton = event.target.closest('[data-action="create-session"]');
   const openSessionsButton = event.target.closest('[data-action="open-sessions"]');
   const openTaskButton = event.target.closest('[data-action="open-task"]');
@@ -1608,19 +1694,37 @@ app.addEventListener('click', (event) => {
   const diffFileButton = event.target.closest('[data-action="select-diff-file"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
 
+  if (dismissNoticeButton) {
+    clearUiNotice();
+    renderApp();
+    return;
+  }
+
   if (promptInstallButton && appState.shell.installPromptEvent) {
     const promptEvent = appState.shell.installPromptEvent;
     appState.shell.installPromptEvent = null;
     promptEvent.prompt();
-    promptEvent.userChoice.finally(() => {
-      renderApp();
-    });
+    promptEvent.userChoice
+      .then((choice) => {
+        setUiNotice({
+          tone: choice.outcome === 'accepted' ? 'success' : 'info',
+          title: choice.outcome === 'accepted' ? 'Install started.' : 'Install dismissed.',
+          body:
+            choice.outcome === 'accepted'
+              ? 'OpenCode can now relaunch more like an app from your Home Screen.'
+              : 'You can still install later from the browser add-to-home controls.',
+        });
+      })
+      .finally(() => {
+        renderApp();
+      });
     renderApp();
     return;
   }
 
   if (closeToolDrawerButton) {
     resetToolDrawer();
+    shouldRestoreTaskFocus = true;
     renderApp();
     return;
   }
@@ -1639,6 +1743,7 @@ app.addEventListener('click', (event) => {
     appState.toolDrawer.view = 'list';
     appState.toolDrawer.toolId = null;
     appState.toolDrawer.changePath = null;
+    shouldFocusDrawerClose = true;
     renderApp();
     return;
   }
@@ -1651,6 +1756,7 @@ app.addEventListener('click', (event) => {
       appState.toolDrawer.view = 'file';
       appState.toolDrawer.toolId = toolId;
       appState.toolDrawer.changePath = null;
+      shouldFocusDrawerClose = true;
       renderApp();
     }
 
@@ -1667,6 +1773,7 @@ app.addEventListener('click', (event) => {
       appState.toolDrawer.view = 'diff';
       appState.toolDrawer.toolId = toolId;
       appState.toolDrawer.changePath = firstDiffFile?.path ?? null;
+      shouldFocusDrawerClose = true;
       renderApp();
     }
 
@@ -1727,10 +1834,20 @@ window.addEventListener('hashchange', renderApp);
 window.addEventListener('resize', syncViewportHeight);
 window.addEventListener('online', () => {
   appState.shell.isOnline = true;
+  setUiNotice({
+    tone: 'success',
+    title: 'Back online.',
+    body: 'Network-backed actions can resume, and local sessions stayed available while you were away.',
+  });
   renderApp();
 });
 window.addEventListener('offline', () => {
   appState.shell.isOnline = false;
+  setUiNotice({
+    tone: 'warning',
+    title: 'You are offline.',
+    body: 'Saved local sessions remain readable, but new network-backed work may be limited until connection returns.',
+  });
   renderApp();
 });
 window.addEventListener('beforeinstallprompt', (event) => {
@@ -1741,6 +1858,11 @@ window.addEventListener('beforeinstallprompt', (event) => {
 window.addEventListener('appinstalled', () => {
   appState.shell.installPromptEvent = null;
   appState.shell.isStandalone = true;
+  setUiNotice({
+    tone: 'success',
+    title: 'Installed to Home Screen.',
+    body: 'The client can now relaunch more like a mobile app with the same local shell state.',
+  });
   renderApp();
 });
 window.visualViewport?.addEventListener('resize', syncViewportHeight);
@@ -1750,7 +1872,12 @@ syncViewportHeight();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
-      // Keep the shell usable even if service worker registration fails.
+      setUiNotice({
+        tone: 'warning',
+        title: 'Offline relaunch support is limited.',
+        body: 'The app is still usable now, but offline shell setup did not finish. Try reloading again when the connection is stable.',
+      });
+      renderApp();
     });
   });
 }

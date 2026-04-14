@@ -1,61 +1,60 @@
 # Current Phase
 
-Status: complete
-Release: v0.7.0
-Phase file: docs/releases/phase-07-pwa-install-and-offline-shell.md
+Status: ready
+Release: v0.8.0
+Phase file: docs/releases/phase-08-accessibility-and-polish.md
 
 ## Goal
 
-Make the client feel installable and resilient as a mobile web app.
+Harden the client for daily use through accessibility, readability, and interaction polish.
 
 ## Why this phase is next
 
-Once the core interaction surfaces work, the app should feel more persistent and app-like on iPhone.
+Before expanding scope further, the product should become more dependable and comfortable to use.
 
 ## In scope
 
-- install-ready app behavior
-- app icon and app-shell polish
-- explicit online/offline state
-- basic offline-aware shell messaging
-- stable relaunch behavior
+- touch target review
+- readability improvements
+- loading and error state refinement
+- interaction consistency
+- reduced friction in common flows
+- stronger narrow-screen polish
 
 ## Out of scope
 
-- full offline command execution
-- background sync guarantees
-- push notifications
+- new major features
 - native wrapper work
+- cross-platform redesign
+- large settings expansion
 
 ## Primary files
 
-- app manifest-related files
-- app icon assets
-- install guidance UX files
-- offline-state UX files
+- shared UI files
+- loading and error state files
+- accessibility-related surface files
 
 ## Expected max files changed
 
-9
+10
 
 ## Acceptance criteria
 
-- app can be used as an install-oriented mobile web app
-- online/offline messaging is honest and clear
-- relaunch feels stable
-- release improves daily-driver viability
+- primary actions are easier to use on iPhone
+- error recovery is clearer
+- loading states feel intentional
+- release materially improves confidence and usability
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `index.html`, `public/manifest.webmanifest`, and the generated `public/icon-192.png` / `public/icon-512.png` add the expected install metadata and app icon assets for an install-oriented mobile web app shell.
-- `src/main.js` adds explicit online/offline shell state, install guidance, and last-screen persistence, which aligns with the phase goal and stays within scope.
-- `npm run build` passes, so the current changes produce a working production bundle.
-- `public/sw.js` now fetches `/index.html` during install, extracts same-origin `/assets/...` references, and pre-caches the built bundle files required to boot the app offline.
-- Built output confirms the relaunch-critical assets exist and are covered: `dist/index.html` references `/assets/index-rsKhARMr.js` and `/assets/index-D8eQ7LEE.css`, and the service worker's install path caches those alongside `/`, `/index.html`, the manifest, and icons.
-- Reviewed changes remain within scope: they add install-ready behavior, shell messaging, icons, and offline-aware relaunch support without introducing offline command execution, background sync, push notifications, or native wrapper work.
+- `src/styles.css` increases touch target sizes for primary actions and common controls (`.primary-button`, `.secondary-button`, `.ghost-button`, `.send-button`, `.session-item`, `.tool-inline-button`, `.tool-nav-button`, and `.composer-input`) and adds narrow-screen layout polish like a full-width send button on very small screens.
+- `src/main.js` adds accessibility and interaction polish through a skip link, improved ARIA labels/descriptions/expanded states, `aria-busy` on the conversation surface, dialog labelling for the tool drawer, Escape-to-close behavior, and focus return after dismissing the drawer.
+- `src/main.js` also adds clearer recovery and state messaging for session restore failure, offline/online transitions, install outcomes, and service-worker setup failure, while refining loading copy so loading and error states feel more intentional.
+- Reviewed implementation stays within Phase 08 scope: changes are limited to shared UI/accessibility/state-polish surfaces in `src/main.js` and `src/styles.css`, with no new major features, native wrapper work, cross-platform redesign, or settings expansion.
+- `npm run build` passes, confirming the phase result is independently usable as a working release increment.
 
 Blockers:
 - none
@@ -65,9 +64,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added install-ready shell metadata, app icons, and in-app install guidance for mobile use.
-- Added explicit online/offline shell messaging and offline relaunch support by caching the built app bundle.
+- Increased touch target sizes and small-screen layout polish across primary mobile actions.
+- Added clearer loading, offline, install, and recovery notices with improved accessibility and drawer focus behavior.
 
 ## Completion summary
 
-Phase 07 made the client feel more app-like on iPhone by adding installable PWA shell behavior, clear connection state, and a reliable offline relaunch path.
+Phase 08 hardened the mobile client for daily use by improving touch ergonomics, readability, recovery feedback, and accessible interaction flow without expanding product scope.
