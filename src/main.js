@@ -1,7 +1,8 @@
 import './styles.css';
 
-const releaseTag = 'v0.4.0';
-const storageKey = 'opencode-mobile.phase-04';
+const releaseTag = 'v0.5.0';
+const storageKey = 'opencode-mobile.phase-05';
+const legacyStorageKey = 'opencode-mobile.phase-04';
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
 
 const screens = {
@@ -15,20 +16,21 @@ const screens = {
     label: 'Task',
     kicker: 'Work',
     title: 'Task',
-    description: 'The selected session keeps readable output and the composer together in one thumb-friendly work surface.',
+    description:
+      'The selected session keeps chat, tool output, and file viewing together in one thumb-friendly work surface.',
   },
   settings: {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while sessions and task state become more practical on mobile.',
+    description: 'Settings stays intentionally light while task work becomes more useful with mobile tool viewing.',
     emptyTitle: 'Settings remain lightweight.',
     emptyBody:
       'Advanced preferences, install prompts, and broader app controls are still outside the active phase.',
     details: [
       ['Current state', 'Lightweight placeholder'],
-      ['What changed this phase', 'Sessions and local mobile state now stay available in-app'],
-      ['Still out of scope', 'Advanced settings and install UX'],
+      ['What changed this phase', 'Task now opens tool output and files in a mobile drawer'],
+      ['Still out of scope', 'Advanced settings, install UX, and diff review'],
     ],
   },
 };
@@ -40,6 +42,11 @@ const appState = {
   sessions: [],
   selectedSessionId: null,
   isHydratingSessions: true,
+  toolDrawer: {
+    isOpen: false,
+    view: 'list',
+    toolId: null,
+  },
 };
 
 const responseTimers = new Map();
@@ -71,7 +78,45 @@ function trimText(value, maxLength = 96) {
   return `${value.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
-function createStarterMessages() {
+function slugifySegment(value) {
+  return (
+    compactText(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 32) || 'mobile-output'
+  );
+}
+
+function createToolResult({ label = 'Read file', toolName = 'read_file', path, summary, content }) {
+  return {
+    id: createId('tool'),
+    label,
+    toolName,
+    path,
+    summary,
+    content,
+    createdAt: Date.now(),
+  };
+}
+
+function createStarterToolResult() {
+  return createToolResult({
+    path: 'notes/local-session-guide.md',
+    summary: 'A starter file shows how tool output now opens in a narrow mobile drawer.',
+    content: [
+      '# Local session guide',
+      '',
+      'This starter file is ready so the mobile tool drawer has something immediate to inspect.',
+      '',
+      '- Open and close tool output without leaving Task.',
+      '- File lines wrap to stay readable on a phone.',
+      '- Closing the drawer returns to the same conversation context.',
+    ].join('\n'),
+  });
+}
+
+function createStarterMessages(toolResultId) {
   return [
     {
       id: createId('msg'),
@@ -79,6 +124,13 @@ function createStarterMessages() {
       label: 'OpenCode',
       text:
         'This session now stays local to the device, so you can move between Sessions and Task without dropping the current thread.',
+    },
+    {
+      id: createId('msg'),
+      role: 'assistant',
+      label: 'OpenCode',
+      text: 'A starter file output is ready too, so you can check a readable mobile drawer without leaving this thread.',
+      toolResultId,
     },
     {
       id: createId('msg'),
@@ -108,6 +160,20 @@ function persistSessionState() {
 
 function getSelectedSession() {
   return appState.sessions.find((session) => session.id === appState.selectedSessionId) ?? null;
+}
+
+function getToolResults(session) {
+  return Array.isArray(session?.toolResults) ? session.toolResults : [];
+}
+
+function getToolResult(session, toolId) {
+  return getToolResults(session).find((toolResult) => toolResult.id === toolId) ?? null;
+}
+
+function resetToolDrawer() {
+  appState.toolDrawer.isOpen = false;
+  appState.toolDrawer.view = 'list';
+  appState.toolDrawer.toolId = null;
 }
 
 function getSessionTitle(session) {
@@ -166,6 +232,7 @@ function setSelectedSession(sessionId) {
   appState.selectedSessionId = appState.sessions.some((session) => session.id === sessionId)
     ? sessionId
     : null;
+  resetToolDrawer();
   persistSessionState();
 }
 
@@ -189,17 +256,20 @@ function updateSessionById(sessionId, updater) {
 
 function createSession() {
   const now = Date.now();
+  const starterToolResult = createStarterToolResult();
   const session = {
     id: createId('session'),
     createdAt: now,
     updatedAt: now,
     draft: '',
     isLoading: false,
-    messages: createStarterMessages(),
+    messages: createStarterMessages(starterToolResult.id),
+    toolResults: [starterToolResult],
   };
 
   appState.sessions = [session, ...appState.sessions];
   appState.selectedSessionId = session.id;
+  resetToolDrawer();
   persistSessionState();
   return session;
 }
@@ -212,7 +282,9 @@ function hydrateSessions() {
     let nextSelectedSessionId = null;
 
     try {
-      const stored = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null');
+      const storedValue =
+        window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey);
+      const stored = JSON.parse(storedValue ?? 'null');
       const rawSessions = Array.isArray(stored?.sessions) ? stored.sessions : [];
 
       nextSessions = rawSessions
@@ -223,6 +295,27 @@ function hydrateSessions() {
           updatedAt: Number(session.updatedAt) || Date.now(),
           draft: typeof session.draft === 'string' ? session.draft : '',
           isLoading: false,
+          toolResults: Array.isArray(session.toolResults)
+            ? session.toolResults
+                .filter(
+                  (toolResult) =>
+                    toolResult &&
+                    typeof toolResult.id === 'string' &&
+                    typeof toolResult.path === 'string' &&
+                    typeof toolResult.summary === 'string' &&
+                    typeof toolResult.content === 'string',
+                )
+                .map((toolResult) => ({
+                  id: toolResult.id,
+                  label: typeof toolResult.label === 'string' ? toolResult.label : 'Read file',
+                  toolName:
+                    typeof toolResult.toolName === 'string' ? toolResult.toolName : 'read_file',
+                  path: toolResult.path,
+                  summary: toolResult.summary,
+                  content: toolResult.content,
+                  createdAt: Number(toolResult.createdAt) || Date.now(),
+                }))
+            : [],
           messages: session.messages
             .filter(
               (message) =>
@@ -256,6 +349,10 @@ function hydrateSessions() {
 }
 
 function navigateTo(screenId) {
+  if (screenId !== 'task') {
+    resetToolDrawer();
+  }
+
   const nextHash = `#${screenId}`;
 
   if (window.location.hash === nextHash) {
@@ -337,6 +434,9 @@ function renderNavigation(activeId) {
 }
 
 function renderMessage(message) {
+  const session = getSelectedSession();
+  const toolResult = message.toolResultId ? getToolResult(session, message.toolResultId) : null;
+
   return `
     <li class="message-row is-${message.role}${message.tone ? ` is-${message.tone}` : ''}">
       <article class="message-bubble">
@@ -344,6 +444,33 @@ function renderMessage(message) {
           <span class="message-label">${message.label}</span>
         </div>
         <pre class="message-copy">${escapeHtml(message.text)}</pre>
+        ${
+          toolResult
+            ? `
+              <section class="message-tool-card" aria-label="Attached tool output">
+                <div class="message-tool-meta">
+                  <span class="tool-badge">Tool output</span>
+                  <span class="tool-command">${escapeHtml(toolResult.toolName)}</span>
+                </div>
+                <p class="tool-path">${escapeHtml(toolResult.path)}</p>
+                <p class="tool-summary">${escapeHtml(toolResult.summary)}</p>
+                <div class="tool-action-row">
+                  <button
+                    class="secondary-button tool-inline-button"
+                    type="button"
+                    data-action="open-tool-file"
+                    data-tool-id="${toolResult.id}"
+                  >
+                    Open file
+                  </button>
+                  <button class="ghost-button tool-inline-button" type="button" data-action="open-tool-drawer">
+                    All tools
+                  </button>
+                </div>
+              </section>
+            `
+            : ''
+        }
         ${
           message.actionLabel
             ? `<button class="inline-action" type="button" data-action="use-retry-prompt">${message.actionLabel}</button>`
@@ -530,6 +657,8 @@ function renderTaskScreen() {
   }
 
   const messageCount = getVisibleMessageCount(session);
+  const toolResults = getToolResults(session);
+  const latestToolResult = toolResults[0] ?? null;
 
   return `
     <section class="screen-card hero-card">
@@ -542,10 +671,16 @@ function renderTaskScreen() {
       <div class="session-meta-pills">
         <span class="meta-pill">Updated ${escapeHtml(formatSessionTime(session.updatedAt))}</span>
         <span class="meta-pill">${messageCount} ${messageCount === 1 ? 'message' : 'messages'}</span>
+        <span class="meta-pill">${toolResults.length} ${toolResults.length === 1 ? 'tool output' : 'tool outputs'}</span>
         <span class="meta-pill">Local only</span>
       </div>
       <div class="state-actions">
         <button class="secondary-button" type="button" data-action="open-sessions">Sessions</button>
+        ${
+          toolResults.length
+            ? '<button class="ghost-button" type="button" data-action="open-tool-drawer">Tools</button>'
+            : ''
+        }
         <button class="ghost-button" type="button" data-action="create-session">New session</button>
       </div>
     </section>
@@ -553,7 +688,11 @@ function renderTaskScreen() {
     <section class="screen-card conversation-card" aria-label="Task conversation">
       <div class="conversation-summary">
         <p class="eyebrow">Readable output</p>
-        <p class="conversation-copy">This selected session stays readable, copy-friendly, and available while you move back to Sessions.</p>
+        <p class="conversation-copy">${
+          latestToolResult
+            ? `Tool output opens in a drawer, so you can inspect ${escapeHtml(latestToolResult.path)} without losing the thread.`
+            : 'This selected session stays readable, copy-friendly, and available while you move back to Sessions.'
+        }</p>
       </div>
 
       <ol class="message-list">
@@ -586,6 +725,125 @@ function renderTaskScreen() {
   `;
 }
 
+function renderToolResultCard(toolResult) {
+  return `
+    <button
+      class="tool-result-card"
+      type="button"
+      data-action="open-tool-file"
+      data-tool-id="${toolResult.id}"
+    >
+      <div class="tool-result-header">
+        <div class="tool-result-copy">
+          <p class="tool-path">${escapeHtml(toolResult.path)}</p>
+          <p class="tool-summary">${escapeHtml(toolResult.summary)}</p>
+        </div>
+        <span class="session-status">${escapeHtml(toolResult.label)}</span>
+      </div>
+      <div class="tool-result-meta">
+        <span class="tool-badge">${escapeHtml(toolResult.toolName)}</span>
+        <span class="tool-timestamp">${escapeHtml(formatSessionTime(toolResult.createdAt))}</span>
+      </div>
+    </button>
+  `;
+}
+
+function renderFileLines(content) {
+  return content
+    .split('\n')
+    .map(
+      (line, index) => `
+        <li class="file-line">
+          <span class="file-line-number">${index + 1}</span>
+          <code class="file-line-copy">${line ? escapeHtml(line) : '&nbsp;'}</code>
+        </li>
+      `,
+    )
+    .join('');
+}
+
+function renderFileViewer(toolResult) {
+  return `
+    <div class="file-viewer">
+      <div class="file-viewer-meta">
+        <span class="meta-pill">${escapeHtml(toolResult.label)}</span>
+        <span class="meta-pill">${escapeHtml(toolResult.toolName)}</span>
+      </div>
+      <section class="file-viewer-surface" aria-label="File contents">
+        <ol class="file-line-list">
+          ${renderFileLines(toolResult.content)}
+        </ol>
+      </section>
+    </div>
+  `;
+}
+
+function renderToolDrawer(session) {
+  if (!session || !appState.toolDrawer.isOpen) {
+    return '';
+  }
+
+  const toolResults = getToolResults(session);
+  const activeTool = appState.toolDrawer.toolId
+    ? getToolResult(session, appState.toolDrawer.toolId)
+    : null;
+  const isFileView = appState.toolDrawer.view === 'file' && activeTool;
+  const title = isFileView ? activeTool.path : 'Tool output';
+  const body = isFileView
+    ? activeTool.summary
+    : toolResults.length
+      ? 'Open a file output without leaving the current task thread.'
+      : 'Tool output will appear here after the task creates something readable.';
+
+  return `
+    <div class="tool-drawer-layer">
+      <button
+        class="tool-drawer-scrim"
+        type="button"
+        data-action="close-tool-drawer"
+        aria-label="Close tool drawer"
+      ></button>
+
+      <section class="tool-drawer" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
+        <div class="tool-drawer-handle" aria-hidden="true"></div>
+
+        <header class="tool-drawer-header">
+          <div class="tool-drawer-copy">
+            <p class="eyebrow">${isFileView ? 'File viewer' : 'Tool output'}</p>
+            <h3>${escapeHtml(title)}</h3>
+            <p class="screen-copy">${escapeHtml(body)}</p>
+          </div>
+
+          <div class="tool-drawer-actions">
+            ${
+              isFileView
+                ? '<button class="ghost-button tool-nav-button" type="button" data-action="back-to-tool-list">All tools</button>'
+                : ''
+            }
+            <button class="secondary-button tool-nav-button" type="button" data-action="close-tool-drawer">Close</button>
+          </div>
+        </header>
+
+        <div class="tool-drawer-body">
+          ${
+            isFileView
+              ? renderFileViewer(activeTool)
+              : toolResults.length
+                ? `<div class="tool-result-list">${toolResults.map(renderToolResultCard).join('')}</div>`
+                : `
+                  <section class="screen-card state-card tool-empty-card">
+                    <p class="eyebrow">No tool output</p>
+                    <h3>Nothing to inspect yet.</h3>
+                    <p class="screen-copy">Send or continue a task reply to generate a readable file surface here.</p>
+                  </section>
+                `
+          }
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderPlaceholderScreen(screen) {
   return `
     <section class="screen-card hero-card">
@@ -612,26 +870,52 @@ function renderPlaceholderScreen(screen) {
 }
 
 function buildAssistantReply(prompt) {
-  return `Working from your latest message:\n\n${prompt}\n\nSession-friendly takeaways:\n- the current thread stays available while you move between tabs\n- saved session metadata stays lightweight and readable on a phone\n- wrapped output still avoids horizontal scrolling in the primary task surface`;
+  return `Working from your latest message:\n\n${prompt}\n\nMobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines keep the reading surface narrow-screen friendly`;
+}
+
+function createGeneratedToolResult(session, prompt) {
+  const promptSummary = trimText(compactText(prompt), 42);
+
+  return createToolResult({
+    path: `notes/${slugifySegment(promptSummary)}.md`,
+    summary: 'Prepared a mobile-friendly file snapshot for the latest task context.',
+    content: [
+      `# ${getSessionTitle(session)}`,
+      '',
+      'Latest prompt',
+      prompt,
+      '',
+      'Mobile review notes',
+      '- Tool output now opens in a drawer instead of replacing the task screen.',
+      '- File content wraps so long lines remain readable on narrow screens.',
+      '- Close returns directly to the same conversation.',
+    ].join('\n'),
+  });
 }
 
 function finishAssistantReply(sessionId, prompt) {
   responseTimers.delete(sessionId);
 
-  const updatedSession = updateSessionById(sessionId, (session) => ({
-    ...session,
-    isLoading: false,
-    updatedAt: Date.now(),
-    messages: [
-      ...session.messages,
-      {
-        id: createId('msg'),
-        role: 'assistant',
-        label: 'OpenCode',
-        text: buildAssistantReply(prompt),
-      },
-    ],
-  }));
+  const updatedSession = updateSessionById(sessionId, (session) => {
+    const toolResult = createGeneratedToolResult(session, prompt);
+
+    return {
+      ...session,
+      isLoading: false,
+      updatedAt: Date.now(),
+      toolResults: [toolResult, ...getToolResults(session)],
+      messages: [
+        ...session.messages,
+        {
+          id: createId('msg'),
+          role: 'assistant',
+          label: 'OpenCode',
+          text: buildAssistantReply(prompt),
+          toolResultId: toolResult.id,
+        },
+      ],
+    };
+  });
 
   if (updatedSession && appState.selectedSessionId === sessionId && getActiveScreenId() === 'task') {
     shouldScrollTaskToEnd = true;
@@ -703,6 +987,10 @@ function renderApp() {
   const activeId = getActiveScreenId();
   const selectedSession = getSelectedSession();
 
+  if (activeId !== 'task' && appState.toolDrawer.isOpen) {
+    resetToolDrawer();
+  }
+
   let frameTitle = screens[activeId].title;
   let frameCopy = screens[activeId].description;
 
@@ -749,6 +1037,8 @@ function renderApp() {
           ${renderNavigation(activeId)}
         </nav>
       </footer>
+
+      ${activeId === 'task' ? renderToolDrawer(selectedSession) : ''}
     </div>
   `;
 
@@ -817,7 +1107,46 @@ app.addEventListener('click', (event) => {
   const openSessionsButton = event.target.closest('[data-action="open-sessions"]');
   const openTaskButton = event.target.closest('[data-action="open-task"]');
   const openSelectedSessionButton = event.target.closest('[data-action="open-selected-session"]');
+  const openToolDrawerButton = event.target.closest('[data-action="open-tool-drawer"]');
+  const openToolFileButton = event.target.closest('[data-action="open-tool-file"]');
+  const closeToolDrawerButton = event.target.closest('[data-action="close-tool-drawer"]');
+  const backToToolListButton = event.target.closest('[data-action="back-to-tool-list"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
+
+  if (closeToolDrawerButton) {
+    resetToolDrawer();
+    renderApp();
+    return;
+  }
+
+  if (backToToolListButton) {
+    appState.toolDrawer.isOpen = true;
+    appState.toolDrawer.view = 'list';
+    appState.toolDrawer.toolId = null;
+    renderApp();
+    return;
+  }
+
+  if (openToolDrawerButton) {
+    appState.toolDrawer.isOpen = true;
+    appState.toolDrawer.view = 'list';
+    appState.toolDrawer.toolId = null;
+    renderApp();
+    return;
+  }
+
+  if (openToolFileButton instanceof HTMLElement) {
+    const { toolId } = openToolFileButton.dataset;
+
+    if (toolId && getToolResult(getSelectedSession(), toolId)) {
+      appState.toolDrawer.isOpen = true;
+      appState.toolDrawer.view = 'file';
+      appState.toolDrawer.toolId = toolId;
+      renderApp();
+    }
+
+    return;
+  }
 
   if (createSessionButton) {
     handleCreateSession();

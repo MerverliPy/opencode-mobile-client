@@ -1,48 +1,48 @@
 # Current Phase
 
 Status: complete
-Release: v0.4.0
-Phase file: docs/releases/phase-04-sessions-and-state.md
+Release: v0.5.0
+Phase file: docs/releases/phase-05-tool-drawer-and-file-viewer.md
 
 ## Goal
 
-Add a usable sessions surface and minimal local state so the client feels persistent.
+Add a mobile-friendly tool output drawer and readable file viewer.
 
 ## Why this phase is next
 
-A mobile client becomes more practical when the user can return to prior work and see session structure.
+The mobile client becomes much more valuable when it can show more than plain chat output.
 
 ## In scope
 
-- sessions list screen
-- minimal session metadata display
-- local session state handling
-- empty, loading, and no-session states
-- clean transition between Sessions and Task
+- tool output drawer or panel
+- clear open/close behavior
+- readable file content surface
+- clean return path back to task view
+- narrow-screen readability
 
 ## Out of scope
 
-- cloud sync
-- advanced search
-- multi-account support
-- tool/file/diff surfaces
+- full editing workflow
+- diff review
+- repo-wide search
+- advanced file management
 
 ## Primary files
 
-- sessions screen files
-- local state files
-- session routing files
+- tool drawer files
+- file viewer files
+- task-to-tool transition files
 
 ## Expected max files changed
 
-9
+10
 
 ## Acceptance criteria
 
-- sessions surface is understandable on iPhone
-- user can move between Sessions and Task cleanly
-- state survives normal in-app navigation
-- release improves daily usability
+- user can open and dismiss tool output reliably
+- file contents are readable on iPhone
+- chat context is not lost while inspecting a file
+- result does not feel like a compressed desktop panel
 
 ## Validation
 
@@ -50,10 +50,10 @@ Status: PASS
 
 Evidence:
 - `npm run build` passes, confirming the phase ships as a working app bundle.
-- `src/main.js` replaces the Sessions placeholder with a real sessions surface that includes loading, empty, and no-session states plus one-tap transitions between Sessions and Task.
-- `src/main.js` adds minimal local session state via `localStorage`, restoring sessions, selected session, and per-session drafts so state survives normal in-app navigation and reload.
-- `src/main.js` and `src/styles.css` show lightweight session metadata (title, updated time, message count, preview) in a narrow-screen card layout that remains understandable on iPhone.
-- Delivered work stays within scope: no cloud sync, advanced search, multi-account, or tool/file/diff surface work was added.
+- `src/main.js` adds a task-scoped tool drawer with explicit open actions, close button, scrim dismissal, and an in-drawer back action from file view to the tool list.
+- `src/main.js` keeps the Task conversation mounted while the drawer is open, so inspecting a file does not discard chat context and closing returns directly to the same task view.
+- `src/main.js` and `src/styles.css` add a readable mobile file surface with wrapped lines, line numbers, and a bottom-sheet presentation sized for narrow screens instead of a desktop-style side panel.
+- Reviewed changes stay within scope: no editing workflow, diff review, repo-wide search, or advanced file management was introduced.
 
 Blockers:
 - none
@@ -63,9 +63,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added a mobile sessions list with lightweight metadata and one-tap reopen behavior.
-- Added local session state for saved threads, selected session, and per-session drafts across normal navigation and reload.
+- Added a task-scoped mobile tool drawer with clear open, close, and back actions.
+- Added a readable narrow-screen file viewer with wrapped lines and preserved task context.
 
 ## Completion summary
 
-Phase 04 made the client feel more persistent by adding a usable sessions surface and minimal local state while keeping the mobile task flow narrow-screen friendly.
+Phase 05 made tool output usable on mobile by adding a bottom-sheet drawer and file viewer that keep the current task conversation visible and easy to return to.
