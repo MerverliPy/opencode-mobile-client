@@ -1,40 +1,38 @@
 # Current Phase
 
 Status: complete
-Release: v0.1.0
-Phase file: docs/releases/phase-01-app-shell.md
+Release: v0.2.0
+Phase file: docs/releases/phase-02-navigation-shell.md
 
 ## Goal
 
-Create the first running mobile app shell for the OpenCode client project.
+Add thumb-friendly primary navigation for the mobile client.
 
 ## Why this phase is next
 
-The project needs a working shell before navigation and task surfaces can be built.
+The shell needs a real navigation model before task work can become useful on a phone.
 
 ## In scope
 
-- initial app shell
-- mobile-first layout foundation
-- portrait-first assumptions
-- safe top and bottom frame structure
-- blank placeholder screen for initial launch
+- primary mobile navigation
+- clear current-location state
+- destinations for Sessions, Task, and Settings
+- safe-area-aware persistent navigation
+- clear empty states
 
 ## Out of scope
 
-- real sessions
-- conversation rendering
-- composer behavior
-- tool output surfaces
-- diff viewing
-- install prompts
+- streaming responses
+- tool drawers
+- file and diff viewing
+- installability work
+- advanced settings
 
 ## Primary files
 
-- app shell entry files
-- global layout files
-- root screen files
-- app-level style tokens or theme files
+- navigation files
+- screen placeholder files
+- persistent chrome files
 
 ## Expected max files changed
 
@@ -42,20 +40,20 @@ The project needs a working shell before navigation and task surfaces can be bui
 
 ## Acceptance criteria
 
-- app opens into a stable mobile shell
-- top and bottom framing do not feel desktop-derived
-- shell clearly targets narrow screens
-- result is usable as the starting point for the next phase
+- Sessions, Task, and Settings are reachable
+- primary navigation is obvious on iPhone
+- persistent bars remain safe-area aware
+- one-handed use feels intentional
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run build` passes and produces a working app bundle for the shell.
-- `index.html`, `src/main.js`, and `src/styles.css` implement a single-column mobile shell with safe-area-aware top and bottom framing.
-- Delivered UI is a blank placeholder launch screen only; no sessions, conversation rendering, composer, tool surfaces, diff viewing, or install prompts were added.
-- File count remains within the phase guidance and the result is a usable foundation for Phase 02 navigation work.
+- `npm run build` passes, so the navigation shell ships as a working app bundle.
+- `src/main.js` adds reachable Sessions, Task, and Settings destinations with clear active-location state via the persistent bottom navigation.
+- `src/styles.css` keeps the top and bottom bars safe-area aware and gives the bottom nav large, thumb-friendly touch targets on a narrow layout.
+- Delivered UI stays within scope: destination placeholders and empty states only, with no streaming, tool drawer, file viewer, diff viewer, installability work, or advanced settings.
 
 Blockers:
 - none
@@ -65,9 +63,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added the first runnable mobile app shell using a minimal Vite setup.
-- Added safe-area-aware top and bottom framing with a blank placeholder launch screen.
+- Added a persistent bottom navigation for Sessions, Task, and Settings.
+- Added clear active-state routing with mobile-first empty-state placeholders for each destination.
 
 ## Completion summary
 
-Phase 01 shipped a stable portrait-first shell that opens into a readable mobile frame and provides the base for Phase 02 navigation work.
+Phase 02 shipped an iPhone-first navigation shell with safe-area-aware persistent navigation and clear destination placeholders, setting up Phase 03 task and composer work.
