@@ -1,59 +1,62 @@
 # Current Phase
 
 Status: complete
-Release: v0.2.0
-Phase file: docs/releases/phase-02-navigation-shell.md
+Release: v0.3.0
+Phase file: docs/releases/phase-03-conversation-and-composer.md
 
 ## Goal
 
-Add thumb-friendly primary navigation for the mobile client.
+Deliver the first useful task screen with readable output and a mobile-appropriate composer.
 
 ## Why this phase is next
 
-The shell needs a real navigation model before task work can become useful on a phone.
+The product becomes meaningfully useful once the user can read output and type comfortably on iPhone.
 
 ## In scope
 
-- primary mobile navigation
-- clear current-location state
-- destinations for Sessions, Task, and Settings
-- safe-area-aware persistent navigation
-- clear empty states
+- conversation/task screen
+- readable vertical message flow
+- bottom composer
+- keyboard-safe layout behavior
+- loading and interrupted states
+- copy-friendly message content
 
 ## Out of scope
 
-- streaming responses
-- tool drawers
-- file and diff viewing
-- installability work
-- advanced settings
+- sessions persistence
+- tool drawer
+- file viewer
+- diff viewer
+- push or install prompts
 
 ## Primary files
 
-- navigation files
-- screen placeholder files
-- persistent chrome files
+- conversation screen files
+- composer files
+- message rendering files
+- keyboard handling files
 
 ## Expected max files changed
 
-8
+10
 
 ## Acceptance criteria
 
-- Sessions, Task, and Settings are reachable
-- primary navigation is obvious on iPhone
-- persistent bars remain safe-area aware
-- one-handed use feels intentional
+- user can read and scroll long output on a narrow screen
+- composer remains usable while keyboard is open
+- no primary text surface requires horizontal scrolling
+- task view feels intentionally mobile
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run build` passes, so the navigation shell ships as a working app bundle.
-- `src/main.js` adds reachable Sessions, Task, and Settings destinations with clear active-location state via the persistent bottom navigation.
-- `src/styles.css` keeps the top and bottom bars safe-area aware and gives the bottom nav large, thumb-friendly touch targets on a narrow layout.
-- Delivered UI stays within scope: destination placeholders and empty states only, with no streaming, tool drawer, file viewer, diff viewer, installability work, or advanced settings.
+- `npm run build` passes, confirming the phase ships as a working app bundle.
+- `src/main.js` replaces the Task placeholder with a usable conversation screen, bottom composer, loading state, and interrupted-state recovery prompt while keeping Sessions and Settings as placeholders.
+- `src/styles.css` keeps primary message content in a vertical, wrapped flow (`white-space: pre-wrap`, `overflow-wrap: anywhere`) so narrow-screen reading does not require horizontal scrolling.
+- The layout adds viewport-height syncing, sticky composer behavior, and safe-area-aware spacing so the composer remains positioned for mobile use when the keyboard changes the viewport.
+- Delivered work stays within scope: no sessions persistence, tool drawer, file viewer, diff viewer, or install/push prompt work was added.
 
 Blockers:
 - none
@@ -63,9 +66,9 @@ Ready to ship:
 
 ## Release notes
 
-- Added a persistent bottom navigation for Sessions, Task, and Settings.
-- Added clear active-state routing with mobile-first empty-state placeholders for each destination.
+- Added the first usable task conversation view with readable, vertically stacked mobile output.
+- Added a bottom composer with loading and interrupted-state handling tuned for narrow-screen use.
 
 ## Completion summary
 
-Phase 02 shipped an iPhone-first navigation shell with safe-area-aware persistent navigation and clear destination placeholders, setting up Phase 03 task and composer work.
+Phase 03 shipped the first useful mobile task surface, combining readable conversation output with a thumb-friendly composer while staying within narrow-screen and keyboard-safe constraints.
