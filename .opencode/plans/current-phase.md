@@ -45,6 +45,10 @@ Blockers:
 Ready to ship:
 - no
 
+## Release notes
+
+- None
+
 ## Completion summary
 
 Not started.
