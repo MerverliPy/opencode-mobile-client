@@ -53,11 +53,21 @@ When validation runs:
 - write PASS or FAIL in the current phase file
 - include concise evidence
 
+## Shipping rules
+
 When a phase ships:
-- mark the phase complete in the registry
-- write a completion summary
-- suggest release notes and a commit title
-- do not perform a push unless explicitly asked
+- require validation status PASS in `.opencode/plans/current-phase.md`
+- update `docs/releases/phase-registry.md`
+- finalize the completion summary
+- finalize release notes
+- generate a commit title from the release tag and phase title
+- generate a commit body from the phase metadata, validation result, release notes, and completion summary
+- stage the release changes
+- create a git commit
+- push to `origin main` only if the current branch is already `main`
+- if the current branch is not `main`, stop and report the blocker instead of pushing
+- do not force push
+- do not merge branches automatically
 
 ## Preferred implementation behavior
 
@@ -73,4 +83,4 @@ When a phase ships:
 - `orchestrator` selects and advances work
 - `builder` implements only the active phase
 - `validator` checks phase compliance and release readiness
-- `release-manager` closes the phase and prepares ship metadata
+- `release-manager` closes the phase, creates the release commit, and pushes when safe
