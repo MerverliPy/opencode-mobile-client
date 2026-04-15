@@ -16,7 +16,7 @@ Phase 08 introduced broad accessibility and interaction polish. The next smalles
 
 - skip-link visibility and focus behavior
 - correct landing target for main content
-- small-screen accessibility polish related directly to skip-link flow
+- small-screen accessibility polish related to skip-link flow
 - wording and interaction refinement tied directly to skip-link accessibility
 
 ## Out of scope
@@ -50,8 +50,8 @@ Phase 08 introduced broad accessibility and interaction polish. The next smalles
 Status: PASS
 
 Evidence:
-- skip-link interaction is present and tied to the main content target
-- the release stays scoped to accessibility-follow-up work rather than new feature expansion
+- skip-link flow is explicitly supported in the shell and targets the main content region
+- accessibility behavior remains narrow in scope and consistent with a small follow-up release
 - npm run build passes
 
 Blockers:

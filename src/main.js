@@ -1,6 +1,6 @@
 import './styles.css';
 
-const releaseTag = 'v0.8.0';
+const releaseTag = 'v1.1.0';
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
 const shellStorageKey = 'opencode-mobile.shell-v1';
