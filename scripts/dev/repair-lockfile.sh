@@ -1,22 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "Repairing package-lock.json from package.json ..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$ROOT_DIR"
+
+if npm ci --ignore-scripts --dry-run >/dev/null 2>&1; then
+  echo "repair-lockfile: no lockfile drift detected"
+  exit 0
+fi
+
+echo "repair-lockfile: package-lock drift detected; regenerating lockfile"
 rm -rf node_modules
 npm install
-
-echo
-echo "Verifying clean-install reproducibility ..."
-rm -rf node_modules
 npm ci
-
-echo
-echo "Running local validation ..."
-npm run repo:doctor
-npm run workflow:check
-npm run lint
-npm run test
-npm run build
-
-echo
-echo "Lockfile repair and validation complete."
+echo "repair-lockfile: lockfile regenerated and clean install verified"
