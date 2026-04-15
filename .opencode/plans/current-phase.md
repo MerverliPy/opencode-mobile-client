@@ -1,4 +1,4 @@
-# Current Phase
+# Restore deterministic clean installs so repo setup and workflow gates are trustworthy
 
 Status: complete
 Release: v1.6.0

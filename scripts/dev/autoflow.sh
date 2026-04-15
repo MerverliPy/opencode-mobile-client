@@ -15,78 +15,89 @@ from pathlib import Path
 import json
 import re
 
-path = Path(".opencode/plans/current-phase.md")
+path = Path('.opencode/plans/current-phase.md')
 text = path.read_text()
 lines = text.splitlines()
 
-title = ""
-status = ""
-release = ""
-phase_file = ""
-validation_status = ""
-ready_to_ship = ""
+title = ''
+status = ''
+release = ''
+phase_file = ''
+validation_status = ''
+ready_to_ship = ''
+validation_command = ''
 primary_files = []
 
-if lines:
-    for line in lines:
-        if line.startswith("# "):
-            title = line[2:].strip()
-            break
+section = None
+validation_command_lines = []
+validation_lines = []
 
 for line in lines:
-    if line.startswith("Status:") and not status:
-        status = line.split(":", 1)[1].strip()
-    if line.startswith("Release:"):
-        release = line.split(":", 1)[1].strip()
-    if line.startswith("Phase file:"):
-        phase_file = line.split(":", 1)[1].strip()
+    stripped = line.strip()
 
-in_primary = False
-in_validation = False
+    if line.startswith('# ') and not title:
+        title = line[2:].strip()
+    if line.startswith('Status:') and not status:
+        status = line.split(':', 1)[1].strip()
+    if line.startswith('Release:'):
+        release = line.split(':', 1)[1].strip()
+    if line.startswith('Phase file:'):
+        phase_file = line.split(':', 1)[1].strip()
 
-for line in lines:
-    if line.strip() == "## Primary files":
-        in_primary = True
-        in_validation = False
+    if stripped == '## Primary files':
+        section = 'primary'
         continue
-    if line.strip() == "## Validation":
-        in_validation = True
-        in_primary = False
+    if stripped == '## Validation command':
+        section = 'validation_command'
         continue
-    if line.startswith("## "):
-        in_primary = False
-        if in_validation and line.strip() != "## Validation":
-            in_validation = False
-    if in_primary and line.lstrip().startswith("- "):
-        primary_files.append(line.lstrip()[2:].strip("`").strip())
-    if in_validation and line.startswith("Status:") and not validation_status:
-        validation_status = line.split(":", 1)[1].strip()
-    if in_validation and line.strip() == "Ready to ship:":
+    if stripped == '## Validation':
+        section = 'validation'
         continue
-    if in_validation and line.lstrip().startswith("- ") and ready_to_ship == "":
-        # first bullet after "Ready to ship:" is yes/no in this repo layout
-        pass
+    if line.startswith('## '):
+        section = None
+        continue
 
-# robust ready_to_ship parse
-for i, line in enumerate(lines):
-    if line.strip() == "Ready to ship:":
-        for follow in lines[i+1:]:
-            if follow.startswith("## "):
-                break
-            stripped = follow.strip()
-            if stripped.startswith("- "):
-                ready_to_ship = stripped[2:].strip().lower()
-                break
+    if section == 'primary' and line.lstrip().startswith('- '):
+        primary_files.append(line.lstrip()[2:].strip().strip('`'))
+    elif section == 'validation_command' and stripped:
+        validation_command_lines.append(line.rstrip())
+    elif section == 'validation':
+        validation_lines.append(line.rstrip())
+
+for raw in validation_command_lines:
+    stripped = raw.strip()
+    if stripped.startswith('```'):
+        continue
+    if stripped:
+        validation_command = stripped.strip('`').strip()
         break
 
+validation_block = '\n'.join(validation_lines)
+
+match = re.search(r'(?mi)^Status:\s*(.+)$', validation_block)
+if match:
+    validation_status = match.group(1).strip()
+
+same_line_ready = re.search(r'(?mi)^Ready to ship:\s*(yes|no)\s*$', validation_block)
+if same_line_ready:
+    ready_to_ship = same_line_ready.group(1).strip().lower()
+else:
+    marker = re.search(r'(?mi)^Ready to ship:\s*$', validation_block)
+    if marker:
+        tail = validation_block[marker.end():]
+        bullet = re.search(r'(?mi)^-\s*(yes|no)\s*$', tail)
+        if bullet:
+            ready_to_ship = bullet.group(1).strip().lower()
+
 print(json.dumps({
-    "title": title,
-    "status": status,
-    "release": release,
-    "phase_file": phase_file,
-    "validation_status": validation_status,
-    "ready_to_ship": ready_to_ship,
-    "primary_files": primary_files,
+    'title': title,
+    'status': status,
+    'release': release,
+    'phase_file': phase_file,
+    'validation_status': validation_status,
+    'ready_to_ship': ready_to_ship,
+    'validation_command': validation_command,
+    'primary_files': primary_files,
 }))
 PY
 }
@@ -97,34 +108,39 @@ from pathlib import Path
 import json
 import re
 
-path = Path(".opencode/backlog/candidates.yaml")
+path = Path('.opencode/backlog/candidates.yaml')
 if not path.exists():
-    print(json.dumps({"candidate_count": 0, "candidate_ids": [], "all_ids": []}))
+    print(json.dumps({'candidate_count': 0, 'candidate_ids': [], 'all_ids': []}))
     raise SystemExit(0)
 
 text = path.read_text()
+match = re.search(r'(?ms)^candidates:\s*(.*?)(?=^archived:|\Z)', text)
+block = match.group(1) if match else ''
+pattern = re.compile(r'(?m)^\s*-\s+id:\s*([A-Za-z0-9._:-]+)\s*$')
 
-candidate_match = re.search(r'(?ms)^candidates:\s*($begin:math:display$$end:math:display$|.*?)(?=^archived:|\Z)', text)
-candidate_block = candidate_match.group(1) if candidate_match else ""
-candidate_ids = re.findall(r'(?m)^  - id:\s*([A-Za-z0-9._:-]+)\s*$', candidate_block)
-
-all_ids = re.findall(r'(?m)^  - id:\s*([A-Za-z0-9._:-]+)\s*$', text)
+candidate_ids = pattern.findall(block)
+all_ids = pattern.findall(text)
 
 print(json.dumps({
-    "candidate_count": len(candidate_ids),
-    "candidate_ids": candidate_ids,
-    "all_ids": all_ids,
+    'candidate_count': len(candidate_ids),
+    'candidate_ids': candidate_ids,
+    'all_ids': all_ids,
 }))
 PY
 }
 
 git_status_json() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo '{"dirty": false, "paths": []}'
+    return 0
+  fi
+
   python - <<'PY'
 import subprocess
 import json
 
 proc = subprocess.run(
-    ["git", "status", "--porcelain=v1"],
+    ['git', 'status', '--porcelain=v1'],
     capture_output=True,
     text=True,
     check=True,
@@ -135,13 +151,13 @@ for raw in proc.stdout.splitlines():
     if not raw.strip():
         continue
     path = raw[3:]
-    if " -> " in path:
-        path = path.split(" -> ", 1)[1]
+    if ' -> ' in path:
+        path = path.split(' -> ', 1)[1]
     paths.append(path)
 
 print(json.dumps({
-    "dirty": bool(paths),
-    "paths": paths,
+    'dirty': bool(paths),
+    'paths': paths,
 }))
 PY
 }
@@ -171,12 +187,12 @@ import re
 import sys
 
 backlog_id = sys.argv[1]
-path = Path(".opencode/backlog/candidates.yaml")
+path = Path('.opencode/backlog/candidates.yaml')
 if not path.exists():
     raise SystemExit(1)
 
 text = path.read_text()
-pattern = re.compile(rf'(?m)^  - id:\s*{re.escape(backlog_id)}\s*$')
+pattern = re.compile(rf'(?m)^\s*-\s+id:\s*{re.escape(backlog_id)}\s*$')
 raise SystemExit(0 if pattern.search(text) else 1)
 PY
 }
@@ -191,32 +207,67 @@ import sys
 phase = json.loads(sys.argv[1])
 git_state = json.loads(sys.argv[2])
 
-allowed = set(phase.get("primary_files", []))
-allowed.add(".opencode/plans/current-phase.md")
+allowed = set(phase.get('primary_files', []))
+allowed.update({
+    '.opencode/plans/current-phase.md',
+})
 
-disallowed = [p for p in git_state.get("paths", []) if p not in allowed]
-
+disallowed = [p for p in git_state.get('paths', []) if p not in allowed]
 for path in disallowed:
     print(path)
 PY
 }
 
-inspect() {
+manual_next_command_for() {
+  local next_action="$1"
+  case "$next_action" in
+    repair-phase-metadata)
+      echo "bash scripts/dev/repair-phase-metadata.sh && npm run workflow:check"
+      ;;
+    repair-backlog-phase-ref)
+      echo "bash scripts/dev/repair-backlog-phase-ref.sh && npm run workflow:check && npm run repo:doctor"
+      ;;
+    repair-backlog-selection)
+      echo "bash scripts/dev/repair-backlog-selection.sh && npm run workflow:check"
+      ;;
+    repair-lockfile)
+      echo "bash scripts/dev/repair-lockfile.sh && npm run workflow:check"
+      ;;
+    repair-working-tree)
+      echo "bash scripts/dev/repair-working-tree.sh stash-unrelated"
+      ;;
+    repair-preview-port)
+      echo "bash scripts/dev/repair-preview-port.sh release --force-restart"
+      ;;
+    run-phase|validate-phase|fix-validation|ship-phase|next-phase)
+      echo "/autoflow"
+      ;;
+    stop-no-candidates)
+      echo "none"
+      ;;
+    *)
+      echo "/phase-status"
+      ;;
+  esac
+}
+
+collect_state() {
   local phase backlog git_state
   phase="$(phase_json)"
   backlog="$(backlog_json)"
   git_state="$(git_status_json)"
 
-  local current_title current_status release phase_file validation_status ready_to_ship primary_files_count
+  local current_title current_status release phase_file validation_status ready_to_ship validation_command
   current_title="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["title"])' "$phase")"
   current_status="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["status"])' "$phase")"
   release="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["release"])' "$phase")"
   phase_file="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["phase_file"])' "$phase")"
   validation_status="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["validation_status"])' "$phase")"
   ready_to_ship="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["ready_to_ship"])' "$phase")"
+  validation_command="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["validation_command"])' "$phase")"
 
   local branch dirty_tree active_candidate_count phase_ref_type drift backlog_id backlog_exists
-  branch="$(git rev-parse --abbrev-ref HEAD)"
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   dirty_tree="$(python -c 'import json,sys; print("yes" if json.loads(sys.argv[1])["dirty"] else "no")' "$git_state")"
   active_candidate_count="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["candidate_count"])' "$backlog")"
   phase_ref_type="$(phase_reference_type "$phase_file")"
@@ -233,10 +284,10 @@ inspect() {
     fi
   fi
 
-  local disallowed
+  local disallowed next_action blocker manual_next_command
   disallowed="$(disallowed_dirty_files "$phase" "$git_state" | paste -sd, -)"
-  local next_action="stop-blocked"
-  local blocker=""
+  next_action="stop-blocked"
+  blocker=""
 
   if [[ ! "$validation_status" =~ ^(pending|PASS|FAIL)$ ]]; then
     next_action="repair-phase-metadata"
@@ -252,7 +303,12 @@ inspect() {
     blocker="dirty tree contains files outside phase scope"
   elif [[ "$current_status" == "complete" && "$validation_status" == "PASS" && "$ready_to_ship" == "yes" ]]; then
     next_action="ship-phase"
-  elif [[ "$current_status" == "pending" || "$current_status" == "in_progress" || "$current_status" == "in-progress" || "$validation_status" == "FAIL" ]]; then
+  elif [[ "$validation_status" == "FAIL" ]]; then
+    next_action="fix-validation"
+    blocker="validator blockers are present"
+  elif [[ "$current_status" == "complete" && "$validation_status" == "pending" ]]; then
+    next_action="validate-phase"
+  elif [[ "$current_status" == "pending" || "$current_status" == "in_progress" || "$current_status" == "in-progress" ]]; then
     next_action="run-phase"
   elif [[ "$active_candidate_count" -gt 0 ]]; then
     next_action="next-phase"
@@ -261,22 +317,57 @@ inspect() {
     blocker="no active backlog candidates remain"
   fi
 
-  echo "CURRENT_PHASE_TITLE=$current_title"
-  echo "CURRENT_STATUS=$current_status"
-  echo "RELEASE=$release"
-  echo "PHASE_FILE=$phase_file"
-  echo "PHASE_REFERENCE_TYPE=$phase_ref_type"
-  echo "BACKLOG_ID=$backlog_id"
-  echo "BACKLOG_REFERENCE_EXISTS=$backlog_exists"
-  echo "VALIDATION_STATUS=$validation_status"
-  echo "READY_TO_SHIP=$ready_to_ship"
-  echo "CURRENT_BRANCH=$branch"
-  echo "DIRTY_TREE=$dirty_tree"
-  echo "DISALLOWED_DIRTY_FILES=$disallowed"
-  echo "ACTIVE_CANDIDATE_COUNT=$active_candidate_count"
-  echo "LOCKFILE_DRIFT=$drift"
-  echo "NEXT_ACTION=$next_action"
-  echo "BLOCKER=$blocker"
+  manual_next_command="$(manual_next_command_for "$next_action")"
+
+  cat <<EOF
+CURRENT_PHASE_TITLE=$current_title
+CURRENT_STATUS=$current_status
+RELEASE=$release
+PHASE_FILE=$phase_file
+PHASE_REFERENCE_TYPE=$phase_ref_type
+BACKLOG_ID=$backlog_id
+BACKLOG_REFERENCE_EXISTS=$backlog_exists
+VALIDATION_STATUS=$validation_status
+READY_TO_SHIP=$ready_to_ship
+VALIDATION_COMMAND=$validation_command
+CURRENT_BRANCH=$branch
+DIRTY_TREE=$dirty_tree
+DISALLOWED_DIRTY_FILES=$disallowed
+ACTIVE_CANDIDATE_COUNT=$active_candidate_count
+LOCKFILE_DRIFT=$drift
+NEXT_ACTION=$next_action
+BLOCKER=$blocker
+MANUAL_NEXT_COMMAND=$manual_next_command
+EOF
+}
+
+inspect() {
+  collect_state
+}
+
+inspect_json() {
+  local kv
+  kv="$(collect_state)"
+  python - <<'PY' "$kv"
+import json
+import sys
+
+data = {}
+for raw in sys.argv[1].splitlines():
+    if '=' not in raw:
+        continue
+    key, value = raw.split('=', 1)
+    data[key.lower()] = value
+print(json.dumps(data))
+PY
+}
+
+next_action_only() {
+  collect_state | awk -F= '$1 == "NEXT_ACTION" { print $2 }'
+}
+
+manual_next_command() {
+  collect_state | awk -F= '$1 == "MANUAL_NEXT_COMMAND" { print substr($0, index($0, "=") + 1) }'
 }
 
 rerun_gate() {
@@ -310,10 +401,19 @@ case "${1:-inspect}" in
   inspect)
     inspect
     ;;
+  inspect-json)
+    inspect_json
+    ;;
+  next-action)
+    next_action_only
+    ;;
+  manual-next-command)
+    manual_next_command
+    ;;
   rerun-gate)
     rerun_gate "${2:-}"
     ;;
   *)
-    fail "usage: bash scripts/dev/autoflow.sh [inspect|rerun-gate <gate>]"
+    fail "usage: bash scripts/dev/autoflow.sh [inspect|inspect-json|next-action|manual-next-command|rerun-gate <gate>]"
     ;;
 esac

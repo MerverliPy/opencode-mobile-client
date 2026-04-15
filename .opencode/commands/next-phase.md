@@ -22,8 +22,14 @@ Selection rules:
 
 When the chosen work item is a release phase file in `docs/releases/`, copy that file into `.opencode/plans/current-phase.md`.
 
-When the chosen work item is a backlog candidate, overwrite `.opencode/plans/current-phase.md` with a bounded implementation phase using this structure:
-- `# Current Phase`
+When the chosen work item is a backlog candidate:
+- overwrite `.opencode/plans/current-phase.md`
+- do not write the generic H1 `# Current Phase`
+- write the actual backlog candidate title as the H1
+- preserve the candidate id in `Phase file: backlog:<candidate-id>`
+
+For backlog-selected phases, write this structure:
+- `# <candidate-title>`
 - `Status: pending`
 - `Release: <current shipped release>`
 - `Phase file: backlog:<candidate-id>`
@@ -38,12 +44,27 @@ When the chosen work item is a backlog candidate, overwrite `.opencode/plans/cur
 - `## Tasks`
 - `## Validation command`
 - `## Validation`
-- under `## Validation`, write `Status: pending`
-- under `## Validation`, include `Evidence:` followed by `- not run yet`
+- under `## Validation`, write:
+  - `Status: pending`
+  - `Evidence:`
+    - `- not run yet`
+  - `Blockers:`
+    - `- not validated yet`
+  - `Ready to ship:`
+    - `- no`
 - `## Acceptance criteria`
 - `## Completion summary`
 
-When copying a release phase file into `.opencode/plans/current-phase.md`, normalize the copied phase so its `## Validation` section starts with `Status: pending` for a newly selected active phase.
+When copying a release phase file into `.opencode/plans/current-phase.md`, normalize the copied phase so its `## Validation` section starts with:
+- `Status: pending`
+- `Evidence:`
+  - `- not run yet`
+- `Blockers:`
+  - `- not validated yet`
+- `Ready to ship:`
+  - `- no`
+
+When copying a release phase file, keep the release phase title intact.
 
 If the selected release phase was `[ ]`, mark it `[~]` in the registry.
 
@@ -54,6 +75,6 @@ Then respond with:
 - in-scope summary
 - out-of-scope summary
 - validation command
-- recommended next command
+- recommended next command: `/autoflow`
 
 Do not implement code in this command.
