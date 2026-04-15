@@ -4,52 +4,62 @@ selection_order:
   - same_module_followup
   - smallest_safe_scope
   - clearest_validation
+
+queue_rules:
+  - Only entries under `candidates` are selectable.
+  - Before selecting a candidate, treat `done_when` as a skip gate.
+  - If every `done_when` item for a candidate is already true in the repo, skip that candidate and move to the next one.
+  - Keep only still-needed work in `candidates`; use git history as the archive for shipped backlog items.
+
 constraints:
   max_files_changed: 4
   prefer_single_module: true
   avoid_generic_tasks: true
+
 candidates:
-  - id: workflow-reproducible-install
-    title: Restore reproducible clean installs and guard them in workflow checks
-    module: workflow
+  - id: browser-proof-runner
+    title: Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
+    module: browser-validation
     priority: 10
     drivers:
-      - package-lock drift can block clean installs before any product work starts
-      - release proof should fail fast when a clean checkout cannot install
-    files:
-      - package-lock.json
-      - scripts/dev/workflow-check.sh
-      - package.json
-    validation: npm ci && npm run validate:local
-    acceptance:
-      - npm ci succeeds from a clean checkout
-      - workflow-check fails when package-lock.json drifts from package.json
-  - id: release-surface-truth
-    title: Keep README release metadata aligned with shipped state
-    module: workflow
-    priority: 9
-    drivers:
-      - README drift can misstate the shipped release even when package and runtime are correct
-      - release truth should be machine-checked, not manual only
-    files:
-      - README.md
-      - scripts/dev/workflow-check.sh
-    validation: npm run workflow:check
-    acceptance:
-      - README release baseline matches package.json and current phase release
-      - workflow-check fails when README release metadata drifts
-  - id: browser-proof-runner
-    title: Add a local helper for release-proof preview and artifact capture
-    module: browser-validation
-    priority: 7
-    drivers:
-      - browser proof currently depends on command discipline more than one local entry point
-      - remote SSH workflows benefit from one repeatable release-proof helper
+      - browser validation command docs exist, but the repo still lacks repeatable repo-root helper scripts and package entry points
+      - the SSH/iPhone workflow needs one local entry point for preview, screenshots, and release proof without relying on memory
+    done_when:
+      - scripts/dev/browser-smoke.sh exists
+      - scripts/dev/release-proof.sh exists
+      - package.json contains npm scripts named browser:smoke and release:proof
+      - .opencode/commands/browser-smoke.md references the repo-root browser smoke helper
+      - .opencode/commands/release-proof.md references the repo-root release proof helper
     files:
       - package.json
+      - scripts/dev/browser-smoke.sh
       - scripts/dev/release-proof.sh
+      - .opencode/commands/browser-smoke.md
       - .opencode/commands/release-proof.md
     validation: npm run validate:local
     acceptance:
-      - one local helper starts preview and records expected browser-proof steps
-      - release-proof instructions reference the helper consistently
+      - npm run browser:smoke exists and runs or clearly orchestrates the repo-root browser smoke flow
+      - npm run release:proof exists and runs or clearly orchestrates the repo-root release proof flow
+      - both helper scripts work from repo root
+      - browser-proof artifacts are written into playwright-artifacts/
+      - command docs reference the new helper entry points consistently
+
+  - id: backlog-lifecycle-gating
+    title: Prevent completed backlog items from being reselected by the phase workflow
+    module: workflow
+    priority: 8
+    drivers:
+      - completed backlog items can be reselected when active work and historical work share the same queue
+      - backlog completion rules should be explicit instead of relying on operator memory
+    done_when:
+      - next-phase guidance skips candidates whose done_when conditions are already true
+      - backlog or ship guidance explains how completed backlog work leaves the selectable queue
+    files:
+      - .opencode/backlog/candidates.yaml
+      - .opencode/commands/next-phase.md
+      - .opencode/commands/ship-phase.md
+    validation: npm run workflow:check
+    acceptance:
+      - next-phase does not reselect already-satisfied backlog items
+      - backlog guidance makes active versus completed work explicit
+      - completed backlog work no longer pollutes the selectable queue
