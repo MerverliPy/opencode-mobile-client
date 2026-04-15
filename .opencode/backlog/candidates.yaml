@@ -1,0 +1,55 @@
+selection_order:
+  - explicit_user_scope
+  - highest_priority
+  - same_module_followup
+  - smallest_safe_scope
+  - clearest_validation
+constraints:
+  max_files_changed: 4
+  prefer_single_module: true
+  avoid_generic_tasks: true
+candidates:
+  - id: workflow-reproducible-install
+    title: Restore reproducible clean installs and guard them in workflow checks
+    module: workflow
+    priority: 10
+    drivers:
+      - package-lock drift can block clean installs before any product work starts
+      - release proof should fail fast when a clean checkout cannot install
+    files:
+      - package-lock.json
+      - scripts/dev/workflow-check.sh
+      - package.json
+    validation: npm ci && npm run validate:local
+    acceptance:
+      - npm ci succeeds from a clean checkout
+      - workflow-check fails when package-lock.json drifts from package.json
+  - id: release-surface-truth
+    title: Keep README release metadata aligned with shipped state
+    module: workflow
+    priority: 9
+    drivers:
+      - README drift can misstate the shipped release even when package and runtime are correct
+      - release truth should be machine-checked, not manual only
+    files:
+      - README.md
+      - scripts/dev/workflow-check.sh
+    validation: npm run workflow:check
+    acceptance:
+      - README release baseline matches package.json and current phase release
+      - workflow-check fails when README release metadata drifts
+  - id: browser-proof-runner
+    title: Add a local helper for release-proof preview and artifact capture
+    module: browser-validation
+    priority: 7
+    drivers:
+      - browser proof currently depends on command discipline more than one local entry point
+      - remote SSH workflows benefit from one repeatable release-proof helper
+    files:
+      - package.json
+      - scripts/dev/release-proof.sh
+      - .opencode/commands/release-proof.md
+    validation: npm run validate:local
+    acceptance:
+      - one local helper starts preview and records expected browser-proof steps
+      - release-proof instructions reference the helper consistently

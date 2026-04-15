@@ -8,6 +8,9 @@ Read `.opencode/plans/current-phase.md`, review the changes for the active phase
 - in-scope items
 - out-of-scope boundaries
 - acceptance criteria
+- stated validation command, when present
+
+Always run `npm run workflow:check` before declaring PASS.
 
 Update the Validation section in `.opencode/plans/current-phase.md` with:
 - status: PASS or FAIL

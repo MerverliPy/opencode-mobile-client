@@ -12,9 +12,13 @@ Check the following invariants:
 - shipped-state metadata is internally consistent across:
   - current phase file
   - phase registry
+  - README release baseline
   - runtime-visible release tag if present
   - `package.json` version
-- required local validation commands referenced by the active workflow exist or are clearly absent
+- `package-lock.json` is synchronized with `package.json`
+- required local validation commands referenced by the active workflow exist
+
+Use `bash scripts/dev/workflow-check.sh` as the source of truth for this check.
 
 Return:
 - PASS or FAIL
