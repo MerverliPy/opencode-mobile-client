@@ -1,12 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+backlog_candidate_exists() {
+  local backlog_id="$1"
+  BACKLOG_ID="$backlog_id" python - <<'PY'
+import os
+import re
+from pathlib import Path
+
+candidate_id = os.environ['BACKLOG_ID']
+text = Path('.opencode/backlog/candidates.yaml').read_text()
+pattern = rf'(?m)^\s*-\s+id:\s*{re.escape(candidate_id)}\s*$'
+raise SystemExit(0 if re.search(pattern, text) else 1)
+PY
+}
+
 repo_root=$(pwd)
 current_phase_file=".opencode/plans/current-phase.md"
 registry_file="docs/releases/phase-registry.md"
 
 [[ -f "$current_phase_file" ]] || { echo "Doctor check failed: missing $current_phase_file"; exit 1; }
 [[ -f "$registry_file" ]] || { echo "Doctor check failed: missing $registry_file"; exit 1; }
+[[ -f ".opencode/backlog/candidates.yaml" ]] || { echo "Doctor check failed: missing .opencode/backlog/candidates.yaml"; exit 1; }
 [[ -f "opencode.json" ]] || { echo "Doctor check failed: missing opencode.json"; exit 1; }
 [[ -f "AGENTS.md" ]] || { echo "Doctor check failed: missing AGENTS.md"; exit 1; }
 
@@ -32,11 +47,20 @@ PY
 )
 package_version=$(node -p "require('./package.json').version")
 
+phase_display="$phase_path"
+
+if [[ "$phase_path" == backlog:* ]]; then
+  backlog_id="${phase_path#backlog:}"
+  [[ -n "$backlog_id" ]] || { echo "Doctor check failed: backlog phase reference is missing a candidate id"; exit 1; }
+  backlog_candidate_exists "$backlog_id" || { echo "Doctor check failed: unknown backlog phase reference $phase_path"; exit 1; }
+  phase_display="$phase_path (virtual backlog reference)"
+fi
+
 printf 'Repo root: %s\n' "$repo_root"
 printf 'Package version: %s\n' "$package_version"
 printf 'Current phase heading: %s\n' "$phase_title"
 printf 'Current release: %s\n' "$release_value"
-printf 'Current phase file: %s\n' "$phase_path"
+printf 'Current phase file: %s\n' "$phase_display"
 printf 'Validation status: %s\n' "$validation_status"
 
 printf '\nWorkflow files:\n'

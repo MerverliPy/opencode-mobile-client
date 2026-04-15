@@ -26,3 +26,6 @@ Authority notes:
 - [x] Phase 12 — Runtime adapter boundary
 - [x] Phase 13 — Quality gates and smoke coverage
 - [x] Phase 14 — CI and release verification
+
+## Backlog follow-up phases
+- [x] backlog-lifecycle-gating — Prevent completed backlog items from being reselected by the phase workflow

@@ -10,6 +10,20 @@ pass() {
   echo "PASS: $1"
 }
 
+backlog_candidate_exists() {
+  local backlog_id="$1"
+  BACKLOG_ID="$backlog_id" python - <<'PY'
+import os
+import re
+from pathlib import Path
+
+candidate_id = os.environ['BACKLOG_ID']
+text = Path('.opencode/backlog/candidates.yaml').read_text()
+pattern = rf'(?m)^\s*-\s+id:\s*{re.escape(candidate_id)}\s*$'
+raise SystemExit(0 if re.search(pattern, text) else 1)
+PY
+}
+
 [[ -f ".opencode/plans/current-phase.md" ]] || fail "missing .opencode/plans/current-phase.md"
 [[ -f "docs/releases/phase-registry.md" ]] || fail "missing docs/releases/phase-registry.md"
 [[ -f "package.json" ]] || fail "missing package.json"
@@ -39,7 +53,18 @@ PY
 )
 
 [[ -n "${phase_file:-}" ]] || fail "could not resolve phase file from current phase"
-[[ -f "${phase_file}" ]] || fail "referenced phase file does not exist: ${phase_file}"
+
+if [[ "${phase_file}" == backlog:* ]]; then
+  backlog_id="${phase_file#backlog:}"
+  [[ -n "${backlog_id}" ]] || fail "backlog phase reference is missing a candidate id"
+  [[ -f ".opencode/backlog/candidates.yaml" ]] || fail "missing .opencode/backlog/candidates.yaml for backlog phase reference"
+  backlog_candidate_exists "${backlog_id}" || fail "referenced backlog phase does not exist: ${phase_file}"
+  phase_reference_type="backlog"
+else
+  [[ -f "${phase_file}" ]] || fail "referenced phase file does not exist: ${phase_file}"
+  phase_reference_type="file"
+fi
+
 [[ -n "${release_value:-}" ]] || fail "missing Release value in current phase"
 
 pkg_version=$(python - <<'PY'
@@ -94,7 +119,10 @@ else
   runtime_tag=""
 fi
 
-grep -q "${release_value}" "${phase_file}" || fail "phase file does not match current release value"
+if [[ "${phase_reference_type}" == "file" ]]; then
+  grep -q "${release_value}" "${phase_file}" || fail "phase file does not match current release value"
+fi
+
 grep -q "${release_value}" docs/releases/phase-registry.md || fail "phase registry does not mention current release value"
 [[ -n "${validation_value:-}" ]] || fail "missing validation status in current phase"
 [[ "${validation_value}" =~ ^(pending|PASS|FAIL)$ ]] || fail "unexpected validation status value: ${validation_value}"

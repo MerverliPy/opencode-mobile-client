@@ -2,109 +2,72 @@
 
 Status: complete
 Release: v1.6.0
-Phase file: docs/releases/phase-14-ci-and-release-verification.md
+Phase file: backlog:backlog-lifecycle-gating
 
 ## Goal
 
-Add a bounded browser-validation foundation for the iPhone-first shell using Playwright MCP, without expanding into a full end-to-end suite or cloud-browser infrastructure.
+Treat `Phase file: backlog:<id>` as a virtual backlog reference in workflow validation and repo diagnostics so backlog phases no longer require fake repo-root shim files.
 
 ## Why this phase is next
 
-Phase 13 added enforceable local quality gates for pure logic and core shell helpers. The next highest-value gap is browser-level validation for the mobile shell: route loading, drawer behavior, screenshot capture, and offline/online proof that still fits the repo's phase-driven workflow.
-
-## In scope
-
-- add Playwright MCP configuration to `opencode.json`
-- keep Playwright tools disabled globally and enabled only for `validator`
-- add browser workflow commands:
-  - `/browser-smoke`
-  - `/browser-offline`
-  - `/screenshot-capture`
-  - `/release-proof`
-- add stable local preview and bundled validation scripts in `package.json`
-- ignore browser artifact output in `.gitignore`
-- keep the implementation compatible with remote SSH/iPhone-driven workflows by defaulting to headless WebKit
-- keep workflow-state and release-verification surfaces truthful while Phase 14 is in progress
-- update local workflow invariant checks so browser-proof validation can run before release metadata is finalized at ship time
-
-## Out of scope
-
-- Browserbase or other hosted browser providers
-- GitHub MCP
-- GitHub Actions workflow files
-- visual regression baselines
-- live backend transport validation
-- authentication flows
-- broad Playwright test suites committed into `tests/`
-- unrelated UI refactors
+The previous backlog phase failed because `workflow:check` only accepted real filesystem paths, which forced an out-of-scope shim file. You explicitly changed scope to fix backlog-phase validation behavior, all release phases are already complete, and the smallest matching backlog candidate is the workflow-focused `backlog-lifecycle-gating` follow-up.
 
 ## Primary files
 
-- `opencode.json`
-- `package.json`
-- `.gitignore`
-- `.opencode/plans/current-phase.md`
-- `.opencode/commands/browser-smoke.md`
-- `.opencode/commands/browser-offline.md`
-- `.opencode/commands/screenshot-capture.md`
-- `.opencode/commands/release-proof.md`
-- `docs/releases/phase-14-ci-and-release-verification.md`
-- `docs/releases/phase-registry.md`
 - `scripts/dev/workflow-check.sh`
+- `scripts/dev/doctor.sh`
+- `backlog:browser-proof-runner`
 
 ## Expected max files changed
 
-11
+3
 
-## Acceptance criteria
+## Risk
 
-- `opencode.json` can start a local Playwright MCP server in headless WebKit mode
-- Playwright MCP tools are disabled globally and enabled only for `validator`
-- `/browser-smoke` exists and instructs the validator to run local validation, start preview, inspect the mobile shell, and capture screenshots
-- `/browser-offline` exists and validates offline/online shell messaging and recovery
-- `/screenshot-capture` exists and captures named screenshot artifacts for a requested route or state
-- `/release-proof` exists and determines whether shipping may proceed
-- `package.json` provides:
-  - `npm run validate:local`
-  - `npm run preview:host`
-- browser artifacts are ignored by git
-- existing local validation still passes:
-  - `npm run workflow:check`
-  - `npm run lint`
-  - `npm run test`
-  - `npm run build`
+Low. This phase is limited to workflow validation and diagnostic handling for backlog phase references, but a mistake could loosen release-phase checks if the virtual backlog path handling is too broad.
 
-## Phase 14 validation checklist
+## Rollback note
 
-- [ ] `npm run validate:local` passes
-- [ ] local preview starts with `npm run preview:host`
-- [ ] `/#sessions` loads at a narrow mobile viewport
-- [ ] `/#task` loads at a narrow mobile viewport
-- [ ] tool drawer interaction is preserved in browser validation
-- [ ] offline state is understandable
-- [ ] recovery state is understandable
-- [ ] required browser artifacts are present in `playwright-artifacts/`
+If this phase causes workflow validation drift, restore strict path checking for release phase files and revisit backlog reference handling with a narrower parser.
 
-## Ship criteria
+## In scope
 
-This phase is shippable only when:
-- Validation status is `PASS`
-- Blockers are `none`
-- Ready to ship is `yes`
-- browser proof artifacts exist
-- release metadata remains synchronized
+- update `workflow:check` so `Phase file: backlog:<id>` is treated as a virtual backlog reference rather than a required real file path
+- update `repo:doctor` so it reports backlog phase references correctly without expecting a real file at that path
+- remove the fake repo-root `backlog:browser-proof-runner` shim file if it exists
+- preserve existing release-phase path validation for real `docs/releases/...` phase files
+
+## Out of scope
+
+- redoing or expanding the browser helper scripts
+- changing the current shipped release metadata
+- redesigning backlog selection behavior beyond this validation fix
+- unrelated workflow command refactors
+- product code changes
+
+## Tasks
+
+- detect backlog-style `Phase file:` values in `scripts/dev/workflow-check.sh`
+- validate backlog references against backlog metadata rather than filesystem path existence
+- update `scripts/dev/doctor.sh` to display backlog references as virtual phase targets
+- delete the fake `backlog:browser-proof-runner` file if present
+- verify both workflow validation and repo diagnostics succeed with the backlog reference format
+
+## Validation command
+
+`npm run workflow:check && npm run repo:doctor`
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run validate:local` passed: `workflow:check`, `lint`, `test`, and `build` all succeeded.
-- `npm run preview:host` served the local build at `http://127.0.0.1:4173/`.
-- Real-browser validation at a narrow mobile viewport (`390x844`) passed for `/#sessions` and `/#task`; accessibility snapshots loaded cleanly, the runtime badge showed `v1.6.0`, and layout metrics show `scrollWidth === viewport width` on both routes, so no critical primary action depended on horizontal scrolling.
-- The task flow preserved context: the tool drawer opened on `/#task`, remained readable in the narrow viewport, and closed back to the same task session without losing task context. No browser console errors were recorded.
-- Offline and recovery validation passed on `/#sessions`: the offline warning/message was visible, saved local shell content remained readable while offline, and the recovered-online success message was visible after reconnect.
-- Required browser artifacts are present in `playwright-artifacts/`: `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- `npm run workflow:check` passed with `Phase file: backlog:backlog-lifecycle-gating`.
+- The stated validation command `npm run workflow:check && npm run repo:doctor` passed, and `repo:doctor` reported the backlog phase reference as a virtual backlog reference.
+- `scripts/dev/workflow-check.sh` now validates backlog phase references against `.opencode/backlog/candidates.yaml` while preserving real file checks for non-backlog phase files.
+- `scripts/dev/doctor.sh` now reports backlog phase references without requiring a repo-root shim file.
+- The fake repo-root `backlog:browser-proof-runner` file is no longer present.
+- The active change set is limited to `.opencode/plans/current-phase.md`, `scripts/dev/workflow-check.sh`, and `scripts/dev/doctor.sh`, so no browser helper scripts were changed in this phase.
 
 Blockers:
 - none
@@ -112,11 +75,19 @@ Blockers:
 Ready to ship:
 - yes
 
+## Acceptance criteria
+
+- `npm run workflow:check` passes when `.opencode/plans/current-phase.md` uses `Phase file: backlog:<id>`
+- `npm run repo:doctor` reports the backlog phase reference without requiring a real repo-root file at that path
+- `backlog:browser-proof-runner` is removed if present
+- real release phase files still require valid filesystem paths
+- no browser helper scripts are changed in this phase
+
 ## Release notes
 
-- Added validator-scoped Playwright MCP browser proof commands and local preview/validation scripts for the mobile shell workflow.
-- Captured narrow-viewport route, drawer, and offline/recovery browser artifacts required for release proof.
+- Treated `Phase file: backlog:<id>` as a virtual backlog reference in `workflow:check` and `repo:doctor`.
+- Removed the need for repo-root backlog shim files during backlog-phase validation.
 
 ## Completion summary
 
-- Phase 14 established a bounded Playwright MCP release-proof workflow for the iPhone-first local shell and validated that the current Sessions and Task experiences remain readable, drawer-safe, and understandable through offline recovery.
+- Backlog lifecycle gating now validates backlog phase references against backlog metadata and reports them cleanly in repo diagnostics while preserving strict file-path checks for real release phase files.
