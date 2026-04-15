@@ -1,6 +1,6 @@
 # Current Phase
 
-Status: ready
+Status: complete
 Release: v1.4.0
 Phase file: docs/releases/phase-12-runtime-adapter-boundary.md
 
@@ -50,21 +50,26 @@ The product can remain usable as a mock-backed shell, but the runtime contract n
 
 ## Validation
 
-Status: pending
+Status: PASS
 
 Evidence:
-- pending
+- `src/adapters/mock-runtime.js` now defines the explicit mock runtime seam, including `createStarterSessionPayload()` for starter tool and diff payloads and `respond()` for follow-up assistant reply, file, and diff generation.
+- `src/state/session-state.js` creates starter session payloads through `runtimeAdapter.createStarterSessionPayload()`, and `src/main.js` routes follow-up reply and generated tool output through `runtimeAdapter.respond(...)`, removing direct inline synthetic generation from the main UI flow.
+- The active adapter source is visible in Settings as `Local mock adapter`, while task and loading copy continue to describe the experience as local and mock-backed rather than implying live backend behavior.
+- The implemented product changes stay within the active phase scope (`src/main.js`, `src/state/session-state.js`, `src/adapters/mock-runtime.js`) and do not add live transport, authentication, remote persistence, streaming, or sync behavior.
+- `npm run build` passes.
 
 Blockers:
 - none
 
 Ready to ship:
-- no
+- yes
 
 ## Release notes
 
-- pending
+- Routed starter and follow-up mock reply, file, and diff generation through an explicit mock runtime adapter.
+- Exposed the active runtime source in-app while keeping shell copy honest about local mock-backed behavior.
 
 ## Completion summary
 
-pending
+Phase 12 shipped v1.4.0 by moving mock runtime generation behind an explicit adapter seam while preserving the local mobile shell experience.

@@ -1,8 +1,9 @@
 import { version as packageVersion } from '../package.json';
 import './styles.css';
 
-import { createDiffToolResult, createToolResult, getDiffFiles, getToolResultKind } from './lib/tool-results.js';
-import { compactText, createId, slugifySegment, trimText } from './lib/utils.js';
+import { createMockRuntimeAdapter } from './adapters/mock-runtime.js';
+import { getDiffFiles, getToolResultKind } from './lib/tool-results.js';
+import { createId } from './lib/utils.js';
 import { createSession, getSelectedSession, getSessionTitle, getToolResult, getToolResults, resetToolDrawer, setSelectedSession, updateSessionById } from './state/session-state.js';
 import { getConnectionLabel, getConnectionTone, isStandaloneMode } from './state/shell-state.js';
 import { getStoredShellState, hydrateSessions, persistSessionState, persistShellState } from './state/storage.js';
@@ -11,6 +12,7 @@ import { renderToolDrawer } from './ui/tool-drawer.js';
 
 const releaseTag = `v${packageVersion}`;
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
+const runtimeAdapter = createMockRuntimeAdapter();
 
 const screens = {
   sessions: {
@@ -24,19 +26,20 @@ const screens = {
     kicker: 'Work',
     title: 'Task',
     description:
-      'The selected session keeps mock task replies, tool output, file viewing, and diff review together in one relaunch-friendly mobile work surface.',
+      'The selected session keeps local mock-adapter replies, tool output, file viewing, and diff review together in one relaunch-friendly mobile work surface.',
   },
   settings: {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while this release makes install, connection, and shell-only status clearer on mobile.',
+    description: 'Settings stays intentionally light while this release makes the active runtime source and shell-only status clearer on mobile.',
     emptyTitle: 'Settings still stay lightweight.',
     emptyBody:
-      'Advanced preferences and broader app controls are still outside the active phase while this release focuses on honest shell status and release baseline messaging.',
+      'Advanced preferences and broader app controls are still outside the active phase while this release focuses on an explicit runtime seam and honest shell status messaging.',
     details: [
+      ['Active runtime', runtimeAdapter.sourceLabel],
       ['Current state', 'Local shell with mock-backed task surfaces'],
-      ['What changed this release', 'Visible release and shell-status copy now align with the current shell-only baseline'],
+      ['What changed this release', 'Replies and generated tool output now flow through an explicit adapter boundary'],
       ['Still out of scope', 'Live backend transport, authentication, and advanced settings'],
     ],
   },
@@ -151,97 +154,23 @@ function syncComposerControls() {
   }
 }
 
-function buildAssistantReply(prompt) {
-  return `Mock shell reply based on your latest message:\n\n${prompt}\n\nCurrent mobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines and larger touch targets keep common mobile actions easier to use`;
-}
-
-function createGeneratedToolResult(session, prompt) {
-  const promptSummary = trimText(compactText(prompt), 42);
-
-  return createToolResult({
-    path: `notes/${slugifySegment(promptSummary)}.md`,
-    summary: 'Prepared a mobile-friendly file snapshot for the latest task context.',
-    content: [
-      `# ${getSessionTitle(session)}`,
-      '',
-      'Latest prompt',
-      prompt,
-      '',
-      'Mobile review notes',
-      '- Tool output now opens in a drawer instead of replacing the task screen.',
-      '- File content wraps so long lines remain readable on narrow screens.',
-      '- Close returns directly to the same conversation.',
-    ].join('\n'),
-  });
-}
-
-function createGeneratedDiffResult(session, prompt) {
-  const promptSummary = trimText(compactText(prompt), 36);
-
-  return createDiffToolResult({
-    path: `reviews/${slugifySegment(promptSummary)}.diff`,
-    summary: 'Prepared a mobile diff snapshot for the latest task context.',
-    files: [
-      {
-        path: 'src/main.js',
-        status: 'M',
-        summary: 'Updates the task thread so diff review opens in the mobile drawer.',
-        hunks: [
-          {
-            header: '@@ -1050,3 +1050,4 @@ function buildAssistantReply(prompt) {',
-            lines: [
-              { type: 'context', oldNumber: 1050, newNumber: 1050, text: 'function buildAssistantReply(prompt) {' },
-              { type: 'context', oldNumber: 1051, newNumber: 1051, text: '  return `Working from your latest message:' },
-              { type: 'remove', oldNumber: 1053, newNumber: null, text: '- file content now opens in a drawer with a clear return path' },
-              { type: 'add', oldNumber: null, newNumber: 1053, text: '- diff review and file content stay in the drawer with a clear return path' },
-              { type: 'add', oldNumber: null, newNumber: 1054, text: '- changed files stay readable in one stacked mobile flow' },
-            ],
-          },
-        ],
-      },
-      {
-        path: `notes/${slugifySegment(promptSummary)}-review.md`,
-        status: 'A',
-        summary: 'Captures the latest mobile review notes as a new file.',
-        hunks: [
-          {
-            header: '@@ -0,0 +1,7 @@',
-            lines: [
-              { type: 'add', oldNumber: null, newNumber: 1, text: `# Review notes for ${getSessionTitle(session)}` },
-              { type: 'add', oldNumber: null, newNumber: 2, text: '' },
-              { type: 'add', oldNumber: null, newNumber: 3, text: 'Prompt' },
-              { type: 'add', oldNumber: null, newNumber: 4, text: prompt },
-              { type: 'add', oldNumber: null, newNumber: 5, text: '' },
-              { type: 'add', oldNumber: null, newNumber: 6, text: '- Review additions and removals in one vertical mobile flow.' },
-            ],
-          },
-        ],
-      },
-    ],
-  });
-}
-
 function finishAssistantReply(sessionId, prompt) {
   responseTimers.delete(sessionId);
 
   const updatedSession = updateSessionById(appState, sessionId, (session) => {
-    const toolResult = createGeneratedToolResult(session, prompt);
-    const diffResult = createGeneratedDiffResult(session, prompt);
+    const { assistantMessage, toolResults } = runtimeAdapter.respond({
+      prompt,
+      sessionTitle: getSessionTitle(session),
+    });
 
     return {
       ...session,
       isLoading: false,
       updatedAt: Date.now(),
-      toolResults: [diffResult, toolResult, ...getToolResults(session)],
+      toolResults: [...toolResults, ...getToolResults(session)],
       messages: [
         ...session.messages,
-        {
-          id: createId('msg'),
-          role: 'assistant',
-          label: 'OpenCode',
-          text: buildAssistantReply(prompt),
-          toolResultId: diffResult.id,
-        },
+        assistantMessage,
       ],
     };
   });
@@ -306,7 +235,7 @@ function appendRetryPrompt() {
 }
 
 function handleCreateSession() {
-  createSession(appState);
+  createSession(appState, runtimeAdapter);
   shouldScrollTaskToEnd = true;
   shouldFocusComposer = true;
   navigateTo('task');

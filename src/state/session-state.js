@@ -1,5 +1,4 @@
 import { compactText, createId, trimText } from '../lib/utils.js';
-import { createStarterDiffResult, createStarterToolResult } from '../lib/tool-results.js';
 import { persistSessionState } from './storage.js';
 
 export function createStarterMessages(diffToolResultId) {
@@ -103,18 +102,17 @@ export function updateSessionById(appState, sessionId, updater) {
   return updatedSession;
 }
 
-export function createSession(appState) {
+export function createSession(appState, runtimeAdapter) {
   const now = Date.now();
-  const starterToolResult = createStarterToolResult();
-  const starterDiffResult = createStarterDiffResult();
+  const starterSessionPayload = runtimeAdapter.createStarterSessionPayload();
   const session = {
     id: createId('session'),
     createdAt: now,
     updatedAt: now,
     draft: '',
     isLoading: false,
-    messages: createStarterMessages(starterDiffResult.id),
-    toolResults: [starterDiffResult, starterToolResult],
+    messages: createStarterMessages(starterSessionPayload.diffToolResultId),
+    toolResults: starterSessionPayload.toolResults,
   };
 
   appState.sessions = [session, ...appState.sessions];

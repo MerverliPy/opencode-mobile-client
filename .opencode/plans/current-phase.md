@@ -1,51 +1,51 @@
 # Current Phase
 
 Status: complete
-Release: v1.3.0
-Phase file: docs/releases/phase-11-shell-modularization-foundation.md
+Release: v1.4.0
+Phase file: docs/releases/phase-12-runtime-adapter-boundary.md
 
 ## Goal
 
-Reduce implementation risk by splitting the single-file shell into small maintainable modules while preserving current behavior.
+Replace inline synthetic runtime generation with a clear adapter boundary so the client stops faking backend behavior inside the UI layer.
 
 ## Why this phase is next
 
-Once product truth is corrected, the next major risk is implementation concentration inside src/main.js. Before adding a cleaner runtime seam, the shell should become easier to reason about, test, and change safely.
+The product can remain usable as a mock-backed shell, but the runtime contract needs to be explicit. This phase creates the seam needed for future real transport work without pretending that transport already exists.
 
 ## In scope
 
-- extract session and shell state helpers into dedicated modules
-- extract local storage and hydration logic into dedicated modules
-- extract tool drawer and diff viewer helpers into dedicated modules
-- keep current UX and interaction behavior materially unchanged
-- keep the app boot path simple and readable
+- introduce a runtime adapter contract
+- route reply generation and tool or diff payload generation through the adapter
+- keep a default mock adapter for current local usability
+- make the active adapter source visible in the UI or developer-facing state
+- remove direct inline synthetic generation from the main UI flow
 
 ## Out of scope
 
-- behavior redesign
-- real backend integration
-- new major product features
-- CSS framework migration
-- broad visual restyling
+- live backend transport
+- authentication
+- remote persistence
+- websocket or streaming implementation
+- multi-device sync
 
 ## Primary files
 
 - src/main.js
+- src/adapters/*
 - src/app/*
 - src/state/*
-- src/ui/*
-- src/lib/*
+- README.md
 
 ## Expected max files changed
 
-10
+8
 
 ## Acceptance criteria
 
-- src/main.js becomes primarily composition and bootstrapping
-- core shell responsibilities are extracted into small focused modules
-- current mobile UX still behaves the same from a user perspective
-- no major feature scope is added
+- reply and tool output creation flow through an explicit adapter layer
+- the mock adapter remains usable for local demo and shell testing
+- the UI no longer hides that mock behavior behind production-like language
+- future transport work has a clear integration seam
 - npm run build passes
 
 ## Validation
@@ -53,11 +53,11 @@ Once product truth is corrected, the next major risk is implementation concentra
 Status: PASS
 
 Evidence:
-- `package.json` is now `1.3.0`, `package-lock.json` root metadata is `1.3.0`, and `src/main.js` continues to derive the runtime-visible badge from `package.json` as `v${packageVersion}`, keeping shipped release metadata aligned at `v1.3.0`.
-- `src/main.js` is reduced to app composition, bootstrapping, event wiring, and mock reply orchestration, while shell state, session/storage logic, screen rendering, and tool drawer rendering are extracted into `src/state/*`, `src/ui/*`, and `src/lib/*` modules.
-- In-scope responsibilities were split into focused modules: `src/state/shell-state.js` and `src/state/session-state.js` for shell/session helpers, `src/state/storage.js` for local storage and hydration, `src/ui/tool-drawer.js` for file and diff drawer rendering, and `src/ui/screens.js` for screen rendering.
-- The changed set stays within the phase size limit and does not add major features, backend work, visual restyling, or other out-of-scope behavior changes; the existing mobile shell flow remains intact from a user-facing perspective.
-- `npm run build` passes independently.
+- `src/adapters/mock-runtime.js` now defines the explicit mock runtime seam, including `createStarterSessionPayload()` for starter tool and diff payloads and `respond()` for follow-up assistant reply, file, and diff generation.
+- `src/state/session-state.js` creates starter session payloads through `runtimeAdapter.createStarterSessionPayload()`, and `src/main.js` routes follow-up reply and generated tool output through `runtimeAdapter.respond(...)`, removing direct inline synthetic generation from the main UI flow.
+- The active adapter source is visible in Settings as `Local mock adapter`, while task and loading copy continue to describe the experience as local and mock-backed rather than implying live backend behavior.
+- The implemented product changes stay within the active phase scope (`src/main.js`, `src/state/session-state.js`, `src/adapters/mock-runtime.js`) and do not add live transport, authentication, remote persistence, streaming, or sync behavior.
+- `npm run build` passes.
 
 Blockers:
 - none
@@ -67,9 +67,9 @@ Ready to ship:
 
 ## Release notes
 
-- Modularized the mobile shell into focused state, storage, UI, and helper modules while preserving the existing mobile workflow.
-- Shipped v1.3.0 with runtime-visible release metadata aligned to the package version.
+- Routed starter and follow-up mock reply, file, and diff generation through an explicit mock runtime adapter.
+- Exposed the active runtime source in-app while keeping shell copy honest about local mock-backed behavior.
 
 ## Completion summary
 
-Phase 11 shipped v1.3.0 by splitting the shell foundation into focused modules so `src/main.js` now primarily composes the app while preserving the current mobile experience.
+Phase 12 shipped v1.4.0 by moving mock runtime generation behind an explicit adapter seam while preserving the local mobile shell experience.

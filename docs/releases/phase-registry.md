@@ -19,6 +19,6 @@ Legend:
 - [x] Phase 09 — V1.1 skip link accessibility polish
 - [x] Phase 10 — Product truth and version baseline
 - [x] Phase 11 — Shell modularization foundation
-- [ ] Phase 12 — Runtime adapter boundary
+- [x] Phase 12 — Runtime adapter boundary
 - [ ] Phase 13 — Quality gates and smoke coverage
 - [ ] Phase 14 — CI and release verification
