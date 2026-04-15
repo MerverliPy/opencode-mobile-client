@@ -1,6 +1,6 @@
 # Current Phase
 
-Status: ready
+Status: complete
 Release: v1.2.0
 Phase file: docs/releases/phase-10-product-truth-and-version-baseline.md
 
@@ -49,21 +49,24 @@ After shipping accessibility follow-up work, the next highest-risk issue is that
 
 ## Validation
 
-Status: pending
+Status: PASS
 
 Evidence:
-- pending
+- `README.md` documents the product as a local-first mobile shell and explicitly says task replies, file views, and diff review are shell or mock-backed experiences rather than a live backend client.
+- `src/main.js` derives the app-visible `releaseTag` from `package.json` and keeps runtime messaging explicit about shell-only, mock-backed behavior.
+- `npm run build` passes.
 
 Blockers:
 - none
 
 Ready to ship:
-- no
+- yes
 
 ## Release notes
 
-- pending
+- Clarified the shipped product reality as a local-first, mock-backed mobile shell.
+- Aligned package versioning and app-visible release metadata around the shipped baseline.
 
 ## Completion summary
 
-pending
+Phase 10 shipped `v1.2.0` by making the product and repo honest about current shell-only capabilities while aligning visible release metadata.

@@ -52,12 +52,11 @@ Further agent-driven shipping is unsafe while the runtime and package surface re
 ## Validation
 Status: PASS
 Evidence:
-- `package.json` is `1.5.0`, `src/main.js` derives the runtime `releaseTag` from that version, and `.opencode/plans/current-phase.md` points at the real file `docs/releases/phase-09-release-state-and-doc-truth.md`.
+- `package.json` is `1.5.0`, `src/main.js` derives the runtime `releaseTag` from that version, and this phase file still matches the active phase path recorded in `.opencode/plans/current-phase.md`.
 - `docs/releases/phase-10-product-truth-and-version-baseline.md` now matches the shipped completion state already represented in `docs/releases/phase-registry.md`.
-- The previously shipped `v1.1.0` skip-link follow-up is preserved in `docs/releases/phase-09-v1-1-history.md`, and `docs/releases/phase-registry.md` now points to that superseded historical record.
-- `docs/releases/phase-09-release-state-and-doc-truth.md` now matches this PASS validation result, so the active phase surfaces no longer disagree.
-- `npm run workflow:check` and `npm run build` both pass after the doc-sync edits.
-- Scope stayed within the bounded doc and release-state reset: the active change set remains limited to workflow and release-doc files and stays under the 8-file budget.
+- The previously shipped `v1.1.0` skip-link follow-up is preserved in `docs/releases/phase-09-v1-1-history.md`, and the registry now points to that superseded historical record.
+- The previously cited future-phase mobile-preview files and artifacts are not present in the current worktree.
+- `npm run workflow:check` and `npm run build` both pass after these doc-sync edits.
 Blockers:
 - none
 Ready to ship:

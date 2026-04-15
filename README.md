@@ -4,7 +4,9 @@ An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use 
 
 ## Release baseline
 
-The current release baseline is `v1.2.0`, aligned with the `package.json` version `1.2.0`.
+The current release baseline is `v1.5.0`, aligned with the `package.json` version `1.5.0` and the runtime release badge.
+
+Phase 09 reconciled older duplicate release docs and stale workflow state around that baseline. Treat `.opencode/plans/current-phase.md` and `docs/releases/phase-registry.md` as the authoritative workflow surfaces.
 
 The running app is still a local-first mobile shell with mock-backed task replies, file viewing, and diff review.
 

@@ -6,8 +6,12 @@ Legend:
 - `[x]` complete
 - `[-]` blocked
 
-## Implementation releases
+Authority notes:
+- `.opencode/plans/current-phase.md` and this registry are the active workflow source of truth.
+- The runtime and package metadata currently advertise `v1.5.0`; Phase 09 reconciled older planning state around that baseline.
+- The previously shipped `v1.1.0` skip-link follow-up that once used Phase 09 numbering is preserved at `docs/releases/phase-09-v1-1-history.md` as a superseded historical record.
 
+## Implementation releases
 - [x] Phase 01 — App shell foundation
 - [x] Phase 02 — iPhone navigation shell
 - [x] Phase 03 — Conversation view and composer
@@ -16,7 +20,7 @@ Legend:
 - [x] Phase 06 — Mobile diff review
 - [x] Phase 07 — PWA install and offline-aware shell
 - [x] Phase 08 — Accessibility and release polish
-- [x] Phase 09 — V1.1 skip link accessibility polish
+- [x] Phase 09 — Release state and doc truth
 - [x] Phase 10 — Product truth and version baseline
 - [x] Phase 11 — Shell modularization foundation
 - [x] Phase 12 — Runtime adapter boundary
