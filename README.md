@@ -2,6 +2,12 @@
 
 An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use and shipped in small, ready-to-use releases.
 
+## Release baseline
+
+The current release baseline is `v1.2.0`, aligned with the `package.json` version `1.2.0`.
+
+The running app is still a local-first mobile shell with mock-backed task replies, file viewing, and diff review.
+
 ## Current product reality
 
 This repository currently ships a local-first mobile shell, not a live backend client.

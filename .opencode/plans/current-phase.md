@@ -52,10 +52,10 @@ After shipping accessibility follow-up work, the next highest-risk issue is that
 Status: PASS
 
 Evidence:
-- visible release and product-truth metadata are aligned across `package.json` (`1.2.0`), `src/main.js` (`v1.2.0`), `index.html`, and `public/manifest.webmanifest`
-- README now states the product is a local-first mobile shell and clarifies that task replies, file views, and diff review are shell or mock-backed rather than live-backend features
-- runtime copy now removes live-backend implication from connection and task messaging while staying within the phase's narrow copy-and-metadata scope
-- `npm run build` passes
+- `package.json` remains `1.2.0`, `.opencode/plans/current-phase.md` release is `v1.2.0`, and `src/main.js` now derives the visible runtime badge from `package.json` as `v${packageVersion}`, keeping the app-visible release aligned with the package version.
+- `README.md` now explicitly states that the current product is a local-first mobile shell with mock-backed task replies, file viewing, and diff review, and that it is not a live backend client.
+- Runtime copy in `src/main.js` now makes the shell-only boundary explicit in Settings, connection messaging, loading state, and composer actions, removing the strongest remaining production-client implication from the task flow.
+- `npm run build` passes independently.
 
 Blockers:
 - none

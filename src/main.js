@@ -1,6 +1,7 @@
+import { version as packageVersion } from '../package.json';
 import './styles.css';
 
-const releaseTag = 'v1.2.0';
+const releaseTag = `v${packageVersion}`;
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
 const shellStorageKey = 'opencode-mobile.shell-v1';
@@ -24,14 +25,14 @@ const screens = {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while the shell now exposes install and network status guidance for mobile use.',
+    description: 'Settings stays intentionally light while this release makes install, connection, and shell-only status clearer on mobile.',
     emptyTitle: 'Settings still stay lightweight.',
     emptyBody:
-      'Advanced preferences and broader app controls are still outside the active phase, even though install guidance now exists in the shell.',
+      'Advanced preferences and broader app controls are still outside the active phase while this release focuses on honest shell status and release baseline messaging.',
     details: [
-      ['Current state', 'Lightweight placeholder'],
-      ['What changed this phase', 'The shell now exposes install readiness and honest shell-status guidance'],
-      ['Still out of scope', 'Advanced settings, push notifications, and native wrapper work'],
+      ['Current state', 'Local shell with mock-backed task surfaces'],
+      ['What changed this release', 'Visible release and shell-status copy now align with the current shell-only baseline'],
+      ['Still out of scope', 'Live backend transport, authentication, and advanced settings'],
     ],
   },
 };
@@ -847,7 +848,7 @@ function renderLoadingMessage() {
           <span class="message-label">OpenCode</span>
           <span class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></span>
         </div>
-        <p class="loading-copy">Thinking through the next reply while keeping this thread readable.</p>
+        <p class="loading-copy">Generating a local mock reply while keeping this thread readable.</p>
       </article>
     </li>
   `;
@@ -1096,10 +1097,10 @@ function renderTaskScreen() {
         >${escapeHtml(session.draft)}</textarea>
         <div class="composer-footer">
           <p class="composer-hint" id="composer-hint">Drafts stay with this session while you browse the rest of the app.</p>
-          <button class="send-button" type="submit" aria-label="${session.isLoading ? 'Sending reply' : 'Send reply'}" ${
+          <button class="send-button" type="submit" aria-label="${session.isLoading ? 'Generating mock reply' : 'Generate mock reply'}" ${
             session.draft.trim() && !session.isLoading ? '' : 'disabled'
           }>
-            ${session.isLoading ? 'Sending' : 'Send'}
+            ${session.isLoading ? 'Generating' : 'Generate'}
           </button>
         </div>
       </form>
@@ -1328,7 +1329,7 @@ function renderToolDrawer(session) {
                   <section class="screen-card state-card tool-empty-card">
                     <p class="eyebrow">No tool output</p>
                     <h3>Nothing to inspect yet.</h3>
-                    <p class="screen-copy">Send or continue a task reply to generate a readable file surface here.</p>
+                    <p class="screen-copy">Generate or continue a mock task reply to create a readable file surface here.</p>
                   </section>
                 `
           }
@@ -1564,7 +1565,7 @@ function renderApp() {
       <header class="top-frame">
         <div class="brand-row">
           <div>
-            <p class="eyebrow">OpenCode mobile</p>
+            <p class="eyebrow">OpenCode mobile shell</p>
             <h1>${frameTitle}</h1>
           </div>
           <div class="header-status-group">
