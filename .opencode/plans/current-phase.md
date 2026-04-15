@@ -1,22 +1,22 @@
 # Current Phase
 
-Status: complete
+Status: pending
 Release: v1.6.0
-Phase file: backlog:phase-validation-status-normalization
+Phase file: backlog:clean-install-reproducibility
 
 ## Goal
 
-Normalize new phase generation so freshly selected phases start with `Validation` status `pending`, matching workflow-check expectations without manual edits.
+Restore deterministic clean installs so `npm ci` works from a clean checkout and the repo's setup and validation workflow can be trusted again.
 
 ## Why this phase is next
 
-The previously active backlog phase is complete, all listed release phases are already complete, and the only remaining selectable backlog candidate is `phase-validation-status-normalization`. It is the highest-priority remaining candidate, stays within the workflow module, has a small bounded scope, and has a clear validation path.
+The previously active phase is complete, all listed release phases in `docs/releases/phase-registry.md` are already complete, and the next selectable backlog item is `clean-install-reproducibility`. It has the highest priority in `candidates`, stays within a small tooling scope, and has a clear validation path.
 
 ## Primary files
 
-- `.opencode/commands/next-phase.md`
-- `.opencode/plans/current-phase.md`
-- `scripts/dev/workflow-check.sh`
+- `package-lock.json`
+- `package.json`
+- `scripts/dev/repair-lockfile.sh`
 
 ## Expected max files changed
 
@@ -24,66 +24,48 @@ The previously active backlog phase is complete, all listed release phases are a
 
 ## Risk
 
-Low. This phase is limited to workflow template and validation behavior, but mistakes could create mismatched phase-state expectations or weaken validation guarantees.
+Medium. Dependency and lockfile changes can affect setup, validation, and local workflow behavior if the repair is broader than intended.
 
 ## Rollback note
 
-Revert the phase template and workflow-check changes so phase generation returns to the prior behavior, then restore the previous current-phase template state if needed.
+Revert the lockfile and related tooling changes together so the repository returns to its prior dependency and setup state.
 
 ## In scope
 
-- update phase-generation workflow so new phases write `Validation` status as `pending`
-- keep workflow-check strict about accepted validation states
-- align generated phase content with documented workflow expectations
-- limit changes to the bounded workflow files required for this normalization
+- restore a clean-checkout path where `npm ci` succeeds without manual lockfile repair
+- keep the fix bounded to the listed tooling and dependency files
+- preserve workflow-check and local validation expectations while repairing install determinism
 
 ## Out of scope
 
-- product UI, runtime, or release metadata changes
-- unrelated workflow refactors
-- backlog selection logic changes beyond the validation-status normalization needed here
-- expanding this task into generic multi-module workflow cleanup
+- product UI or runtime changes
+- unrelated dependency upgrades or security refresh work beyond what is required for deterministic installs
+- broader workflow refactors or backlog selection changes
+- multi-module cleanup outside the install reproducibility issue
 
 ## Tasks
 
-- update the next-phase workflow template to emit `Status: pending` in the `Validation` section for new phases
-- update any supporting workflow checks so newly selected phases pass strict validation without manual editing
-- confirm no workflow command still emits `Status: not run` for new phases
-- verify the required validation command succeeds
+- identify the minimal dependency or lockfile mismatch causing `npm ci` to fail in a clean checkout
+- update the lockfile and only the necessary supporting package metadata or repair script behavior
+- verify the clean-install path and local validation command succeed without manual intervention
 
 ## Validation command
 
-`npm run workflow:check && npm run repo:doctor`
+`npm ci --ignore-scripts && npm run validate:local`
 
 ## Validation
 
-Status: PASS
+Status: pending
 
 Evidence:
-- `npm run workflow:check` passed, and the required validation command `npm run workflow:check && npm run repo:doctor` passed.
-- `.opencode/commands/next-phase.md` now explicitly requires newly generated backlog phases to write `## Validation` with `Status: pending` and `Evidence: - not run yet`.
-- `.opencode/commands/next-phase.md` also requires copied release phases to normalize their `## Validation` section to `Status: pending`, covering release-phase selection without manual edits.
-- `scripts/dev/workflow-check.sh` remains strict and accepts only `pending`, `PASS`, or `FAIL`; no workflow command file under `.opencode/commands/` emits `Status: not run` for new phases.
-
-Blockers:
-- none
-
-Ready to ship:
-- yes
+- not run yet
 
 ## Acceptance criteria
 
-- next-phase creates backlog or release phases with Validation status set to `pending`
-- workflow-check remains strict and does not require manual edits after phase selection
-- no workflow command emits `Status: not run` for new phases
-- no unrelated workflow or product changes are introduced
-
-## Release notes
-
-- Normalized new phase templates so freshly selected phases start `## Validation` at `Status: pending`.
-- Normalized copied release phases to the same pending validation state to avoid manual status edits.
+- a clean checkout can run `npm ci` without manual repair steps
+- the lockfile stays in sync with `package.json` and workflow-check remains green
+- no unrelated dependency or source changes are introduced
 
 ## Completion summary
 
-- Updated `.opencode/commands/next-phase.md` so backlog-generated phases write `Status: pending` with initial validation evidence and copied release phases normalize their validation status the same way.
-- Confirmed `npm run workflow:check && npm run repo:doctor` passes with strict validation-state enforcement unchanged.
+- not started

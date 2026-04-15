@@ -17,7 +17,137 @@ constraints:
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates: []
+candidates:
+  - id: clean-install-reproducibility
+    title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
+    module: tooling
+    priority: 10
+    expected_max_files_changed: 3
+    drivers:
+      - The checked-in repo currently fails `npm ci`, which breaks clean-clone setup and contradicts the documented release-proof expectations.
+      - This is the smallest high-leverage blocker because all later phases depend on reproducible installs and trustworthy automation.
+    files:
+      - package-lock.json
+      - package.json
+      - scripts/dev/repair-lockfile.sh
+    validation: npm ci --ignore-scripts && npm run validate:local
+    acceptance:
+      - A clean checkout can run `npm ci` without manual repair steps.
+      - The lockfile stays in sync with `package.json` and workflow-check remains green.
+      - No unrelated dependency or source changes are introduced.
+
+  - id: session-lifecycle-actions
+    title: Add rename and delete actions so local sessions stay manageable on a phone
+    module: sessions
+    priority: 9
+    expected_max_files_changed: 4
+    drivers:
+      - Sessions can be created and reopened, but there is no way to rename or remove stale local sessions once they accumulate.
+      - The Sessions tab is one of the main shipped surfaces, so this is the highest-value product follow-up after clean install truth.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run test && npm run build
+    acceptance:
+      - A user can rename a session title without corrupting message history.
+      - A user can delete a session with an explicit confirmation path.
+      - Current-session fallback stays deterministic after deletion and persisted state remains valid.
+
+  - id: session-search-filter
+    title: Add session search and empty-filter states so larger local histories remain usable
+    module: sessions
+    priority: 8
+    expected_max_files_changed: 4
+    drivers:
+      - The current Sessions screen renders one undifferentiated list, which becomes harder to use as local history grows.
+      - This was intentionally deferred earlier and is now the smallest safe follow-up after session lifecycle basics.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run test && npm run build
+    acceptance:
+      - Sessions can be filtered by title or preview text with case-insensitive matching.
+      - The filtered-empty state is explicit and does not look like a broken load state.
+      - Selecting, reopening, and current-session highlighting still work under filtering.
+
+  - id: session-export-import
+    title: Add local JSON export and import so device-only sessions can be backed up and moved safely
+    module: storage
+    priority: 7
+    expected_max_files_changed: 4
+    drivers:
+      - The app is explicitly local-first, but there is no backup or migration path for saved sessions.
+      - Export and import make the repo materially more complete without inventing cloud sync or backend work.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/storage.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run test && npm run build
+    acceptance:
+      - Sessions can be exported as a valid JSON backup from inside the mobile shell.
+      - A previously exported file can be imported and normalized without crashing the app.
+      - Invalid or incompatible imports fail with an honest in-app notice and preserve existing state.
+
+  - id: tool-drawer-copy-share
+    title: Add copy and share actions for file and diff output so generated results are reusable on mobile
+    module: tools
+    priority: 6
+    expected_max_files_changed: 4
+    drivers:
+      - The tool drawer renders readable file and diff output, but there is no copy or share affordance for moving that output into other workflows.
+      - This is a direct iPhone-first usability gap because the current shell can display results but not quickly reuse them.
+    files:
+      - src/main.js
+      - src/ui/tool-drawer.js
+      - src/lib/tool-results.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run test && npm run build
+    acceptance:
+      - File output can be copied from the drawer with clear success or failure feedback.
+      - Diff output can be copied in a stable text form that preserves file and hunk context.
+      - Drawer navigation and current review state remain unchanged after copy or share actions.
+
+  - id: browser-proof-automation
+    title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
+    module: validation
+    priority: 5
+    expected_max_files_changed: 4
+    drivers:
+      - `browser-smoke.sh` currently validates locally and prints manual screenshot instructions instead of producing a repeatable browser-proof artifact flow.
+      - Automating this would make the shipped iPhone and SSH workflow more reliable and less operator-dependent.
+    files:
+      - package.json
+      - scripts/dev/browser-smoke.sh
+      - scripts/dev/release-proof.sh
+      - .opencode/commands/screenshot-capture.md
+    validation: npm run browser:smoke && npm run release:proof
+    acceptance:
+      - Repo-owned browser-proof steps produce or verify the required screenshot artifacts without relying on ad hoc manual sequencing.
+      - Failure paths clearly identify which route, artifact, or preview prerequisite is missing.
+      - Existing release-proof expectations remain compatible with the workflow commands.
+
+  - id: vite-security-refresh
+    title: Refresh Vite and related lockfile entries to reduce known development-server advisories
+    module: tooling
+    priority: 4
+    expected_max_files_changed: 3
+    drivers:
+      - `npm audit` currently reports moderate advisories affecting `vite` and `esbuild` in the checked-in dependency graph.
+      - This improves repo completeness and reduces avoidable tooling risk before larger runtime work lands.
+    files:
+      - package.json
+      - package-lock.json
+      - vite.config.js
+    validation: npm audit && npm run validate:local
+    acceptance:
+      - Moderate audit findings are reduced or removed without breaking build, preview, or validation commands.
+      - Any required config changes stay minimal and are documented in the phase summary.
+      - No app-behavior changes are mixed into the dependency refresh.
 
 archived:
   - id: backlog-lifecycle-gating
