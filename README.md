@@ -1,10 +1,19 @@
 # OpenCode Mobile Client
 
-An iPhone-first mobile UI for OpenCode, designed for useful daily mobile use and shipped in small, ready-to-use releases.
+An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use and shipped in small, ready-to-use releases.
+
+## Current product reality
+
+This repository currently ships a local-first mobile shell, not a live backend client.
+
+- sessions and shell state persist on the current device
+- task replies, file views, and diff review are shell or mock-backed experiences for mobile workflow validation
+- online and offline indicators reflect browser connectivity and install or reload conditions, not a live OpenCode session
+- the product is being delivered in small phases before any real transport or authentication work exists
 
 ## Product direction
 
-This project is a mobile-first OpenCode client optimized for:
+This project is a mobile-first OpenCode shell optimized for:
 - one-handed iPhone use
 - readable long-running agent output
 - compact task execution on narrow screens

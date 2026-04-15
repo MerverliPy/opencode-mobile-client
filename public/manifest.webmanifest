@@ -1,7 +1,7 @@
 {
-  "name": "OpenCode Mobile Client",
+  "name": "OpenCode Mobile Shell",
   "short_name": "OpenCode",
-  "description": "An iPhone-first OpenCode mobile client with installable shell behavior and honest offline awareness.",
+  "description": "An iPhone-first OpenCode mobile shell with installable behavior and honest offline awareness.",
   "start_url": "/#sessions",
   "scope": "/",
   "display": "standalone",

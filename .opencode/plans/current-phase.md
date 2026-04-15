@@ -1,48 +1,50 @@
 # Current Phase
 
 Status: complete
-Release: v1.1.0
-Phase file: docs/releases/phase-09-v1-1-skip-link-accessibility-polish.md
+Release: v1.2.0
+Phase file: docs/releases/phase-10-product-truth-and-version-baseline.md
 
 ## Goal
 
-Polish skip-link accessibility behavior so keyboard and assistive-technology users can reliably bypass chrome and land in the correct main content target on mobile.
+Make the product honest about its current capabilities and align release and version metadata across the repo and runtime.
 
 ## Why this phase is next
 
-Phase 08 introduced broad accessibility and interaction polish. The next smallest useful release is to harden skip-link behavior and make that improvement explicit as a shipped V1.1 accessibility follow-up.
+After shipping accessibility follow-up work, the next highest-risk issue is that the runtime still reads more like a production client than the current shell actually is. Before deeper architecture work, the product should clearly state what is real, what is mock-backed, and which version is actually running.
 
 ## In scope
 
-- skip-link visibility and focus behavior
-- correct landing target for main content
-- small-screen accessibility polish related directly to skip-link flow
-- wording and interaction refinement tied directly to skip-link accessibility
+- align visible release metadata and package versioning
+- make app copy honest about current shell-only or mock-backed behavior
+- clarify the current product position in repo documentation
+- remove misleading wording that implies a live backend where none exists
+- keep the UX polished while making capability boundaries explicit
 
 ## Out of scope
 
-- new major features
-- backend or transport changes
-- cross-platform redesign
+- real backend transport
+- authentication
+- major UI redesign
 - large settings expansion
-- unrelated refactors
+- broad architecture refactors
 
 ## Primary files
 
+- README.md
+- package.json
 - src/main.js
-- src/styles.css
 - index.html
 
 ## Expected max files changed
 
-5
+6
 
 ## Acceptance criteria
 
-- skip link becomes visible when focused
-- skip link lands on the intended main content target
-- behavior remains reliable on iPhone-sized layouts
-- release remains a narrow accessibility follow-up
+- visible release metadata is internally consistent
+- package version and app-visible release are aligned
+- documentation clearly states the current product reality
+- user-facing copy does not imply a live connected client when the runtime is still shell or mock based
 - npm run build passes
 
 ## Validation
@@ -50,9 +52,10 @@ Phase 08 introduced broad accessibility and interaction polish. The next smalles
 Status: PASS
 
 Evidence:
-- skip-link interaction is present and tied to the main content target
-- the release stays scoped to accessibility-follow-up work rather than new feature expansion
-- npm run build passes
+- visible release and product-truth metadata are aligned across `package.json` (`1.2.0`), `src/main.js` (`v1.2.0`), `index.html`, and `public/manifest.webmanifest`
+- README now states the product is a local-first mobile shell and clarifies that task replies, file views, and diff review are shell or mock-backed rather than live-backend features
+- runtime copy now removes live-backend implication from connection and task messaging while staying within the phase's narrow copy-and-metadata scope
+- `npm run build` passes
 
 Blockers:
 - none
@@ -62,9 +65,9 @@ Ready to ship:
 
 ## Release notes
 
-- Hardened skip-link accessibility behavior for keyboard and assistive-technology use.
-- Clarified the V1.1 accessibility follow-up as a shipped release.
+- Aligned v1.2.0 release metadata across the app shell, package version, and install surfaces.
+- Clarified that the current product is a local-first mobile shell with shell or mock-backed task behavior.
 
 ## Completion summary
 
-Phase 09 finalized the V1.1 skip-link accessibility follow-up by tightening skip-link behavior and keeping the release narrowly focused on accessible navigation polish.
+Phase 10 shipped v1.2.0 by synchronizing visible release metadata and tightening runtime and documentation copy so the product no longer implies a live backend.

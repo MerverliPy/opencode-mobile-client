@@ -1,6 +1,6 @@
 import './styles.css';
 
-const releaseTag = 'v1.1.0';
+const releaseTag = 'v1.2.0';
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';
 const shellStorageKey = 'opencode-mobile.shell-v1';
@@ -18,19 +18,19 @@ const screens = {
     kicker: 'Work',
     title: 'Task',
     description:
-      'The selected session keeps chat, tool output, file viewing, and diff review together in one relaunch-friendly mobile work surface.',
+      'The selected session keeps mock task replies, tool output, file viewing, and diff review together in one relaunch-friendly mobile work surface.',
   },
   settings: {
     label: 'Settings',
     kicker: 'Prefs',
     title: 'Settings',
-    description: 'Settings stays intentionally light while the shell now exposes install and connection guidance for mobile use.',
+    description: 'Settings stays intentionally light while the shell now exposes install and network status guidance for mobile use.',
     emptyTitle: 'Settings still stay lightweight.',
     emptyBody:
       'Advanced preferences and broader app controls are still outside the active phase, even though install guidance now exists in the shell.',
     details: [
       ['Current state', 'Lightweight placeholder'],
-      ['What changed this phase', 'The shell now exposes install readiness and honest online or offline guidance'],
+      ['What changed this phase', 'The shell now exposes install readiness and honest shell-status guidance'],
       ['Still out of scope', 'Advanced settings, push notifications, and native wrapper work'],
     ],
   },
@@ -123,8 +123,8 @@ function getConnectionLabel() {
 
 function getConnectionMessage() {
   return appState.shell.isOnline
-    ? 'Connected and ready. Recent local work still stays available if the connection drops.'
-    : 'You are offline. Existing local sessions stay readable, but new network-backed work may be limited until connection returns.';
+    ? 'Connection available. This release still runs as a local shell, so saved sessions stay on this device and no live backend is connected.'
+    : 'You are offline. Existing local sessions stay readable on this device, but install updates and reload-dependent shell checks may wait until connection returns.';
 }
 
 function getInstallHint() {
@@ -333,13 +333,13 @@ function createStarterMessages(diffToolResultId) {
       role: 'assistant',
       label: 'OpenCode',
       text:
-        'This session now stays local to the device, so you can move between Sessions and Task without dropping the current thread.',
+        'This starter session stays local to the device, so you can move between Sessions and Task without dropping the current thread.',
     },
     {
       id: createId('msg'),
       role: 'assistant',
       label: 'OpenCode',
-      text: 'A starter diff review is ready, and the tools drawer still keeps file output nearby without leaving this thread.',
+      text: 'A starter mock diff review is ready, and the tools drawer still keeps file output nearby without leaving this thread.',
       toolResultId: diffToolResultId,
     },
     {
@@ -1367,7 +1367,7 @@ function renderPlaceholderScreen(screen) {
 }
 
 function buildAssistantReply(prompt) {
-  return `Working from your latest message:\n\n${prompt}\n\nMobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines and larger touch targets keep common mobile actions easier to use`;
+  return `Mock shell reply based on your latest message:\n\n${prompt}\n\nCurrent mobile takeaways:\n- the current thread stays visible while you inspect tool output\n- file content now opens in a drawer with a clear return path\n- wrapped lines and larger touch targets keep common mobile actions easier to use`;
 }
 
 function createGeneratedToolResult(session, prompt) {
@@ -1856,7 +1856,7 @@ window.addEventListener('online', () => {
   setUiNotice({
     tone: 'success',
     title: 'Back online.',
-    body: 'Network-backed actions can resume, and local sessions stayed available while you were away.',
+      body: 'Connection returned. This release still behaves as a local mobile shell, and any saved sessions remained on this device while you were away.',
   });
   renderApp();
 });
@@ -1865,7 +1865,7 @@ window.addEventListener('offline', () => {
   setUiNotice({
     tone: 'warning',
     title: 'You are offline.',
-    body: 'Saved local sessions remain readable, but new network-backed work may be limited until connection returns.',
+      body: 'Saved local sessions remain readable, but this release does not connect to a live backend and some reload or install-related checks may wait until connection returns.',
   });
   renderApp();
 });
