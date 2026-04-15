@@ -7,9 +7,10 @@ selection_order:
 
 queue_rules:
   - Only entries under `candidates` are selectable.
+  - Entries under `archived` are retained only so shipped backlog references remain valid.
   - Remove shipped backlog work from `candidates` immediately after `/ship-phase`.
-  - Use git history as the archive for shipped backlog items.
-  - Add new work here only when it is still unshipped and still needed.
+  - Keep shipped backlog work under `archived` until the workflow no longer references it.
+  - Use git history as the long-term archive for shipped backlog items.
 
 constraints:
   max_files_changed: 4
@@ -17,3 +18,14 @@ constraints:
   avoid_generic_tasks: true
 
 candidates: []
+
+archived:
+  - id: backlog-lifecycle-gating
+    title: Prevent completed backlog items from being reselected by the phase workflow
+    module: workflow
+    shipped: true
+
+  - id: browser-proof-runner
+    title: Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
+    module: browser-validation
+    shipped: true
