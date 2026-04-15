@@ -1,6 +1,6 @@
 # Current Phase
 
-Status: ready
+Status: complete
 Release: v1.3.0
 Phase file: docs/releases/phase-11-shell-modularization-foundation.md
 
@@ -50,21 +50,26 @@ Once product truth is corrected, the next major risk is implementation concentra
 
 ## Validation
 
-Status: pending
+Status: PASS
 
 Evidence:
-- pending
+- `package.json` is now `1.3.0`, `package-lock.json` root metadata is `1.3.0`, and `src/main.js` continues to derive the runtime-visible badge from `package.json` as `v${packageVersion}`, keeping shipped release metadata aligned at `v1.3.0`.
+- `src/main.js` is reduced to app composition, bootstrapping, event wiring, and mock reply orchestration, while shell state, session/storage logic, screen rendering, and tool drawer rendering are extracted into `src/state/*`, `src/ui/*`, and `src/lib/*` modules.
+- In-scope responsibilities were split into focused modules: `src/state/shell-state.js` and `src/state/session-state.js` for shell/session helpers, `src/state/storage.js` for local storage and hydration, `src/ui/tool-drawer.js` for file and diff drawer rendering, and `src/ui/screens.js` for screen rendering.
+- The changed set stays within the phase size limit and does not add major features, backend work, visual restyling, or other out-of-scope behavior changes; the existing mobile shell flow remains intact from a user-facing perspective.
+- `npm run build` passes independently.
 
 Blockers:
 - none
 
 Ready to ship:
-- no
+- yes
 
 ## Release notes
 
-- pending
+- Modularized the mobile shell into focused state, storage, UI, and helper modules while preserving the existing mobile workflow.
+- Shipped v1.3.0 with runtime-visible release metadata aligned to the package version.
 
 ## Completion summary
 
-pending
+Phase 11 shipped v1.3.0 by splitting the shell foundation into focused modules so `src/main.js` now primarily composes the app while preserving the current mobile experience.
