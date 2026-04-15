@@ -17,3 +17,8 @@ Legend:
 - [x] Phase 07 — PWA install and offline-aware shell
 - [x] Phase 08 — Accessibility and release polish
 - [x] Phase 09 — V1.1 skip link accessibility polish
+- [ ] Phase 10 — Product truth and version baseline
+- [ ] Phase 11 — Shell modularization foundation
+- [ ] Phase 12 — Runtime adapter boundary
+- [ ] Phase 13 — Quality gates and smoke coverage
+- [ ] Phase 14 — CI and release verification
