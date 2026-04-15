@@ -16,4 +16,4 @@ Legend:
 - [x] Phase 06 — Mobile diff review
 - [x] Phase 07 — PWA install and offline-aware shell
 - [x] Phase 08 — Accessibility and release polish
-- [ ] Phase 09 — V1.1 skip link accessibility polish
+- [x] Phase 09 — V1.1 skip link accessibility polish

@@ -47,6 +47,7 @@ select {
 }
 
 .app-shell {
+  position: relative;
   min-height: var(--app-height, 100dvh);
   max-width: 30rem;
   margin: 0 auto;
@@ -60,18 +61,26 @@ select {
   position: absolute;
   left: 1rem;
   top: max(0.5rem, env(safe-area-inset-top));
-  transform: translateY(-150%);
+  transform: translateY(calc(-100% - 0.75rem));
   padding: 0.7rem 0.9rem;
   border-radius: 0.85rem;
   background: #f4f7fb;
   color: #04111f;
   font-weight: 700;
   text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 0.6rem 1.5rem rgba(4, 17, 31, 0.24);
   z-index: 40;
 }
 
-.skip-link:focus {
+.skip-link:focus,
+.skip-link:focus-visible {
   transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+  outline: 3px solid rgba(102, 194, 255, 0.55);
+  outline-offset: 2px;
 }
 
 .top-frame,

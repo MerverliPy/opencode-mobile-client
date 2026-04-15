@@ -167,6 +167,17 @@ function clearUiNotice() {
   appState.ui.notice = null;
 }
 
+function focusMainContent() {
+  const mainContent = app.querySelector('#main-content');
+
+  if (!(mainContent instanceof HTMLElement)) {
+    return;
+  }
+
+  mainContent.focus({ preventScroll: true });
+  mainContent.scrollIntoView({ block: 'start' });
+}
+
 function renderUiNotice() {
   const notice = appState.ui.notice;
 
@@ -1676,6 +1687,14 @@ app.addEventListener('submit', (event) => {
 
 app.addEventListener('click', (event) => {
   if (!(event.target instanceof Element)) {
+    return;
+  }
+
+  const skipLink = event.target.closest('.skip-link');
+
+  if (skipLink) {
+    event.preventDefault();
+    focusMainContent();
     return;
   }
 

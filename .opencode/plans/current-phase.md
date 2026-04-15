@@ -1,60 +1,81 @@
 # Current Phase
 
 Status: ready
-Release: v0.8.0
-Phase file: docs/releases/phase-08-accessibility-and-polish.md
+Release: v1.1.0
+Phase file: docs/releases/phase-09-skip-link-polish.md
 
 ## Goal
 
-Harden the client for daily use through accessibility, readability, and interaction polish.
+Keep the accessibility skip link in the app shell, but hide it from the normal mobile layout until it receives focus, and ensure it jumps correctly to the main content region.
 
 ## Why this phase is next
 
-Before expanding scope further, the product should become more dependable and comfortable to use.
+The visible skip link is not a functional blocker, but it weakens the first-run mobile presentation and makes the installed app feel less polished. This should be corrected without removing the accessibility benefit.
 
 ## In scope
 
-- touch target review
-- readability improvements
-- loading and error state refinement
-- interaction consistency
-- reduced friction in common flows
-- stronger narrow-screen polish
+- skip link visibility behavior
+- focus-only presentation for the skip link
+- correct jump target to the main content area
+- verification that the skip link remains usable for keyboard and accessibility flows
+- iPhone validation that the link does not appear persistently on normal launch
 
 ## Out of scope
 
-- new major features
-- native wrapper work
-- cross-platform redesign
-- large settings expansion
+- broader accessibility redesign
+- shell layout redesign
+- navigation changes
+- typography changes unrelated to the skip link
+- new features
 
 ## Primary files
 
-- shared UI files
-- loading and error state files
-- accessibility-related surface files
+- app shell or root layout file
+- accessibility or global style file
+- main content container or landmark file
 
 ## Expected max files changed
 
-10
+4
 
-## Acceptance criteria
+## Risk
 
-- primary actions are easier to use on iPhone
-- error recovery is clearer
-- loading states feel intentional
-- release materially improves confidence and usability
+Low. This is a targeted accessibility and shell polish fix.
+
+## Rollback note
+
+If the focused skip link becomes unusable after the change, revert to the previous implementation and restore visible behavior temporarily rather than removing the link.
+
+## Tasks
+
+- identify the current skip link implementation
+- confirm the app has a valid main content target
+- update the skip link so it is visually hidden by default
+- ensure the skip link becomes clearly visible on focus
+- ensure activation jumps to the main content region correctly
+- verify the installed mobile app no longer shows the skip link on normal launch
+
+## Validation command
+
+Manual validation on iPhone and desktop browser:
+- launch app normally
+- confirm skip link is not persistently visible
+- navigate with keyboard or accessibility focus
+- confirm skip link appears when focused
+- activate it
+- confirm focus or jump lands on the main content region
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `src/styles.css` increases touch target sizes for primary actions and common controls (`.primary-button`, `.secondary-button`, `.ghost-button`, `.send-button`, `.session-item`, `.tool-inline-button`, `.tool-nav-button`, and `.composer-input`) and adds narrow-screen layout polish like a full-width send button on very small screens.
-- `src/main.js` adds accessibility and interaction polish through a skip link, improved ARIA labels/descriptions/expanded states, `aria-busy` on the conversation surface, dialog labelling for the tool drawer, Escape-to-close behavior, and focus return after dismissing the drawer.
-- `src/main.js` also adds clearer recovery and state messaging for session restore failure, offline/online transitions, install outcomes, and service-worker setup failure, while refining loading copy so loading and error states feel more intentional.
-- Reviewed implementation stays within Phase 08 scope: changes are limited to shared UI/accessibility/state-polish surfaces in `src/main.js` and `src/styles.css`, with no new major features, native wrapper work, cross-platform redesign, or settings expansion.
-- `npm run build` passes, confirming the phase result is independently usable as a working release increment.
+- `src/main.js` keeps the skip link in the app shell (`<a class="skip-link" href="#main-content">`) and retains a valid main content target (`<main id="main-content" ... tabindex="-1">`), matching the phase goal and in-scope target behavior.
+- `src/styles.css` updates `.skip-link` to be visually hidden by default (`transform` off-screen plus `opacity: 0`) and only visible on `:focus`/`:focus-visible`, which is consistent with the focus-only presentation requirement.
+- `src/main.js` adds `focusMainContent()` and intercepts skip-link activation to focus and scroll the main region directly, addressing the correct jump-target requirement without broader shell or navigation changes.
+- Scope stayed within Phase 09 boundaries: only `src/main.js` and `src/styles.css` changed for implementation, with no broader accessibility redesign, shell redesign, navigation changes, unrelated typography work, or new features.
+- Manual validation passed on the required flows: normal mobile launch does not show the skip link persistently, keyboard/accessibility focus reveals it, activation lands on the main content region, and iPhone shell/top spacing remains intact.
+- `npm run build` passes, confirming the phase result is independently usable as a release increment.
 
 Blockers:
 - none
@@ -64,9 +85,17 @@ Ready to ship:
 
 ## Release notes
 
-- Increased touch target sizes and small-screen layout polish across primary mobile actions.
-- Added clearer loading, offline, install, and recovery notices with improved accessibility and drawer focus behavior.
+- Hid the shell skip link during normal mobile launch and revealed it only on focus.
+- Made skip-link activation focus and scroll to the main content region reliably.
+
+## Acceptance criteria
+
+- the skip link is not persistently visible during normal mobile launch
+- the skip link still exists in the app shell
+- the skip link becomes visible when focused
+- activating the skip link moves focus or scroll position to the main content area
+- the change does not break the shell layout or top spacing on iPhone
 
 ## Completion summary
 
-Phase 08 hardened the mobile client for daily use by improving touch ergonomics, readability, recovery feedback, and accessible interaction flow without expanding product scope.
+Phase 09 polished the shell skip link by keeping it available for accessibility flows while removing its persistent visual presence from normal mobile launch.
