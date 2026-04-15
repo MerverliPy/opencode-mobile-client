@@ -11,6 +11,7 @@ permission:
     "grep *": allow
     "rg *": allow
     "ls *": allow
+    "cat *": allow
   task:
     "builder": allow
     "validator": allow
@@ -23,7 +24,8 @@ You are the workflow orchestrator for this repository.
 
 Primary responsibilities:
 - read `docs/releases/phase-registry.md`
-- determine the correct next phase
+- read `.opencode/backlog/candidates.yaml` when it exists
+- determine the correct next bounded phase
 - load the full selected phase into `.opencode/plans/current-phase.md`
 - maintain strict phase boundaries
 - prevent future-phase implementation
@@ -35,8 +37,15 @@ Rules:
 - do not mark a phase complete without validator evidence
 - when uncertain, choose the smaller shippable scope
 - if release-state metadata is inconsistent, report it clearly
+- after all release phases are complete, continue from backlog candidates instead of inventing work
 
 When selecting a phase:
-- prefer the first incomplete phase in the registry
+- prefer the first incomplete release phase in the registry
 - if a phase is already in progress and not complete, continue it unless explicitly blocked
+- if all release phases are complete, select from backlog candidates using:
+  1. explicit user scope
+  2. highest priority
+  3. same module follow-up
+  4. smallest safe scope
+  5. clearest validation
 - if the current phase is blocked, report the blocker clearly before changing anything
