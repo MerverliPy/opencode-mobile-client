@@ -1,7 +1,7 @@
 {
   "name": "opencode-mobile-client",
   "private": true,
-  "version": "1.5.0",
+  "version": "1.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,9 @@
     "test": "vitest run",
     "build": "vite build",
     "preview": "vite preview",
-    "workflow:check": "bash scripts/dev/workflow-check.sh"
+    "preview:host": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
+    "workflow:check": "bash scripts/dev/workflow-check.sh",
+    "validate:local": "npm run workflow:check && npm run lint && npm run test && npm run build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

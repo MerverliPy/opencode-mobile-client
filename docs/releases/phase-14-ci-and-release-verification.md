@@ -1,68 +1,191 @@
-# Current Phase
+# Phase 14 — CI and release verification
 
-Status: ready
 Release: v1.6.0
-Phase file: docs/releases/phase-14-ci-and-release-verification.md
+Status: complete
 
 ## Goal
 
-Automate the core release verification path so broken releases are harder to ship.
+Add a bounded browser-validation foundation for the iPhone-first shell using Playwright MCP, without expanding into a full end-to-end suite or cloud-browser infrastructure.
 
 ## Why this phase is next
 
-Once local lint, test, and build commands exist, the next step is to run them automatically on GitHub so release confidence does not depend on memory or manual discipline alone.
+Phase 13 added enforceable local quality gates for pure logic and core shell helpers. The next highest-value gap is browser-level validation for the mobile shell: route loading, drawer behavior, screenshot capture, and offline/online proof that still fits the repo's phase-driven workflow.
 
 ## In scope
 
-- add GitHub Actions CI for install, lint, test, and build
-- run CI on push and pull request
-- keep the workflow small and understandable
-- document the release verification path briefly if needed
-- preserve the existing small-release workflow
+- add Playwright MCP configuration to `opencode.json`
+- keep Playwright tools disabled globally and enabled only for `validator`
+- add browser workflow commands:
+  - `/browser-smoke`
+  - `/browser-offline`
+  - `/screenshot-capture`
+  - `/release-proof`
+- add stable local preview and bundled validation scripts in `package.json`
+- ignore browser artifact output in `.gitignore`
+- keep the implementation compatible with remote SSH/iPhone-driven workflows by defaulting to headless WebKit
+- keep workflow-state and release-verification surfaces truthful while Phase 14 is in progress
+- update local workflow invariant checks so browser-proof validation can run before release metadata is finalized at ship time
 
 ## Out of scope
 
-- deployment automation
-- preview environment infrastructure
-- code coverage services
-- release tagging automation
-- large CI matrix expansion
+- Browserbase or other hosted browser providers
+- GitHub MCP
+- GitHub Actions workflow files
+- visual regression baselines
+- Percy/Chromatic-style approval workflows
+- live backend transport validation
+- authentication flows
+- broad Playwright test suites committed into `tests/`
+- unrelated UI refactors
 
 ## Primary files
 
-- .github/workflows/ci.yml
-- package.json
-- README.md
+- `opencode.json`
+- `package.json`
+- `.gitignore`
+- `.opencode/plans/current-phase.md`
+- `.opencode/commands/browser-smoke.md`
+- `.opencode/commands/browser-offline.md`
+- `.opencode/commands/screenshot-capture.md`
+- `.opencode/commands/release-proof.md`
+- `docs/releases/phase-14-ci-and-release-verification.md`
+- `docs/releases/phase-registry.md`
+- `scripts/dev/workflow-check.sh`
 
 ## Expected max files changed
 
-4
+11
 
 ## Acceptance criteria
 
-- CI runs on GitHub for the main verification path
-- CI fails when lint, test, or build fail
-- local verification commands still match CI behavior
-- the repo remains easy to operate from the existing workflow
-- npm run lint && npm run test && npm run build passes locally
+- `opencode.json` can start a local Playwright MCP server in headless WebKit mode
+- Playwright MCP tools are disabled globally and enabled only for `validator`
+- `/browser-smoke` exists and instructs the validator to run local validation, start preview, inspect the mobile shell, and capture screenshots
+- `/browser-offline` exists and validates offline/online shell messaging and recovery
+- `/screenshot-capture` exists and captures named screenshot artifacts for a requested route or state
+- `/release-proof` exists and determines whether shipping may proceed
+- `package.json` provides:
+  - `npm run validate:local`
+  - `npm run preview:host`
+- browser artifacts are ignored by git
+- existing local validation still passes:
+  - `npm run workflow:check`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+
+## Validation command
+
+`npm run validate:local`
+
+## Phase 14 validation checklist
+
+The validator must treat this checklist as the release-proof baseline for this phase.
+
+### Local verification
+
+- [ ] `npm run workflow:check` passes
+- [ ] `npm run lint` passes
+- [ ] `npm run test` passes
+- [ ] `npm run build` passes
+- [ ] `npm run validate:local` passes as the combined gate
+
+### Browser verification
+
+- [ ] local preview starts successfully with `npm run preview:host`
+- [ ] `/#sessions` loads in a real browser at a narrow mobile viewport
+- [ ] `/#task` loads in a real browser at a narrow mobile viewport
+- [ ] primary controls remain usable on a narrow viewport
+- [ ] no critical primary flow depends on horizontal scrolling
+- [ ] shell copy remains readable in a narrow viewport
+- [ ] tool drawer can open and close without losing task context
+
+### Offline and recovery verification
+
+- [ ] offline state is visible and understandable
+- [ ] existing local shell content remains readable while offline
+- [ ] recovery state after reconnect is visible and understandable
+
+### Artifact proof
+
+- [ ] `playwright-artifacts/sessions-screen.png` exists
+- [ ] `playwright-artifacts/task-screen.png` exists
+- [ ] `playwright-artifacts/tool-drawer.png` exists
+- [ ] `playwright-artifacts/offline-baseline.png` exists
+- [ ] `playwright-artifacts/offline-state.png` exists
+- [ ] `playwright-artifacts/offline-recovered.png` exists
+
+### Decision rule
+
+This phase is PASS only if:
+- all local verification checks pass
+- all browser verification checks pass
+- all offline and recovery checks pass
+- all required artifact files exist
+- no blocker remains in the current phase file
+
+If any required check fails, the validator must return FAIL.
 
 ## Validation
 
-Status: pending
+Status: PASS
 
 Evidence:
-- pending
+- `npm run validate:local` passed: `workflow:check`, `lint`, `test`, and `build` all succeeded.
+- `npm run preview:host` served the local build at `http://127.0.0.1:4173/`.
+- Real-browser validation at a narrow mobile viewport (`390x844`) passed for `/#sessions` and `/#task`; accessibility snapshots loaded cleanly, the runtime badge showed `v1.6.0`, and layout metrics show `scrollWidth === viewport width` on both routes, so no critical primary action depended on horizontal scrolling.
+- The task flow preserved context: the tool drawer opened on `/#task`, remained readable in the narrow viewport, and closed back to the same task session without losing task context. No browser console errors were recorded.
+- Offline and recovery validation passed on `/#sessions`: the offline warning/message was visible, saved local shell content remained readable while offline, and the recovered-online success message was visible after reconnect.
+- Required browser artifacts are present in `playwright-artifacts/`: `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
 
 Blockers:
 - none
 
 Ready to ship:
-- no
+- yes
+
+## Ship-phase criteria
+
+The release-manager may ship this phase only when all of the following are true:
+
+- current phase validation status is `PASS`
+- current phase blockers are `none`
+- current phase `Ready to ship` is `yes`
+- release metadata stays synchronized across:
+  - `.opencode/plans/current-phase.md`
+  - `docs/releases/phase-registry.md`
+  - `package.json`
+  - runtime release tag surfaces validated by `npm run workflow:check`
+- browser proof artifacts were generated during validation for the current phase
+- browser findings do not show any unresolved critical usability issue on the narrow mobile shell
+- the release notes section is no longer `pending`
+- the completion summary is no longer `pending`
+
+### Ship-phase refusal conditions
+
+The release-manager must refuse to ship if any of the following is true:
+
+- validator returned FAIL
+- browser artifacts are missing
+- local validation passed but browser validation was skipped
+- release metadata is inconsistent
+- the phase includes user-facing shell behavior but no browser proof was recorded
+
+### Required ship evidence summary
+
+Before shipping, the release-manager must summarize:
+
+- commands run
+- validation result
+- screenshots written
+- any known limitations accepted for the phase
+- confirmation that release metadata is synchronized
 
 ## Release notes
 
-- pending
+- Added validator-scoped Playwright MCP browser proof commands and local preview/validation scripts for the mobile shell workflow.
+- Captured narrow-viewport route, drawer, and offline/recovery browser artifacts required for release proof.
 
 ## Completion summary
 
-pending
+- Phase 14 established a bounded Playwright MCP release-proof workflow for the iPhone-first local shell and validated that the current Sessions and Task experiences remain readable, drawer-safe, and understandable through offline recovery.

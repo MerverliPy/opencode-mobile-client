@@ -1,71 +1,122 @@
 # Current Phase
 
 Status: complete
-Release: v1.5.0
-Phase file: docs/releases/phase-09-release-state-and-doc-truth.md
+Release: v1.6.0
+Phase file: docs/releases/phase-14-ci-and-release-verification.md
 
 ## Goal
-Make the repository truthful again by reconciling current phase state, package version, runtime-visible release metadata, and release documentation.
+
+Add a bounded browser-validation foundation for the iPhone-first shell using Playwright MCP, without expanding into a full end-to-end suite or cloud-browser infrastructure.
 
 ## Why this phase is next
-Further agent-driven shipping is unsafe while the runtime and package surface read as `v1.5.0` but the active workflow files still point at older planning state and stale duplicate phase history.
 
-## Agent workflow
-- Orchestrator: lock a bounded truth-reset scope and file budget before edits.
-- Builder: update only release-state and documentation files listed below.
-- Validator: confirm metadata alignment and run the repo build.
-- Reviewer: reject scope creep into feature work.
-- Release-manager: update registry and phase summaries only after validator PASS.
+Phase 13 added enforceable local quality gates for pure logic and core shell helpers. The next highest-value gap is browser-level validation for the mobile shell: route loading, drawer behavior, screenshot capture, and offline/online proof that still fits the repo's phase-driven workflow.
 
 ## In scope
-- reconcile package version and runtime-visible release metadata
-- repair or supersede stale phase state
-- restore a trustworthy current-phase file
-- make release docs honest about what is actually shipped
-- keep app behavior materially unchanged
+
+- add Playwright MCP configuration to `opencode.json`
+- keep Playwright tools disabled globally and enabled only for `validator`
+- add browser workflow commands:
+  - `/browser-smoke`
+  - `/browser-offline`
+  - `/screenshot-capture`
+  - `/release-proof`
+- add stable local preview and bundled validation scripts in `package.json`
+- ignore browser artifact output in `.gitignore`
+- keep the implementation compatible with remote SSH/iPhone-driven workflows by defaulting to headless WebKit
+- keep workflow-state and release-verification surfaces truthful while Phase 14 is in progress
+- update local workflow invariant checks so browser-proof validation can run before release metadata is finalized at ship time
 
 ## Out of scope
-- PWA behavior changes
-- copy redesign beyond release truth
-- new tooling
-- CI work
-- feature delivery
+
+- Browserbase or other hosted browser providers
+- GitHub MCP
+- GitHub Actions workflow files
+- visual regression baselines
+- live backend transport validation
+- authentication flows
+- broad Playwright test suites committed into `tests/`
+- unrelated UI refactors
 
 ## Primary files
-- package.json
-- src/main.js
-- .opencode/plans/current-phase.md
-- docs/releases/phase-registry.md
-- docs/releases/phase-09-release-state-and-doc-truth.md
-- README.md
+
+- `opencode.json`
+- `package.json`
+- `.gitignore`
+- `.opencode/plans/current-phase.md`
+- `.opencode/commands/browser-smoke.md`
+- `.opencode/commands/browser-offline.md`
+- `.opencode/commands/screenshot-capture.md`
+- `.opencode/commands/release-proof.md`
+- `docs/releases/phase-14-ci-and-release-verification.md`
+- `docs/releases/phase-registry.md`
+- `scripts/dev/workflow-check.sh`
 
 ## Expected max files changed
-8
+
+11
 
 ## Acceptance criteria
-- package version, current phase, and release docs agree
-- runtime-visible release metadata matches package version
-- current-phase points at a real phase file
-- post-phase claims are no longer misleading
-- npm run build passes
+
+- `opencode.json` can start a local Playwright MCP server in headless WebKit mode
+- Playwright MCP tools are disabled globally and enabled only for `validator`
+- `/browser-smoke` exists and instructs the validator to run local validation, start preview, inspect the mobile shell, and capture screenshots
+- `/browser-offline` exists and validates offline/online shell messaging and recovery
+- `/screenshot-capture` exists and captures named screenshot artifacts for a requested route or state
+- `/release-proof` exists and determines whether shipping may proceed
+- `package.json` provides:
+  - `npm run validate:local`
+  - `npm run preview:host`
+- browser artifacts are ignored by git
+- existing local validation still passes:
+  - `npm run workflow:check`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+
+## Phase 14 validation checklist
+
+- [ ] `npm run validate:local` passes
+- [ ] local preview starts with `npm run preview:host`
+- [ ] `/#sessions` loads at a narrow mobile viewport
+- [ ] `/#task` loads at a narrow mobile viewport
+- [ ] tool drawer interaction is preserved in browser validation
+- [ ] offline state is understandable
+- [ ] recovery state is understandable
+- [ ] required browser artifacts are present in `playwright-artifacts/`
+
+## Ship criteria
+
+This phase is shippable only when:
+- Validation status is `PASS`
+- Blockers are `none`
+- Ready to ship is `yes`
+- browser proof artifacts exist
+- release metadata remains synchronized
 
 ## Validation
+
 Status: PASS
+
 Evidence:
-- `package.json` is `1.5.0`, `src/main.js` derives the runtime `releaseTag` from that version, and `.opencode/plans/current-phase.md` points at the real file `docs/releases/phase-09-release-state-and-doc-truth.md`.
-- `docs/releases/phase-10-product-truth-and-version-baseline.md` now matches the shipped completion state already represented in `docs/releases/phase-registry.md`.
-- The previously shipped `v1.1.0` skip-link follow-up is preserved in `docs/releases/phase-09-v1-1-history.md`, and `docs/releases/phase-registry.md` now points to that superseded historical record.
-- `docs/releases/phase-09-release-state-and-doc-truth.md` now matches this PASS validation result, so the active phase surfaces no longer disagree.
-- `npm run workflow:check` and `npm run build` both pass after the doc-sync edits.
-- Scope stayed within the bounded doc and release-state reset: the active change set remains limited to workflow and release-doc files and stays under the 8-file budget.
+- `npm run validate:local` passed: `workflow:check`, `lint`, `test`, and `build` all succeeded.
+- `npm run preview:host` served the local build at `http://127.0.0.1:4173/`.
+- Real-browser validation at a narrow mobile viewport (`390x844`) passed for `/#sessions` and `/#task`; accessibility snapshots loaded cleanly, the runtime badge showed `v1.6.0`, and layout metrics show `scrollWidth === viewport width` on both routes, so no critical primary action depended on horizontal scrolling.
+- The task flow preserved context: the tool drawer opened on `/#task`, remained readable in the narrow viewport, and closed back to the same task session without losing task context. No browser console errors were recorded.
+- Offline and recovery validation passed on `/#sessions`: the offline warning/message was visible, saved local shell content remained readable while offline, and the recovered-online success message was visible after reconnect.
+- Required browser artifacts are present in `playwright-artifacts/`: `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+
 Blockers:
 - none
+
 Ready to ship:
 - yes
 
 ## Release notes
-- Reconciled `v1.5.0` release metadata across the current phase, registry, README, and runtime-visible surfaces.
-- Preserved the earlier shipped `v1.1.0` skip-link follow-up as a superseded historical record.
+
+- Added validator-scoped Playwright MCP browser proof commands and local preview/validation scripts for the mobile shell workflow.
+- Captured narrow-viewport route, drawer, and offline/recovery browser artifacts required for release proof.
 
 ## Completion summary
-Phase 09 shipped `v1.5.0` by restoring truthful release-state documentation and synchronizing the repo's shipped metadata without changing app behavior.
+
+- Phase 14 established a bounded Playwright MCP release-proof workflow for the iPhone-first local shell and validated that the current Sessions and Task experiences remain readable, drawer-safe, and understandable through offline recovery.

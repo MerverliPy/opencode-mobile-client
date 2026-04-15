@@ -8,7 +8,7 @@ Legend:
 
 Authority notes:
 - `.opencode/plans/current-phase.md` and this registry are the active workflow source of truth.
-- The runtime and package metadata currently advertise `v1.5.0`; Phase 09 reconciled older planning state around that baseline.
+- The runtime and package metadata currently advertise the shipped `v1.6.0` release established by Phase 14; Phase 09 reconciled the older planning state that had drifted around the previous `v1.5.0` baseline.
 - The previously shipped `v1.1.0` skip-link follow-up that once used Phase 09 numbering is preserved at `docs/releases/phase-09-v1-1-history.md` as a superseded historical record.
 
 ## Implementation releases
@@ -25,4 +25,4 @@ Authority notes:
 - [x] Phase 11 — Shell modularization foundation
 - [x] Phase 12 — Runtime adapter boundary
 - [x] Phase 13 — Quality gates and smoke coverage
-- [ ] Phase 14 — CI and release verification
+- [x] Phase 14 — CI and release verification

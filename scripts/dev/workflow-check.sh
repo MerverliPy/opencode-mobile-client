@@ -75,12 +75,18 @@ grep -q "${release_value}" "${phase_file}" || fail "phase file does not match cu
 [[ -n "${validation_value:-}" ]] || fail "missing validation status in current phase"
 [[ "${validation_value}" =~ ^(pending|PASS|FAIL)$ ]] || fail "unexpected validation status value: ${validation_value}"
 
-if [[ -n "${runtime_tag}" && "${runtime_tag}" != "${release_value}" ]]; then
-  fail "runtime releaseTag (${runtime_tag}) does not match current phase release (${release_value})"
+if [[ -n "${runtime_tag}" && "${runtime_tag}" != "v${pkg_version}" ]]; then
+  fail "runtime releaseTag (${runtime_tag}) does not match package.json version (v${pkg_version})"
 fi
 
-if [[ "${pkg_version}" != "${release_value#v}" ]]; then
-  fail "package.json version (${pkg_version}) does not match current phase release (${release_value})"
+if [[ "${validation_value}" == "PASS" ]]; then
+  if [[ -n "${runtime_tag}" && "${runtime_tag}" != "${release_value}" ]]; then
+    fail "runtime releaseTag (${runtime_tag}) does not match current phase release (${release_value})"
+  fi
+
+  if [[ "${pkg_version}" != "${release_value#v}" ]]; then
+    fail "package.json version (${pkg_version}) does not match current phase release (${release_value})"
+  fi
 fi
 
 pass "workflow invariants look consistent"
