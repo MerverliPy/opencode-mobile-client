@@ -7,59 +7,13 @@ selection_order:
 
 queue_rules:
   - Only entries under `candidates` are selectable.
-  - Before selecting a candidate, treat `done_when` as a skip gate.
-  - If every `done_when` item for a candidate is already true in the repo, skip that candidate and move to the next one.
-  - Keep only still-needed work in `candidates`; use git history as the archive for shipped backlog items.
+  - Remove shipped backlog work from `candidates` immediately after `/ship-phase`.
+  - Use git history as the archive for shipped backlog items.
+  - Add new work here only when it is still unshipped and still needed.
 
 constraints:
   max_files_changed: 4
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates:
-  - id: browser-proof-runner
-    title: Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
-    module: browser-validation
-    priority: 10
-    drivers:
-      - browser validation command docs exist, but the repo still lacks repeatable repo-root helper scripts and package entry points
-      - the SSH/iPhone workflow needs one local entry point for preview, screenshots, and release proof without relying on memory
-    done_when:
-      - scripts/dev/browser-smoke.sh exists
-      - scripts/dev/release-proof.sh exists
-      - package.json contains npm scripts named browser:smoke and release:proof
-      - .opencode/commands/browser-smoke.md references the repo-root browser smoke helper
-      - .opencode/commands/release-proof.md references the repo-root release proof helper
-    files:
-      - package.json
-      - scripts/dev/browser-smoke.sh
-      - scripts/dev/release-proof.sh
-      - .opencode/commands/browser-smoke.md
-      - .opencode/commands/release-proof.md
-    validation: npm run validate:local
-    acceptance:
-      - npm run browser:smoke exists and runs or clearly orchestrates the repo-root browser smoke flow
-      - npm run release:proof exists and runs or clearly orchestrates the repo-root release proof flow
-      - both helper scripts work from repo root
-      - browser-proof artifacts are written into playwright-artifacts/
-      - command docs reference the new helper entry points consistently
-
-  - id: backlog-lifecycle-gating
-    title: Prevent completed backlog items from being reselected by the phase workflow
-    module: workflow
-    priority: 8
-    drivers:
-      - completed backlog items can be reselected when active work and historical work share the same queue
-      - backlog completion rules should be explicit instead of relying on operator memory
-    done_when:
-      - next-phase guidance skips candidates whose done_when conditions are already true
-      - backlog or ship guidance explains how completed backlog work leaves the selectable queue
-    files:
-      - .opencode/backlog/candidates.yaml
-      - .opencode/commands/next-phase.md
-      - .opencode/commands/ship-phase.md
-    validation: npm run workflow:check
-    acceptance:
-      - next-phase does not reselect already-satisfied backlog items
-      - backlog guidance makes active versus completed work explicit
-      - completed backlog work no longer pollutes the selectable queue
+candidates: []
