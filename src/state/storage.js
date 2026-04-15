@@ -35,7 +35,11 @@ export function persistSessionState(appState) {
       storageKey,
       JSON.stringify({
         selectedSessionId: appState.selectedSessionId,
-        sessions: appState.sessions.map(({ isLoading, ...session }) => session),
+        sessions: appState.sessions.map((session) => {
+          const nextSession = { ...session };
+          delete nextSession.isLoading;
+          return nextSession;
+        }),
       }),
     );
   } catch {
@@ -47,8 +51,8 @@ export function hydrateSessions({ appState, renderApp, setUiNotice }) {
   renderApp();
 
   window.setTimeout(() => {
-    let nextSessions = [];
-    let nextSelectedSessionId = null;
+    let nextSessions;
+    let nextSelectedSessionId;
 
     try {
       const storedValue =

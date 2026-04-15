@@ -1,63 +1,66 @@
 # Current Phase
 
 Status: complete
-Release: v1.4.0
-Phase file: docs/releases/phase-12-runtime-adapter-boundary.md
+Release: v1.5.0
+Phase file: docs/releases/phase-13-quality-gates-and-smoke-coverage.md
 
 ## Goal
 
-Replace inline synthetic runtime generation with a clear adapter boundary so the client stops faking backend behavior inside the UI layer.
+Add enforceable quality gates so the shell can be changed with more confidence.
 
 ## Why this phase is next
 
-The product can remain usable as a mock-backed shell, but the runtime contract needs to be explicit. This phase creates the seam needed for future real transport work without pretending that transport already exists.
+After the shell becomes modular and adapter-backed, the repo should stop depending mostly on manual validation and build-only confidence. This phase adds repeatable local verification.
 
 ## In scope
 
-- introduce a runtime adapter contract
-- route reply generation and tool or diff payload generation through the adapter
-- keep a default mock adapter for current local usability
-- make the active adapter source visible in the UI or developer-facing state
-- remove direct inline synthetic generation from the main UI flow
+- add linting
+- add test scripts
+- add focused smoke tests for pure logic and core shell behavior
+- validate storage hydration or normalization logic
+- validate adapter normalization or mock behavior
+- keep validation commands straightforward for the existing workflow
 
 ## Out of scope
 
-- live backend transport
-- authentication
-- remote persistence
-- websocket or streaming implementation
-- multi-device sync
+- large end-to-end browser automation
+- visual regression tooling
+- backend contract testing
+- performance benchmarking suite
+- unrelated refactors
 
 ## Primary files
 
-- src/main.js
-- src/adapters/*
-- src/app/*
+- package.json
+- eslint.config.*
+- vitest.config.*
+- tests/*
 - src/state/*
-- README.md
+- src/adapters/*
+- src/lib/*
 
 ## Expected max files changed
 
-8
+10
 
 ## Acceptance criteria
 
-- reply and tool output creation flow through an explicit adapter layer
-- the mock adapter remains usable for local demo and shell testing
-- the UI no longer hides that mock behavior behind production-like language
-- future transport work has a clear integration seam
-- npm run build passes
+- npm run lint exists and passes
+- npm run test exists and passes
+- npm run build still passes
+- smoke coverage exists for the highest-risk pure logic areas
+- validation commands are simple enough to run inside the repo workflow
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `src/adapters/mock-runtime.js` now defines the explicit mock runtime seam, including `createStarterSessionPayload()` for starter tool and diff payloads and `respond()` for follow-up assistant reply, file, and diff generation.
-- `src/state/session-state.js` creates starter session payloads through `runtimeAdapter.createStarterSessionPayload()`, and `src/main.js` routes follow-up reply and generated tool output through `runtimeAdapter.respond(...)`, removing direct inline synthetic generation from the main UI flow.
-- The active adapter source is visible in Settings as `Local mock adapter`, while task and loading copy continue to describe the experience as local and mock-backed rather than implying live backend behavior.
-- The implemented product changes stay within the active phase scope (`src/main.js`, `src/state/session-state.js`, `src/adapters/mock-runtime.js`) and do not add live transport, authentication, remote persistence, streaming, or sync behavior.
-- `npm run build` passes.
+- `package.json` now provides `npm run lint` and `npm run test`, `eslint.config.js` adds a minimal local lint gate, and the active release metadata is aligned to `v1.5.0` / `1.5.0` for workflow use.
+- `tests/quality-gates.smoke.test.js` adds focused smoke coverage for the highest-risk pure-logic areas in this shell release: storage hydration and legacy fallback, shell and session persistence behavior, tool-result normalization and diff helpers, session-state helpers, shell-state helpers, and mock adapter behavior.
+- `scripts/dev/workflow-check.sh` now supports the active phase's pre-validation `pending` state while still enforcing release and runtime metadata consistency, keeping local validation commands straightforward inside the repo workflow.
+- `npm run workflow:check`, `npm run lint`, `npm run test`, and `npm run build` all pass.
+- The implemented changes stay within phase scope and do not add end-to-end browser automation, visual regression tooling, backend contract testing, performance benchmarking, or unrelated refactors.
 
 Blockers:
 - none
@@ -67,9 +70,9 @@ Ready to ship:
 
 ## Release notes
 
-- Routed starter and follow-up mock reply, file, and diff generation through an explicit mock runtime adapter.
-- Exposed the active runtime source in-app while keeping shell copy honest about local mock-backed behavior.
+- Added local `lint`, `test`, `build`, and workflow checks that now run cleanly for the phase release.
+- Added focused smoke coverage for storage, session and shell helpers, tool-result normalization, and mock adapter behavior.
 
 ## Completion summary
 
-Phase 12 shipped v1.4.0 by moving mock runtime generation behind an explicit adapter seam while preserving the local mobile shell experience.
+Phase 13 shipped v1.5.0 by adding enforceable local quality gates and focused smoke coverage for the shell's highest-risk pure-logic paths.
