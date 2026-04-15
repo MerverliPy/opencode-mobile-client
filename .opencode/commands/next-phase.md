@@ -5,13 +5,13 @@ agent: orchestrator
 
 Read `docs/releases/phase-registry.md` and `.opencode/plans/current-phase.md`.
 
+If the current phase is complete and shipped, choose the first incomplete phase in `docs/releases/phase-registry.md`.
+
 If a phase is already in progress and not complete, keep that phase active unless it is explicitly blocked or the user asked to switch.
 
-Otherwise:
-- choose the first incomplete phase in `docs/releases/phase-registry.md`
-- open the corresponding file in `docs/releases/`
-- copy its full contents into `.opencode/plans/current-phase.md`
-- mark that phase as `[~]` in the registry if it was `[ ]`
+Copy the selected phase file from `docs/releases/` into `.opencode/plans/current-phase.md`.
+
+If the selected phase was `[ ]`, mark it `[~]` in the registry.
 
 Then respond with:
 - active phase title

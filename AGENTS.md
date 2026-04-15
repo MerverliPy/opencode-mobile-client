@@ -1,35 +1,32 @@
-# OpenCode Mobile Client — Project Rules
+# OpenCode Mobile Client — Repo Rules
 
 ## Project intent
 
 Build an iPhone-first OpenCode mobile client that is genuinely useful on a phone, not a compressed desktop clone.
 
-The primary delivery target is a PWA-quality mobile client with:
-- app-like navigation
-- readable conversation flows
-- strong composer ergonomics
-- usable tool/file/diff surfaces on narrow screens
-- installability and mobile reliability
+This repository currently represents a mobile shell and client foundation. Do not imply live backend capability unless the active phase explicitly adds it.
 
 ## Operating model
 
 This repository is phase-driven.
 
-The authoritative workflow is:
+Default workflow:
 1. select the next phase
 2. load the selected phase into `.opencode/plans/current-phase.md`
 3. implement only that phase
 4. validate against that phase
-5. ship only after validation passes
+5. fix only validator-identified blockers when needed
+6. ship only after validation passes
+7. keep release surfaces synchronized
 
-## Scope discipline
+## Universal rules
 
-Always obey these rules:
 - Work from `.opencode/plans/current-phase.md`
-- Do not implement work from future phases
-- Do not silently redesign the architecture
-- Do not introduce extra infrastructure unless required by the current phase
+- Do not implement future-phase work
 - Keep changes as small as possible while still completing the phase
+- Preserve readability over cleverness
+- Avoid speculative abstractions
+- Do not silently redesign architecture
 - Prefer one coherent release over broad partial work
 
 ## Product constraints
@@ -37,50 +34,16 @@ Always obey these rules:
 - iPhone-first
 - portrait-first
 - one-handed use matters
-- top and bottom bars must remain safe-area aware
-- keyboard behavior is a top-tier UX concern
+- safe-area awareness matters
+- keyboard behavior is top-tier UX
 - long outputs must remain readable on narrow screens
 - avoid horizontal scrolling for primary content
-- mobile interactions must remain understandable under interruption, loading, and recovery states
+- interruption, loading, and recovery states must remain understandable
 
-## Documentation rules
+## Agent model
 
-When phase state changes:
-- update `.opencode/plans/current-phase.md`
-- update `docs/releases/phase-registry.md`
-
-When validation runs:
-- write PASS or FAIL in the current phase file
-- include concise evidence
-
-## Shipping rules
-
-When a phase ships:
-- require validation status PASS in `.opencode/plans/current-phase.md`
-- update `docs/releases/phase-registry.md`
-- finalize the completion summary
-- finalize release notes
-- generate a commit title from the release tag and phase title
-- generate a commit body from the phase metadata, validation result, release notes, and completion summary
-- stage the release changes
-- create a git commit
-- push to `origin main` only if the current branch is already `main`
-- if the current branch is not `main`, stop and report the blocker instead of pushing
-- do not force push
-- do not merge branches automatically
-
-## Preferred implementation behavior
-
-- Build the smallest useful increment
-- Keep file count low
-- Respect the phase's max-files-changed guidance
-- Preserve readability over cleverness
-- Avoid premature abstraction
-- Do not add placeholder complexity for future phases unless the current phase requires it
-
-## Agent roles
-
-- `orchestrator` selects and advances work
+- `orchestrator` controls phase selection and workflow state
 - `builder` implements only the active phase
-- `validator` checks phase compliance and release readiness
-- `release-manager` closes the phase, creates the release commit, and pushes when safe
+- `validator` determines PASS or FAIL without helping the phase pass
+- `reviewer` performs a strict read-only review of changed work when requested
+- `release-manager` syncs shipped-state metadata, creates the release commit, and pushes when safe

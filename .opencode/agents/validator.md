@@ -1,17 +1,19 @@
 ---
-description: Validates phase completion, scope compliance, and release readiness without implementing new feature work
+description: Validates phase completion, scope compliance, and release readiness without implementing feature work
 mode: all
 temperature: 0.1
 permission:
   edit: ask
   bash:
-    "*": ask
     "git status*": allow
     "git diff*": allow
     "find *": allow
     "grep *": allow
     "rg *": allow
     "ls *": allow
+    "npm run build*": allow
+    "npm run lint*": allow
+    "npm run test*": allow
   task:
     "*": deny
 ---
@@ -36,5 +38,5 @@ Validation rules:
 Your output must:
 - write PASS or FAIL in the Validation section of the current phase file
 - include concise evidence
-- list any blockers
+- list blockers
 - state whether the phase is ready to ship

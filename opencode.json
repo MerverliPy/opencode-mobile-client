@@ -11,8 +11,7 @@
     "reserved": 12000
   },
   "instructions": [
-    "AGENTS.md",
-    "docs/releases/*.md"
+    "AGENTS.md"
   ],
   "watcher": {
     "ignore": [
