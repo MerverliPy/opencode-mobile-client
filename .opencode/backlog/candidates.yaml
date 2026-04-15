@@ -8,128 +8,203 @@ selection_order:
 queue_rules:
   - Only entries under `candidates` are selectable.
   - Entries under `archived` are retained so shipped backlog references remain valid.
-  - Remove shipped backlog work from `candidates` immediately after `/ship-phase`.
-  - Keep shipped backlog work under `archived` until workflow references no longer need them.
-  - Use git history as the long-term archive for shipped backlog items.
+  - Keep non-selected historical ideas out of `candidates` so `/next-phase` and `/autoflow` stay deterministic.
+  - Use `/autoflow` as the default execution path after `/phase-status` or `/next-phase`.
+  - Use `target_release` and `release_bump` to guide the next phase's version target.
+  - Prefer borrowing architecture and contracts from `open-agents`, not transplanting its full stack.
 
 constraints:
-  max_files_changed: 4
+  max_files_changed: 6
   prefer_single_module: true
   avoid_generic_tasks: true
 
 candidates:
-  - id: session-lifecycle-actions
-    title: Add rename and delete actions so local sessions stay manageable on a phone
-    module: sessions
-    priority: 9
-    expected_max_files_changed: 4
+  - id: remote-runtime-contract
+    title: Define the remote runtime contract and durable run model for mobile remote coding
+    module: remote-runtime
+    priority: 10
+    release_bump: minor
+    target_release: v1.7.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    inspired_by_open_agents:
+      - Web -> Agent workflow -> Sandbox VM separation
+      - durable workflow runs that survive reconnects
+      - agent control plane separated from execution environment
     drivers:
-      - Sessions can be created and reopened, but there is no way to rename or remove stale local sessions once they accumulate.
-      - The Sessions tab is one of the main shipped surfaces, so this is the highest-value product follow-up after clean install truth.
+      - The current app is still mock-backed and local-first, so it needs a formal remote runtime contract before any real backend can be attached.
+      - `open-agents` shows that the phone should be a control surface, while durable agent execution and sandbox work happen remotely.
+      - This is the smallest safe first step toward becoming a real remote-coding client without pulling in the full open-agents stack.
     files:
+      - package.json
+      - README.md
+      - src/adapters/remote-runtime.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - A new `remote-runtime` adapter exists with explicit methods for start, resume, cancel, fetch status, and fetch preview links.
+      - Session state can persist remote run identifiers, remote status, and repo binding metadata without corrupting existing local sessions.
+      - The current mock runtime remains available as a fallback when no remote backend is configured.
+      - `package.json` and `README.md` are updated to target `v1.7.0`.
+
+  - id: remote-run-shell-state
+    title: Add durable remote run lifecycle states and reconnect controls to the mobile shell
+    module: remote-runtime
+    priority: 9
+    release_bump: minor
+    target_release: v1.8.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    inspired_by_open_agents:
+      - streaming and resumable workflow runs
+      - long-lived background execution separate from request lifecycle
+    drivers:
+      - After the runtime contract exists, the UI needs honest states for queued, running, awaiting input, failed, cancelled, and completed remote runs.
+      - Mobile users need reconnect and resume controls because the phone cannot be treated as a stable long-running execution host.
+    files:
+      - package.json
+      - README.md
+      - src/main.js
+      - src/ui/screens.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - The task surface can render durable remote run states without pretending the phone is the executor.
+      - Reconnect and cancel actions are visible and deterministic from the mobile shell.
+      - Existing local/mock sessions still render honestly when no remote run exists.
+      - `package.json` and `README.md` are updated to target `v1.8.0`.
+
+  - id: remote-backend-http-bridge
+    title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
+    module: remote-runtime
+    priority: 8
+    release_bump: major
+    target_release: v2.0.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    inspired_by_open_agents:
+      - hosted durable agent runtime
+      - backend-owned execution lifecycle
+      - remote sandbox orchestration through tools instead of local device execution
+    drivers:
+      - This is the transition from mock-only behavior to the first real remote coding capability.
+      - A major version bump is appropriate because the product stops being only a local shell and begins acting as a true remote client.
+    files:
+      - package.json
+      - README.md
+      - src/adapters/remote-runtime.js
+      - src/main.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - The remote runtime adapter can call a configured backend base URL for start, resume, cancel, and status operations.
+      - The app preserves a mock fallback when remote configuration is missing so local development is still usable.
+      - Failure states are explicit and do not masquerade as successful local execution.
+      - `package.json` and `README.md` are updated to target `v2.0.0`.
+
+  - id: repo-binding-surface
+    title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
+    module: repo-session
+    priority: 7
+    release_bump: minor
+    target_release: v2.1.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 6
+    inspired_by_open_agents:
+      - installation-based repo access
+      - per-session repo metadata
+      - branch-aware coding sessions
+    drivers:
+      - A real remote coding client needs to show which repo and branch a session is operating on.
+      - `open-agents` demonstrates that repo metadata belongs to the session layer, not just the backend.
+    files:
+      - package.json
+      - README.md
       - src/main.js
       - src/ui/screens.js
       - src/state/session-state.js
       - tests/quality-gates.smoke.test.js
-    validation: npm run test && npm run build
+    validation: npm run workflow:check && npm run test && npm run build
     acceptance:
-      - A user can rename a session title without corrupting message history.
-      - A user can delete a session with an explicit confirmation path.
-      - Current-session fallback stays deterministic after deletion and persisted state remains valid.
+      - A session can persist repo name, owner, branch, and workspace metadata.
+      - The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
+      - Existing local sessions remain readable and upgrade safely to the new metadata shape.
+      - `package.json` and `README.md` are updated to target `v2.1.0`.
+
+  - id: remote-preview-share-surface
+    title: Add remote preview link and read-only share surfaces so phone-based review is practical
+    module: remote-runtime
+    priority: 6
+    release_bump: minor
+    target_release: v2.2.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    inspired_by_open_agents:
+      - exposed preview ports
+      - read-only session sharing
+      - long-running run inspection without direct laptop involvement
+    drivers:
+      - Once remote runs exist, the mobile client needs a first-class way to open preview links and share read-only session state.
+      - This is one of the most valuable phone-native benefits from the open-agents model.
+    files:
+      - package.json
+      - README.md
+      - src/main.js
+      - src/ui/screens.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - The app can render and open remote preview links from a bound remote run.
+      - The UI can display a read-only share link surface without claiming backend support that does not exist.
+      - Preview and share surfaces fail honestly when the backend does not return them.
+      - `package.json` and `README.md` are updated to target `v2.2.0`.
+
+  - id: mobile-voice-prompt-entry
+    title: Add optional voice prompt entry for remote coding requests on iPhone
+    module: input
+    priority: 5
+    release_bump: minor
+    target_release: v2.3.0
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    inspired_by_open_agents:
+      - optional ElevenLabs-powered voice transcription
+      - mobile-friendly prompt capture
+    drivers:
+      - Voice input is one of the few open-agents features that is directly more valuable on a phone than on desktop.
+      - It should come after the remote runtime path exists so spoken prompts feed a real coding workflow.
+    files:
+      - package.json
+      - README.md
+      - src/main.js
+      - src/ui/screens.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - The mobile shell can accept a dictated prompt through an explicit voice entry action.
+      - Voice entry is clearly optional and degrades honestly when transcription is unavailable.
+      - The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
+      - `package.json` and `README.md` are updated to target `v2.3.0`.
+
+deferred_local_first_candidates:
+  - id: session-lifecycle-actions
+    title: Add rename and delete actions so local sessions stay manageable on a phone
 
   - id: session-search-filter
     title: Add session search and empty-filter states so larger local histories remain usable
-    module: sessions
-    priority: 8
-    expected_max_files_changed: 4
-    drivers:
-      - The current Sessions screen renders one undifferentiated list, which becomes harder to use as local history grows.
-      - This was intentionally deferred earlier and is now the smallest safe follow-up after session lifecycle basics.
-    files:
-      - src/main.js
-      - src/ui/screens.js
-      - src/state/session-state.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run test && npm run build
-    acceptance:
-      - Sessions can be filtered by title or preview text with case-insensitive matching.
-      - The filtered-empty state is explicit and does not look like a broken load state.
-      - Selecting, reopening, and current-session highlighting still work under filtering.
 
   - id: session-export-import
     title: Add local JSON export and import so device-only sessions can be backed up and moved safely
-    module: storage
-    priority: 7
-    expected_max_files_changed: 4
-    drivers:
-      - The app is explicitly local-first, but there is no backup or migration path for saved sessions.
-      - Export and import make the repo materially more complete without inventing cloud sync or backend work.
-    files:
-      - src/main.js
-      - src/ui/screens.js
-      - src/state/storage.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run test && npm run build
-    acceptance:
-      - Sessions can be exported as a valid JSON backup from inside the mobile shell.
-      - A previously exported file can be imported and normalized without crashing the app.
-      - Invalid or incompatible imports fail with an honest in-app notice and preserve existing state.
 
   - id: tool-drawer-copy-share
     title: Add copy and share actions for file and diff output so generated results are reusable on mobile
-    module: tools
-    priority: 6
-    expected_max_files_changed: 4
-    drivers:
-      - The tool drawer renders readable file and diff output, but there is no copy or share affordance for moving that output into other workflows.
-      - This is a direct iPhone-first usability gap because the current shell can display results but not quickly reuse them.
-    files:
-      - src/main.js
-      - src/ui/tool-drawer.js
-      - src/lib/tool-results.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run test && npm run build
-    acceptance:
-      - File output can be copied from the drawer with clear success or failure feedback.
-      - Diff output can be copied in a stable text form that preserves file and hunk context.
-      - Drawer navigation and current review state remain unchanged after copy or share actions.
 
   - id: browser-proof-automation
     title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
-    module: validation
-    priority: 5
-    expected_max_files_changed: 4
-    drivers:
-      - "`browser-smoke.sh` currently validates locally and prints manual screenshot instructions instead of producing a repeatable browser-proof artifact flow."
-      - Automating this would make the shipped iPhone and SSH workflow more reliable and less operator-dependent.
-    files:
-      - package.json
-      - scripts/dev/browser-smoke.sh
-      - scripts/dev/release-proof.sh
-      - .opencode/commands/screenshot-capture.md
-    validation: npm run browser:smoke && npm run release:proof
-    acceptance:
-      - Repo-owned browser-proof steps produce or verify the required screenshot artifacts without relying on ad hoc manual sequencing.
-      - Failure paths clearly identify which route, artifact, or preview prerequisite is missing.
-      - Existing release-proof expectations remain compatible with the workflow commands.
 
   - id: vite-security-refresh
     title: Refresh Vite and related lockfile entries to reduce known development-server advisories
-    module: tooling
-    priority: 4
-    expected_max_files_changed: 3
-    drivers:
-      - "`npm audit` currently reports moderate advisories affecting `vite` and `esbuild` in the checked-in dependency graph."
-      - This improves repo completeness and reduces avoidable tooling risk before larger runtime work lands.
-    files:
-      - package.json
-      - package-lock.json
-      - vite.config.js
-    validation: npm audit && npm run validate:local
-    acceptance:
-      - Moderate audit findings are reduced or removed without breaking build, preview, or validation commands.
-      - Any required config changes stay minimal and are documented in the phase summary.
-      - No app-behavior changes are mixed into the dependency refresh.
 
 archived:
   - id: clean-install-reproducibility
