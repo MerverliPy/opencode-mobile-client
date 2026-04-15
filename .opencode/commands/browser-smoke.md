@@ -12,10 +12,11 @@ Process:
 1. Read:
    - `.opencode/plans/current-phase.md`
    - `AGENTS.md`
-2. Run:
-   - `npm run validate:local`
+2. Run the repo-root browser smoke helper:
+   - `npm run browser:smoke`
 3. Start the local preview server with:
    - `npm run preview:host`
+   - optional single-command start: `npm run browser:smoke -- --start-preview`
 4. Use Playwright MCP against:
    - `http://127.0.0.1:4173/#sessions`
    - `http://127.0.0.1:4173/#task`

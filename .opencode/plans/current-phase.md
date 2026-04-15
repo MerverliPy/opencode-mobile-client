@@ -2,72 +2,74 @@
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:backlog-lifecycle-gating
+Phase file: backlog:browser-proof-runner
 
 ## Goal
 
-Treat `Phase file: backlog:<id>` as a virtual backlog reference in workflow validation and repo diagnostics so backlog phases no longer require fake repo-root shim files.
+Add repo-root browser-proof and release-proof helper entry points so SSH/iPhone workflows have one repeatable way to run preview proof and release proof tasks.
 
 ## Why this phase is next
 
-The previous backlog phase failed because `workflow:check` only accepted real filesystem paths, which forced an out-of-scope shim file. You explicitly changed scope to fix backlog-phase validation behavior, all release phases are already complete, and the smallest matching backlog candidate is the workflow-focused `backlog-lifecycle-gating` follow-up.
+All implementation release phases are already complete. Using the registry as the workflow authority, the previously active backlog item is complete, so the next still-needed backlog candidate is `browser-proof-runner`: its `done_when` conditions are not satisfied, it has the highest remaining backlog priority, and its validation path is explicit.
 
 ## Primary files
 
-- `scripts/dev/workflow-check.sh`
-- `scripts/dev/doctor.sh`
-- `backlog:browser-proof-runner`
+- `package.json`
+- `scripts/dev/browser-smoke.sh`
+- `scripts/dev/release-proof.sh`
+- `.opencode/commands/browser-smoke.md`
+- `.opencode/commands/release-proof.md`
 
 ## Expected max files changed
 
-3
+4
 
 ## Risk
 
-Low. This phase is limited to workflow validation and diagnostic handling for backlog phase references, but a mistake could loosen release-phase checks if the virtual backlog path handling is too broad.
+Low to medium. This phase is workflow-facing rather than product-facing, but mistakes could create misleading command entry points or artifact paths for browser and release proof flows.
 
 ## Rollback note
 
-If this phase causes workflow validation drift, restore strict path checking for release phase files and revisit backlog reference handling with a narrower parser.
+If the new helper entry points prove confusing or unstable, remove the added npm scripts and helper wrappers and revert the command docs to the previous manual flow.
 
 ## In scope
 
-- update `workflow:check` so `Phase file: backlog:<id>` is treated as a virtual backlog reference rather than a required real file path
-- update `repo:doctor` so it reports backlog phase references correctly without expecting a real file at that path
-- remove the fake repo-root `backlog:browser-proof-runner` shim file if it exists
-- preserve existing release-phase path validation for real `docs/releases/...` phase files
+- add a repo-root browser smoke helper script
+- add a repo-root release proof helper script
+- add matching npm script entry points in `package.json`
+- update browser and release proof command docs to reference the repo-root helpers consistently
+- keep proof artifacts directed to `playwright-artifacts/`
 
 ## Out of scope
 
-- redoing or expanding the browser helper scripts
-- changing the current shipped release metadata
-- redesigning backlog selection behavior beyond this validation fix
-- unrelated workflow command refactors
-- product code changes
+- product UI or runtime behavior changes
+- expanding browser coverage beyond the helper entry points needed for the documented SSH/iPhone workflow
+- changing shipped release metadata
+- unrelated workflow refactors
 
 ## Tasks
 
-- detect backlog-style `Phase file:` values in `scripts/dev/workflow-check.sh`
-- validate backlog references against backlog metadata rather than filesystem path existence
-- update `scripts/dev/doctor.sh` to display backlog references as virtual phase targets
-- delete the fake `backlog:browser-proof-runner` file if present
-- verify both workflow validation and repo diagnostics succeed with the backlog reference format
+- add `scripts/dev/browser-smoke.sh`
+- add `scripts/dev/release-proof.sh`
+- wire `browser:smoke` and `release:proof` npm scripts in `package.json`
+- update `.opencode/commands/browser-smoke.md` to reference the repo-root helper
+- update `.opencode/commands/release-proof.md` to reference the repo-root helper
+- verify the local validation command succeeds
 
 ## Validation command
 
-`npm run workflow:check && npm run repo:doctor`
+`npm run validate:local`
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run workflow:check` passed with `Phase file: backlog:backlog-lifecycle-gating`.
-- The stated validation command `npm run workflow:check && npm run repo:doctor` passed, and `repo:doctor` reported the backlog phase reference as a virtual backlog reference.
-- `scripts/dev/workflow-check.sh` now validates backlog phase references against `.opencode/backlog/candidates.yaml` while preserving real file checks for non-backlog phase files.
-- `scripts/dev/doctor.sh` now reports backlog phase references without requiring a repo-root shim file.
-- The fake repo-root `backlog:browser-proof-runner` file is no longer present.
-- The active change set is limited to `.opencode/plans/current-phase.md`, `scripts/dev/workflow-check.sh`, and `scripts/dev/doctor.sh`, so no browser helper scripts were changed in this phase.
+- `npm run workflow:check` passed.
+- The required validation command `npm run validate:local` passed (workflow check, lint, test, and build all succeeded).
+- `npm run browser:smoke` ran from repo root, created/targeted `playwright-artifacts/`, and clearly orchestrated the browser smoke flow.
+- `npm run release:proof` ran from repo root and returned `Status: READY_TO_SHIP` with the required browser artifacts confirmed in `playwright-artifacts/`.
+- The changed implementation stays within the active phase scope: `package.json`, the two repo-root helper scripts, and the two command docs.
 
 Blockers:
 - none
@@ -77,17 +79,18 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- `npm run workflow:check` passes when `.opencode/plans/current-phase.md` uses `Phase file: backlog:<id>`
-- `npm run repo:doctor` reports the backlog phase reference without requiring a real repo-root file at that path
-- `backlog:browser-proof-runner` is removed if present
-- real release phase files still require valid filesystem paths
-- no browser helper scripts are changed in this phase
+- `npm run browser:smoke` exists and runs or clearly orchestrates the repo-root browser smoke flow
+- `npm run release:proof` exists and runs or clearly orchestrates the repo-root release proof flow
+- both helper scripts work from repo root
+- browser-proof artifacts are written into `playwright-artifacts/`
+- command docs reference the new helper entry points consistently
 
 ## Release notes
 
-- Treated `Phase file: backlog:<id>` as a virtual backlog reference in `workflow:check` and `repo:doctor`.
-- Removed the need for repo-root backlog shim files during backlog-phase validation.
+- Added repo-root `browser:smoke` and `release:proof` helper entry points for repeatable SSH/iPhone proof flows.
+- Standardized command docs and proof artifact output under `playwright-artifacts/`.
 
 ## Completion summary
 
-- Backlog lifecycle gating now validates backlog phase references against backlog metadata and reports them cleanly in repo diagnostics while preserving strict file-path checks for real release phase files.
+- Added repo-root browser smoke and release proof helper scripts, wired matching npm scripts, and updated the command docs to use the new entry points consistently.
+- Validation passed through `npm run workflow:check`, `npm run validate:local`, `npm run browser:smoke`, and `npm run release:proof` with the expected artifacts present in `playwright-artifacts/`.

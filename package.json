@@ -10,6 +10,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "preview:host": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
+    "browser:smoke": "bash scripts/dev/browser-smoke.sh",
+    "release:proof": "bash scripts/dev/release-proof.sh",
     "workflow:check": "bash scripts/dev/workflow-check.sh",
     "repo:doctor": "bash scripts/dev/doctor.sh",
     "phase:show": "cat .opencode/plans/current-phase.md",

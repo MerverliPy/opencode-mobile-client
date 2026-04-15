@@ -14,11 +14,12 @@ Process:
    - `docs/releases/phase-registry.md`
    - `AGENTS.md`
    - `package.json`
-2. Run:
-   - `npm run validate:local`
-3. If the current phase changes user-facing shell behavior, navigation, readability, drawer behavior, installability, accessibility, or offline/recovery behavior:
-   - run `/browser-smoke`
+2. Run the repo-root release proof helper:
+   - `npm run release:proof`
+3. If the helper reports missing browser proof and the current phase changes user-facing shell behavior, navigation, readability, drawer behavior, installability, accessibility, or offline/recovery behavior:
+   - run `npm run browser:smoke`
    - run `/browser-offline`
+   - re-run `npm run release:proof`
 4. Confirm the required browser artifacts exist in `playwright-artifacts/`.
 5. Confirm release metadata is synchronized and `npm run workflow:check` passes.
 6. Summarize:

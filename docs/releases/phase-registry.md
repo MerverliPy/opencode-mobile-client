@@ -29,3 +29,4 @@ Authority notes:
 
 ## Backlog follow-up phases
 - [x] backlog-lifecycle-gating — Prevent completed backlog items from being reselected by the phase workflow
+- [x] browser-proof-runner — Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
