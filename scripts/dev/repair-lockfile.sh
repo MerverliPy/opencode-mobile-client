@@ -11,6 +11,6 @@ fi
 
 echo "repair-lockfile: package-lock drift detected; regenerating lockfile"
 rm -rf node_modules
-npm install
-npm ci
+npm install --package-lock-only --ignore-scripts
+npm ci --ignore-scripts
 echo "repair-lockfile: lockfile regenerated and clean install verified"

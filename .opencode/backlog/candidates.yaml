@@ -18,24 +18,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: clean-install-reproducibility
-    title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
-    module: tooling
-    priority: 10
-    expected_max_files_changed: 3
-    drivers:
-      - The checked-in repo currently fails `npm ci`, which breaks clean-clone setup and contradicts the documented release-proof expectations.
-      - This is the smallest high-leverage blocker because all later phases depend on reproducible installs and trustworthy automation.
-    files:
-      - package-lock.json
-      - package.json
-      - scripts/dev/repair-lockfile.sh
-    validation: npm ci --ignore-scripts && npm run validate:local
-    acceptance:
-      - A clean checkout can run `npm ci` without manual repair steps.
-      - The lockfile stays in sync with `package.json` and workflow-check remains green.
-      - No unrelated dependency or source changes are introduced.
-
   - id: session-lifecycle-actions
     title: Add rename and delete actions so local sessions stay manageable on a phone
     module: sessions
@@ -118,7 +100,7 @@ candidates:
     priority: 5
     expected_max_files_changed: 4
     drivers:
-      - `browser-smoke.sh` currently validates locally and prints manual screenshot instructions instead of producing a repeatable browser-proof artifact flow.
+      - "`browser-smoke.sh` currently validates locally and prints manual screenshot instructions instead of producing a repeatable browser-proof artifact flow."
       - Automating this would make the shipped iPhone and SSH workflow more reliable and less operator-dependent.
     files:
       - package.json
@@ -137,7 +119,7 @@ candidates:
     priority: 4
     expected_max_files_changed: 3
     drivers:
-      - `npm audit` currently reports moderate advisories affecting `vite` and `esbuild` in the checked-in dependency graph.
+      - "`npm audit` currently reports moderate advisories affecting `vite` and `esbuild` in the checked-in dependency graph."
       - This improves repo completeness and reduces avoidable tooling risk before larger runtime work lands.
     files:
       - package.json
@@ -150,6 +132,11 @@ candidates:
       - No app-behavior changes are mixed into the dependency refresh.
 
 archived:
+  - id: clean-install-reproducibility
+    title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
+    module: tooling
+    shipped: true
+
   - id: backlog-lifecycle-gating
     title: Prevent completed backlog items from being reselected by the phase workflow
     module: workflow

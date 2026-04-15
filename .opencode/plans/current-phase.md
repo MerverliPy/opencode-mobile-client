@@ -1,6 +1,6 @@
 # Current Phase
 
-Status: pending
+Status: complete
 Release: v1.6.0
 Phase file: backlog:clean-install-reproducibility
 
@@ -55,10 +55,20 @@ Revert the lockfile and related tooling changes together so the repository retur
 
 ## Validation
 
-Status: pending
+Status: PASS
 
 Evidence:
-- not run yet
+- `npm run workflow:check` passed.
+- The required validation command `npm ci --ignore-scripts && npm run validate:local` passed.
+- `scripts/dev/repair-lockfile.sh` now regenerates drift with `npm install --package-lock-only --ignore-scripts` and re-verifies with `npm ci --ignore-scripts`, keeping repair bounded to install metadata.
+- Current implementation changes are limited to `scripts/dev/repair-lockfile.sh` plus this validation update; no out-of-scope product or runtime files were changed.
+- Acceptance criteria are met: a clean install succeeds without manual repair, workflow-check remains green, and no unrelated dependency or source changes were introduced.
+
+Blockers:
+- none
+
+Ready to ship:
+- yes
 
 ## Acceptance criteria
 
@@ -66,6 +76,12 @@ Evidence:
 - the lockfile stays in sync with `package.json` and workflow-check remains green
 - no unrelated dependency or source changes are introduced
 
+## Release notes
+
+- Kept lockfile repair scoped to package-lock metadata regeneration instead of a full install rewrite.
+- Re-verified clean installs with `--ignore-scripts` to match the phase validation path.
+
 ## Completion summary
 
-- not started
+- Updated `scripts/dev/repair-lockfile.sh` so drift repair regenerates only `package-lock.json` metadata and then verifies with `npm ci --ignore-scripts`.
+- Confirmed `npm run workflow:check` and `npm ci --ignore-scripts && npm run validate:local` pass with no product or runtime changes.
