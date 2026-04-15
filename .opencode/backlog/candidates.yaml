@@ -7,9 +7,9 @@ selection_order:
 
 queue_rules:
   - Only entries under `candidates` are selectable.
-  - Entries under `archived` are retained only so shipped backlog references remain valid.
+  - Entries under `archived` are retained so shipped backlog references remain valid.
   - Remove shipped backlog work from `candidates` immediately after `/ship-phase`.
-  - Keep shipped backlog work under `archived` until the workflow no longer references it.
+  - Keep shipped backlog work under `archived` until workflow references no longer need them.
   - Use git history as the long-term archive for shipped backlog items.
 
 constraints:
@@ -17,7 +17,28 @@ constraints:
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates: []
+candidates:
+  - id: phase-validation-status-normalization
+    title: Normalize new phase templates so validation status starts as pending
+    module: workflow
+    priority: 10
+    drivers:
+      - newly generated phases can still start with `Status: not run`
+      - workflow-check is intentionally strict and only accepts pending, PASS, or FAIL
+      - phase creation and validation rules should agree on one initial status value
+    done_when:
+      - newly selected phases write `Status: pending` in the Validation section
+      - workflow-check passes for a freshly selected phase without manual status editing
+      - no workflow command emits `Status: not run` for new phases
+    files:
+      - .opencode/commands/next-phase.md
+      - .opencode/plans/current-phase.md
+      - scripts/dev/workflow-check.sh
+    validation: npm run workflow:check && npm run repo:doctor
+    acceptance:
+      - next-phase creates backlog or release phases with Validation status set to pending
+      - workflow-check remains strict and does not require manual edits after phase selection
+      - no unrelated workflow or product changes are introduced
 
 archived:
   - id: backlog-lifecycle-gating
