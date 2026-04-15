@@ -17,28 +17,7 @@ constraints:
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates:
-  - id: phase-validation-status-normalization
-    title: Normalize new phase templates so validation status starts as pending
-    module: workflow
-    priority: 10
-    drivers:
-      - newly generated phases can still start with `Status: not run`
-      - workflow-check is intentionally strict and only accepts pending, PASS, or FAIL
-      - phase creation and validation rules should agree on one initial status value
-    done_when:
-      - newly selected phases write `Status: pending` in the Validation section
-      - workflow-check passes for a freshly selected phase without manual status editing
-      - no workflow command emits `Status: not run` for new phases
-    files:
-      - .opencode/commands/next-phase.md
-      - .opencode/plans/current-phase.md
-      - scripts/dev/workflow-check.sh
-    validation: npm run workflow:check && npm run repo:doctor
-    acceptance:
-      - next-phase creates backlog or release phases with Validation status set to pending
-      - workflow-check remains strict and does not require manual edits after phase selection
-      - no unrelated workflow or product changes are introduced
+candidates: []
 
 archived:
   - id: backlog-lifecycle-gating
@@ -49,4 +28,9 @@ archived:
   - id: browser-proof-runner
     title: Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
     module: browser-validation
+    shipped: true
+
+  - id: phase-validation-status-normalization
+    title: Normalize new phase templates so validation status starts as pending
+    module: workflow
     shipped: true

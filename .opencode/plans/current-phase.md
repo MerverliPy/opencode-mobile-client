@@ -2,74 +2,68 @@
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:browser-proof-runner
+Phase file: backlog:phase-validation-status-normalization
 
 ## Goal
 
-Add repo-root browser-proof and release-proof helper entry points so SSH/iPhone workflows have one repeatable way to run preview proof and release proof tasks.
+Normalize new phase generation so freshly selected phases start with `Validation` status `pending`, matching workflow-check expectations without manual edits.
 
 ## Why this phase is next
 
-All implementation release phases are already complete. Using the registry as the workflow authority, the previously active backlog item is complete, so the next still-needed backlog candidate is `browser-proof-runner`: its `done_when` conditions are not satisfied, it has the highest remaining backlog priority, and its validation path is explicit.
+The previously active backlog phase is complete, all listed release phases are already complete, and the only remaining selectable backlog candidate is `phase-validation-status-normalization`. It is the highest-priority remaining candidate, stays within the workflow module, has a small bounded scope, and has a clear validation path.
 
 ## Primary files
 
-- `package.json`
-- `scripts/dev/browser-smoke.sh`
-- `scripts/dev/release-proof.sh`
-- `.opencode/commands/browser-smoke.md`
-- `.opencode/commands/release-proof.md`
+- `.opencode/commands/next-phase.md`
+- `.opencode/plans/current-phase.md`
+- `scripts/dev/workflow-check.sh`
 
 ## Expected max files changed
 
-4
+3
 
 ## Risk
 
-Low to medium. This phase is workflow-facing rather than product-facing, but mistakes could create misleading command entry points or artifact paths for browser and release proof flows.
+Low. This phase is limited to workflow template and validation behavior, but mistakes could create mismatched phase-state expectations or weaken validation guarantees.
 
 ## Rollback note
 
-If the new helper entry points prove confusing or unstable, remove the added npm scripts and helper wrappers and revert the command docs to the previous manual flow.
+Revert the phase template and workflow-check changes so phase generation returns to the prior behavior, then restore the previous current-phase template state if needed.
 
 ## In scope
 
-- add a repo-root browser smoke helper script
-- add a repo-root release proof helper script
-- add matching npm script entry points in `package.json`
-- update browser and release proof command docs to reference the repo-root helpers consistently
-- keep proof artifacts directed to `playwright-artifacts/`
+- update phase-generation workflow so new phases write `Validation` status as `pending`
+- keep workflow-check strict about accepted validation states
+- align generated phase content with documented workflow expectations
+- limit changes to the bounded workflow files required for this normalization
 
 ## Out of scope
 
-- product UI or runtime behavior changes
-- expanding browser coverage beyond the helper entry points needed for the documented SSH/iPhone workflow
-- changing shipped release metadata
+- product UI, runtime, or release metadata changes
 - unrelated workflow refactors
+- backlog selection logic changes beyond the validation-status normalization needed here
+- expanding this task into generic multi-module workflow cleanup
 
 ## Tasks
 
-- add `scripts/dev/browser-smoke.sh`
-- add `scripts/dev/release-proof.sh`
-- wire `browser:smoke` and `release:proof` npm scripts in `package.json`
-- update `.opencode/commands/browser-smoke.md` to reference the repo-root helper
-- update `.opencode/commands/release-proof.md` to reference the repo-root helper
-- verify the local validation command succeeds
+- update the next-phase workflow template to emit `Status: pending` in the `Validation` section for new phases
+- update any supporting workflow checks so newly selected phases pass strict validation without manual editing
+- confirm no workflow command still emits `Status: not run` for new phases
+- verify the required validation command succeeds
 
 ## Validation command
 
-`npm run validate:local`
+`npm run workflow:check && npm run repo:doctor`
 
 ## Validation
 
 Status: PASS
 
 Evidence:
-- `npm run workflow:check` passed.
-- The required validation command `npm run validate:local` passed (workflow check, lint, test, and build all succeeded).
-- `npm run browser:smoke` ran from repo root, created/targeted `playwright-artifacts/`, and clearly orchestrated the browser smoke flow.
-- `npm run release:proof` ran from repo root and returned `Status: READY_TO_SHIP` with the required browser artifacts confirmed in `playwright-artifacts/`.
-- The changed implementation stays within the active phase scope: `package.json`, the two repo-root helper scripts, and the two command docs.
+- `npm run workflow:check` passed, and the required validation command `npm run workflow:check && npm run repo:doctor` passed.
+- `.opencode/commands/next-phase.md` now explicitly requires newly generated backlog phases to write `## Validation` with `Status: pending` and `Evidence: - not run yet`.
+- `.opencode/commands/next-phase.md` also requires copied release phases to normalize their `## Validation` section to `Status: pending`, covering release-phase selection without manual edits.
+- `scripts/dev/workflow-check.sh` remains strict and accepts only `pending`, `PASS`, or `FAIL`; no workflow command file under `.opencode/commands/` emits `Status: not run` for new phases.
 
 Blockers:
 - none
@@ -79,18 +73,17 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- `npm run browser:smoke` exists and runs or clearly orchestrates the repo-root browser smoke flow
-- `npm run release:proof` exists and runs or clearly orchestrates the repo-root release proof flow
-- both helper scripts work from repo root
-- browser-proof artifacts are written into `playwright-artifacts/`
-- command docs reference the new helper entry points consistently
+- next-phase creates backlog or release phases with Validation status set to `pending`
+- workflow-check remains strict and does not require manual edits after phase selection
+- no workflow command emits `Status: not run` for new phases
+- no unrelated workflow or product changes are introduced
 
 ## Release notes
 
-- Added repo-root `browser:smoke` and `release:proof` helper entry points for repeatable SSH/iPhone proof flows.
-- Standardized command docs and proof artifact output under `playwright-artifacts/`.
+- Normalized new phase templates so freshly selected phases start `## Validation` at `Status: pending`.
+- Normalized copied release phases to the same pending validation state to avoid manual status edits.
 
 ## Completion summary
 
-- Added repo-root browser smoke and release proof helper scripts, wired matching npm scripts, and updated the command docs to use the new entry points consistently.
-- Validation passed through `npm run workflow:check`, `npm run validate:local`, `npm run browser:smoke`, and `npm run release:proof` with the expected artifacts present in `playwright-artifacts/`.
+- Updated `.opencode/commands/next-phase.md` so backlog-generated phases write `Status: pending` with initial validation evidence and copied release phases normalize their validation status the same way.
+- Confirmed `npm run workflow:check && npm run repo:doctor` passes with strict validation-state enforcement unchanged.

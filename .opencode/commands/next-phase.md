@@ -38,8 +38,12 @@ When the chosen work item is a backlog candidate, overwrite `.opencode/plans/cur
 - `## Tasks`
 - `## Validation command`
 - `## Validation`
+- under `## Validation`, write `Status: pending`
+- under `## Validation`, include `Evidence:` followed by `- not run yet`
 - `## Acceptance criteria`
 - `## Completion summary`
+
+When copying a release phase file into `.opencode/plans/current-phase.md`, normalize the copied phase so its `## Validation` section starts with `Status: pending` for a newly selected active phase.
 
 If the selected release phase was `[ ]`, mark it `[~]` in the registry.
 
