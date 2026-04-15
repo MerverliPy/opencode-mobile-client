@@ -4,11 +4,11 @@ An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use 
 
 ## Release baseline
 
-The current release baseline is `v1.5.0`, aligned with the `package.json` version `1.5.0` and the runtime release badge.
+The current release baseline is `v1.6.0`, aligned with the `package.json` version `1.6.0` and the runtime release badge.
 
-Phase 09 reconciled older duplicate release docs and stale workflow state around that baseline. Treat `.opencode/plans/current-phase.md` and `docs/releases/phase-registry.md` as the authoritative workflow surfaces.
+Phase 14 reconciled older duplicate release docs, release-proof workflow state, and browser-validation commands around that baseline. Treat `.opencode/plans/current-phase.md` and `docs/releases/phase-registry.md` as the authoritative workflow surfaces.
 
-The running app is still a local-first mobile shell with mock-backed task replies, file viewing, and diff review.
+The running app is still a local-first mobile shell with mock-backed task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
 ## Current product reality
 
@@ -39,6 +39,8 @@ The normal workflow is:
 4. `/validate-phase`
 5. `/ship-phase`
 
+Use `npm run repo:doctor` before starting a new phase when you want a fast health check for release-state truth, clean-install reproducibility, and workflow-file presence.
+
 ## Delivery rules
 
 - One phase at a time
@@ -64,6 +66,7 @@ The normal workflow is:
 - `AGENTS.md` — project operating rules for OpenCode
 - `opencode.json` — project-local OpenCode configuration
 - `.opencode/agents/` — workflow-specific agents
+- `.opencode/backlog/candidates.yaml` — deterministic next-phase candidate list for post-release work
 - `.opencode/commands/` — slash commands for phase execution
 - `.opencode/plans/current-phase.md` — authoritative current phase file
 - `docs/releases/` — release phases and registry

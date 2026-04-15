@@ -11,6 +11,9 @@
     "preview": "vite preview",
     "preview:host": "vite preview --host 0.0.0.0 --port 4173 --strictPort",
     "workflow:check": "bash scripts/dev/workflow-check.sh",
+    "repo:doctor": "bash scripts/dev/doctor.sh",
+    "phase:show": "cat .opencode/plans/current-phase.md",
+    "backlog:show": "cat .opencode/backlog/candidates.yaml",
     "validate:local": "npm run workflow:check && npm run lint && npm run test && npm run build"
   },
   "devDependencies": {
