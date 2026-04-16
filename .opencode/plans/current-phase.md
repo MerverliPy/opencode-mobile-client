@@ -1,93 +1,77 @@
-# Add remote preview link and read-only share surfaces so phone-based review is practical
+# Normalize workflow validation metadata so phase state parses consistently
 
-Status: complete
+Status: pending
 Release: v1.6.0
-Phase file: backlog:remote-preview-share-surface
+Phase file: backlog:workflow-validation-metadata-alignment
 
 ## Goal
 
-Add the first bounded remote preview and read-only share surfaces so mobile review is practical once a remote session is bound, without expanding into voice entry or broader backend orchestration work.
+Normalize active-phase validation metadata so the workflow parsers agree on one authoritative phase state without changing product behavior.
 
 ## Why this phase is next
 
-All listed release phases in `docs/releases/phase-registry.md` are complete, the previous backlog follow-up phase is already complete, and the user explicitly scoped this `/autoflow` run to `remote-preview-share-surface`. That explicit user scope takes priority in backlog selection and remains a bounded five-file follow-up with clear validation.
+All listed release phases are already complete. The user scoped this planning pass to the full audit fix order, and this candidate is the first bounded workflow repair in that order with the highest priority, smallest safe scope, and clearest deterministic validation.
 
 ## Primary files
 
-- `package.json`
-- `README.md`
-- `src/main.js`
-- `src/ui/screens.js`
-- `tests/quality-gates.smoke.test.js`
+- `.opencode/commands/next-phase.md`
+- `scripts/dev/workflow-check.sh`
+- `scripts/dev/doctor.sh`
+- `scripts/dev/autoflow.sh`
 
 ## Expected max files changed
 
-5
+4
 
 ## Risk
 
-Medium. This phase adds user-visible preview and share surfaces, so the UI must stay honest when backend data is missing and must not imply unsupported share capabilities.
+Medium. This work changes authoritative workflow parsing, so the repair must stay tightly bounded and keep all workflow commands reading the same validation shape.
 
 ## Rollback note
 
-Revert the preview-link and read-only share UI surfaces together with the related release-target metadata so the app returns cleanly to the shipped `v1.6.0` baseline.
+Revert the parser and template-alignment changes together so workflow metadata generation and workflow-state inspection return to the prior implementation as one unit.
 
 ## In scope
 
-- render remote preview links from a bound remote run
-- expose a read-only share link surface without claiming backend support that does not exist
-- fail honestly when preview or share data is absent from backend responses
-- update `package.json` and `README.md` to target the planned `v2.2.0` follow-up
+- align the canonical validation block shape used by backlog phase templates and workflow parsers
+- ensure `npm run workflow:check` and `npm run repo:doctor` read the same validation status keys
+- ensure `bash scripts/dev/autoflow.sh inspect` reads validation status and ready-to-ship values consistently when present
+- keep the repair bounded to workflow metadata and parser logic only
 
 ## Out of scope
 
-- voice prompt entry
-- repo cloning, workspace orchestration, or new backend contracts beyond consuming returned preview or share data
-- editable collaboration or write-capable sharing flows
-- unrelated tooling, workflow, or multi-module refactors
+- product runtime or UI changes
+- backlog archival or selection repairs beyond validation-metadata parsing
+- release-proof artifact generation or shipping work
+- dependency upgrades or unrelated refactors
 
 ## Tasks
 
-- add bounded mobile surfaces for preview and read-only share links in the existing session and run UI
-- keep missing preview or share data explicit instead of implying support that is not present
-- update smoke coverage and planned release-target metadata for the `v2.2.0` follow-up
+- define one canonical validation metadata shape for active-phase files
+- align workflow parser scripts and next-phase template instructions with that canonical shape
+- confirm pending, PASS, and FAIL validation states remain readable across workflow commands
 
 ## Validation command
 
-`npm run workflow:check && npm run test && npm run build`
+`npm run workflow:check && npm run repo:doctor && bash scripts/dev/autoflow.sh inspect`
 
 ## Validation
 
-status: PASS
-
-evidence:
-- `npm run workflow:check` passed before declaring PASS.
-- The stated validation command `npm run workflow:check && npm run test && npm run build` passed.
-- `src/ui/screens.js` renders remote preview and read-only share cards only for remote-backed sessions, with explicit unavailable states when no links are returned.
-- `src/main.js` normalizes preview/share payloads and opens only valid `http`/`https` links, showing honest warnings instead of implying success when links are missing or invalid.
-- `tests/quality-gates.smoke.test.js` covers both available preview/share surfaces and honest empty-link states.
-- `package.json` targets `v2.2.0` via `opencode.targetRelease`, and `README.md` describes `v2.2.0` as the current workflow target while preserving the shipped `v1.6.0` baseline.
-- No active-phase evidence shows voice entry, editable collaboration, or broader backend-contract expansion beyond consuming preview/share data.
-
-blockers:
-- none
-
-ready-to-ship: yes
+Status: pending
+Evidence:
+- not run yet
+Blockers:
+- not validated yet
+Ready to ship:
+- no
 
 ## Acceptance criteria
 
-- The app can render and open remote preview links from a bound remote run.
-- The UI can display a read-only share link surface without claiming backend support that does not exist.
-- Preview and share surfaces fail honestly when the backend does not return them.
-- `package.json` and `README.md` are updated to target `v2.2.0`.
-
-## Release notes
-
-- Added bounded remote preview-link and read-only share surfaces so phone-based review can open backend-returned destinations directly from a remote session.
-- Kept preview and share states honest by showing explicit unavailable states when the backend does not return links and by avoiding any claim of editable collaboration support.
+- The canonical active-phase validation keys are consistent across phase templates and workflow parsers.
+- `npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly.
+- `bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present.
+- The phase stays bounded to workflow metadata and parser alignment only.
 
 ## Completion summary
 
-- Added preview-link and read-only share sections to the remote task shell so mobile review can open returned destinations without losing session context.
-- Kept the implementation bounded to active-phase files while rendering stored preview and share links honestly when they are available on remote sessions.
-- Updated smoke coverage and planned release targeting to `v2.2.0` without expanding into voice entry or broader backend orchestration work.
+- not started
