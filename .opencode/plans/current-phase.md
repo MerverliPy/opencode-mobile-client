@@ -1,16 +1,16 @@
-# Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
+# Add remote preview link and read-only share surfaces so phone-based review is practical
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:repo-binding-surface
+Phase file: backlog:remote-preview-share-surface
 
 ## Goal
 
-Add the first bounded repo and workspace binding surfaces so remote sessions can show and persist real coding targets without expanding into later preview, sharing, or voice-input work.
+Add the first bounded remote preview and read-only share surfaces so mobile review is practical once a remote session is bound, without expanding into voice entry or broader backend orchestration work.
 
 ## Why this phase is next
 
-The previous active backlog phase is complete, all listed release phases in `docs/releases/phase-registry.md` are complete, and backlog selection now applies. There is no explicit user-scoped candidate, so deterministic ordering selects `repo-binding-surface` because it is the highest-priority remaining candidate, stays within the bounded six-file limit, and has clear validation.
+All listed release phases in `docs/releases/phase-registry.md` are complete, the previous backlog follow-up phase is already complete, and the user explicitly scoped this `/autoflow` run to `remote-preview-share-surface`. That explicit user scope takes priority in backlog selection and remains a bounded five-file follow-up with clear validation.
 
 ## Primary files
 
@@ -18,40 +18,39 @@ The previous active backlog phase is complete, all listed release phases in `doc
 - `README.md`
 - `src/main.js`
 - `src/ui/screens.js`
-- `src/state/session-state.js`
 - `tests/quality-gates.smoke.test.js`
 
 ## Expected max files changed
 
-6
+5
 
 ## Risk
 
-Medium. This phase changes session metadata shape and user-visible binding state, so existing sessions must remain readable and the UI must stay honest about what is and is not bound.
+Medium. This phase adds user-visible preview and share surfaces, so the UI must stay honest when backend data is missing and must not imply unsupported share capabilities.
 
 ## Rollback note
 
-Revert the repo-binding session metadata changes, binding-state UI surfaces, and related release-target metadata together so the app returns to the current shipped `v1.6.0` baseline safely.
+Revert the preview-link and read-only share UI surfaces together with the related release-target metadata so the app returns cleanly to the shipped `v1.6.0` baseline.
 
 ## In scope
 
-- persist repo owner, repo name, branch, and workspace metadata in session state
-- show whether a session is unbound, bound to a repo, or bound to a repo plus active run
-- preserve readability and safe upgrade behavior for existing local sessions
-- update `package.json` and `README.md` to target the planned `v2.1.0` follow-up
+- render remote preview links from a bound remote run
+- expose a read-only share link surface without claiming backend support that does not exist
+- fail honestly when preview or share data is absent from backend responses
+- update `package.json` and `README.md` to target the planned `v2.2.0` follow-up
 
 ## Out of scope
 
-- remote preview or share surfaces
 - voice prompt entry
-- backend-owned repo cloning or broader workspace orchestration beyond session metadata and binding status
+- repo cloning, workspace orchestration, or new backend contracts beyond consuming returned preview or share data
+- editable collaboration or write-capable sharing flows
 - unrelated tooling, workflow, or multi-module refactors
 
 ## Tasks
 
-- extend session-state persistence so repo and workspace metadata can be stored and older sessions upgrade safely
-- add bounded mobile UI surfaces for repo and run binding status in `src/main.js` and `src/ui/screens.js`
-- update smoke coverage and planned release-target metadata for the `v2.1.0` follow-up
+- add bounded mobile surfaces for preview and read-only share links in the existing session and run UI
+- keep missing preview or share data explicit instead of implying support that is not present
+- update smoke coverage and planned release-target metadata for the `v2.2.0` follow-up
 
 ## Validation command
 
@@ -64,11 +63,12 @@ Status: PASS
 Evidence:
 - `npm run workflow:check` passed before phase validation.
 - The required validation command `npm run workflow:check && npm run test && npm run build` passed.
-- The phase stayed within scope across `src/state/session-state.js`, `src/ui/screens.js`, `src/main.js`, `tests/quality-gates.smoke.test.js`, `package.json`, and `README.md`.
-- Session-state helpers now expose bounded repo binding labels and status so stored metadata can render consistently for unbound, repo-bound, and repo-plus-active-run sessions.
-- Task and session surfaces now show repo binding state, repo or branch labels, and workspace metadata without expanding into preview, share, or voice-input work.
-- Smoke coverage verifies repo binding status derivation and the new repo binding UI alongside existing remote-run behavior.
-- `package.json` and `README.md` now target the planned `v2.1.0` follow-up while preserving the shipped `v1.6.0` baseline.
+- The phase stayed within scope across `src/main.js`, `src/ui/screens.js`, `tests/quality-gates.smoke.test.js`, `package.json`, and `README.md`.
+- Remote task surfaces now render preview-link and read-only share sections that stay explicit when backend links are missing and open returned links without implying editable collaboration support.
+- Remote sessions can now render stored preview and share links when those links are present on session state, while preserving honest fallback behavior when links are unavailable.
+- Smoke coverage verifies visible preview/share UI and honest empty-link states for remote sessions.
+- No voice-entry, collaboration-editing, or broader backend-contract work was added in this phase.
+- `package.json` and `README.md` now target the planned `v2.2.0` follow-up while preserving the shipped `v1.6.0` baseline.
 
 Blockers:
 - none
@@ -78,18 +78,18 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- A session can persist repo name, owner, branch, and workspace metadata.
-- The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
-- Existing local sessions remain readable and upgrade safely to the new metadata shape.
-- `package.json` and `README.md` are updated to target `v2.1.0`.
+- The app can render and open remote preview links from a bound remote run.
+- The UI can display a read-only share link surface without claiming backend support that does not exist.
+- Preview and share surfaces fail honestly when the backend does not return them.
+- `package.json` and `README.md` are updated to target `v2.2.0`.
 
 ## Release notes
 
-- Added bounded repo, branch, and workspace binding surfaces so remote sessions can show their coding target on mobile.
-- Preserved readable local-session upgrades while exposing unbound, repo-bound, and repo-plus-active-run status honestly in the shell.
+- Added bounded remote preview-link and read-only share surfaces so phone-based review can open backend-returned destinations directly from a remote session.
+- Kept preview and share states honest by showing explicit unavailable states when the backend does not return links and by avoiding any claim of editable collaboration support.
 
 ## Completion summary
 
-- Added bounded repo-binding state helpers and mobile UI surfaces so sessions clearly show whether they are unbound, repo bound, or repo bound with an active run.
-- Kept existing session persistence and legacy-session normalization readable while exposing repo, branch, and workspace context in task and session views.
-- Updated smoke coverage and planned release targeting to `v2.1.0` without expanding into later preview, share, or voice-input phases.
+- Added preview-link and read-only share sections to the remote task shell so mobile review can open returned destinations without losing session context.
+- Kept the implementation bounded to active-phase files while rendering stored preview and share links honestly when they are available on remote sessions.
+- Updated smoke coverage and planned release targeting to `v2.2.0` without expanding into voice entry or broader backend orchestration work.

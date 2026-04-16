@@ -160,6 +160,92 @@ function renderRemoteRunCard(session) {
   `;
 }
 
+function getRemotePreviewLinks(session) {
+  return Array.isArray(session?.remoteLinks?.previews) ? session.remoteLinks.previews : [];
+}
+
+function getRemoteShareLink(session) {
+  return session?.remoteLinks?.share && typeof session.remoteLinks.share === 'object'
+    ? session.remoteLinks.share
+    : null;
+}
+
+function renderRemotePreviewCard(session) {
+  if (!isRemoteBackedSession(session)) {
+    return '';
+  }
+
+  const previewLinks = getRemotePreviewLinks(session);
+
+  return `
+    <section class="screen-card state-card" aria-label="Remote preview links">
+      <p class="eyebrow">Remote preview</p>
+      <h3>${previewLinks.length ? 'Preview links are available.' : 'No preview link is available yet.'}</h3>
+      <p class="screen-copy">${
+        previewLinks.length
+          ? 'Open the available remote preview in a new tab without leaving the current mobile session context.'
+          : 'The shell will show preview links here when the backend returns them for this remote run. Until then, it stays explicit that no preview URL is currently available.'
+      }</p>
+      <div class="session-meta-pills">
+        <span class="meta-pill">${previewLinks.length ? `${previewLinks.length} preview ${previewLinks.length === 1 ? 'link' : 'links'}` : 'Preview unavailable'}</span>
+      </div>
+      <div class="state-actions">
+        ${previewLinks.length
+          ? previewLinks
+              .map(
+                (previewLink) => `
+                  <button
+                    class="secondary-button"
+                    type="button"
+                    data-action="open-preview-link"
+                    data-label="${escapeHtml(previewLink.label)}"
+                    data-url="${escapeHtml(previewLink.url)}"
+                  >${escapeHtml(previewLink.label)}</button>
+                `,
+              )
+              .join('')
+          : '<button class="secondary-button" type="button" disabled>No preview returned</button>'}
+      </div>
+    </section>
+  `;
+}
+
+function renderRemoteShareCard(session) {
+  if (!isRemoteBackedSession(session)) {
+    return '';
+  }
+
+  const shareLink = getRemoteShareLink(session);
+
+  return `
+    <section class="screen-card state-card" aria-label="Read-only share link">
+      <p class="eyebrow">Read-only share</p>
+      <h3>${shareLink ? 'Read-only share link is available.' : 'No read-only share link is available yet.'}</h3>
+      <p class="screen-copy">${
+        shareLink
+          ? 'This surface only exposes a read-only share destination returned by the backend and does not imply editable collaboration support.'
+          : 'The shell will show a read-only share destination here when the backend returns one. Until then, it stays explicit that share support is not currently available for this run.'
+      }</p>
+      <div class="session-meta-pills">
+        <span class="meta-pill">${shareLink ? 'Read-only link available' : 'Share unavailable'}</span>
+      </div>
+      <div class="state-actions">
+        ${shareLink
+          ? `
+            <button
+              class="secondary-button"
+              type="button"
+              data-action="open-share-link"
+              data-label="${escapeHtml(shareLink.label)}"
+              data-url="${escapeHtml(shareLink.url)}"
+            >${escapeHtml(shareLink.label)}</button>
+          `
+          : '<button class="secondary-button" type="button" disabled>No share link returned</button>'}
+      </div>
+    </section>
+  `;
+}
+
 export function renderUiNotice(notice) {
   if (!notice) {
     return '';
@@ -545,6 +631,10 @@ export function renderTaskScreen({ appState, screens }) {
     ${renderRepoBindingCard(session)}
 
     ${renderRemoteRunCard(session)}
+
+    ${renderRemotePreviewCard(session)}
+
+    ${renderRemoteShareCard(session)}
 
     <section class="screen-card conversation-card" aria-label="Task conversation" aria-busy="${session.isLoading ? 'true' : 'false'}">
       <div class="conversation-summary">

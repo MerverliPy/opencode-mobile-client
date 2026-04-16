@@ -564,7 +564,6 @@ describe('Phase 13 smoke coverage', () => {
     const statusResult = await adapter.fetchRunStatus({ runId: 'run-started', sessionId: 'session-1' });
     const resumeResult = await adapter.resumeRun({ runId: 'run-started', sessionId: 'session-1' });
     const cancelResult = await adapter.cancelRun({ runId: 'run-started', sessionId: 'session-1' });
-
     expect(adapter.isConfigured).toBe(true);
     expect(adapter.mode).toBe('configured');
     expect(adapter.backendBaseUrl).toBe('https://runtime.example');
@@ -690,6 +689,10 @@ describe('Phase 13 smoke coverage', () => {
       isLoading: false,
       runtimeMetadata: { runtimeId: 'remote-runtime' },
       remoteRun: { runId: 'run-42', status: 'awaiting_input', updatedAt: 30 },
+      remoteLinks: {
+        previews: [{ label: 'Preview app', url: 'https://preview.example/app' }],
+        share: { label: 'Read-only share', url: 'https://share.example/session/run-42' },
+      },
       repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
       messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Remote session status is visible.' }],
       toolResults: [],
@@ -719,7 +722,47 @@ describe('Phase 13 smoke coverage', () => {
     expect(html).toContain('acme/mobile · main');
     expect(html).toContain('Workspace ws-1');
     expect(html).toContain('Remote shell');
+    expect(html).toContain('Remote preview');
+    expect(html).toContain('Preview app');
+    expect(html).toContain('Read-only share');
+    expect(html).toContain('data-action="open-preview-link"');
+    expect(html).toContain('data-action="open-share-link"');
     expect(html).not.toContain('Local only');
+  });
+
+  it('shows honest empty preview and share states when returned links are absent', () => {
+    const remoteSession = {
+      id: 'session-remote-empty-links',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: '',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-43', status: 'running', updatedAt: 30 },
+      remoteLinks: { previews: [], share: null },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-2' },
+      messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Remote run without returned links.' }],
+      toolResults: [],
+    };
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-remote-empty-links',
+      sessions: [remoteSession],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+      toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+    };
+    const screens = {
+      task: {
+        description: 'Local shell description',
+      },
+    };
+
+    const html = renderTaskScreen({ appState, screens });
+
+    expect(html).toContain('No preview link is available yet.');
+    expect(html).toContain('No read-only share link is available yet.');
+    expect(html).toContain('No preview returned');
+    expect(html).toContain('No share link returned');
   });
 
   it('keeps local sessions honest without remote shell controls', () => {
