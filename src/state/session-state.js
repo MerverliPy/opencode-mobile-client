@@ -101,6 +101,36 @@ export function createRuntimeMetadata(session = {}) {
   };
 }
 
+export function getRepoBindingLabel(session) {
+  const owner = compactText(session?.repoBinding?.owner ?? '');
+  const repo = compactText(session?.repoBinding?.repo ?? '');
+  const branch = compactText(session?.repoBinding?.branch ?? '');
+
+  if (!owner && !repo && !branch) {
+    return '';
+  }
+
+  const repoLabel = owner && repo ? `${owner}/${repo}` : repo || owner;
+  return branch ? `${repoLabel} · ${branch}` : repoLabel;
+}
+
+export function getRepoWorkspaceLabel(session) {
+  return compactText(session?.repoBinding?.workspace ?? '');
+}
+
+export function getRepoBindingStatus(session) {
+  const hasRepoBinding = Boolean(getRepoBindingLabel(session) || getRepoWorkspaceLabel(session));
+  const runId = compactText(session?.remoteRun?.runId ?? '');
+  const runStatus = compactText(session?.remoteRun?.status ?? 'idle') || 'idle';
+  const hasActiveRun = Boolean(runId) && ['queued', 'running', 'awaiting_input'].includes(runStatus);
+
+  if (!hasRepoBinding) {
+    return 'unbound';
+  }
+
+  return hasActiveRun ? 'bound-active' : 'bound';
+}
+
 export function setSelectedSession(appState, sessionId) {
   appState.selectedSessionId = appState.sessions.some((session) => session.id === sessionId)
     ? sessionId

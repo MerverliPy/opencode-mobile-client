@@ -1,6 +1,9 @@
 import { escapeHtml, formatSessionTime } from '../lib/utils.js';
 import { getDiffFiles, getToolResultKind } from '../lib/tool-results.js';
 import {
+  getRepoBindingLabel,
+  getRepoBindingStatus,
+  getRepoWorkspaceLabel,
   getSelectedSession,
   getSessionPreview,
   getSessionTitle,
@@ -70,22 +73,60 @@ function getRemoteRunId(session) {
   return typeof session?.remoteRun?.runId === 'string' ? session.remoteRun.runId : '';
 }
 
-function getRemoteRepoLabel(session) {
-  const owner = typeof session?.repoBinding?.owner === 'string' ? session.repoBinding.owner : '';
-  const repo = typeof session?.repoBinding?.repo === 'string' ? session.repoBinding.repo : '';
-  const branch = typeof session?.repoBinding?.branch === 'string' ? session.repoBinding.branch : '';
-
-  if (!owner && !repo && !branch) {
-    return '';
-  }
-
-  const repoLabel = owner && repo ? `${owner}/${repo}` : repo || owner;
-  return branch ? `${repoLabel} · ${branch}` : repoLabel;
-}
-
 function canCancelRemoteRun(session) {
   const status = getRemoteRunStatus(session);
   return Boolean(getRemoteRunId(session)) && ['queued', 'running', 'awaiting_input'].includes(status);
+}
+
+function getRepoBindingStatusContent(session) {
+  const bindingStatus = getRepoBindingStatus(session);
+  const repoLabel = getRepoBindingLabel(session);
+  const workspaceLabel = getRepoWorkspaceLabel(session);
+
+  if (bindingStatus === 'bound-active') {
+    return {
+      label: 'Repo + active run',
+      title: 'Repo binding is active.',
+      body: 'This session stays tied to a repo target and an active remote run so mobile follow-up remains understandable without implying phone-side execution.',
+      repoLabel,
+      workspaceLabel,
+    };
+  }
+
+  if (bindingStatus === 'bound') {
+    return {
+      label: 'Repo bound',
+      title: 'Repo target is stored.',
+      body: 'This session keeps repo and workspace context attached even when no active remote run is currently in progress.',
+      repoLabel,
+      workspaceLabel,
+    };
+  }
+
+  return {
+    label: 'Unbound',
+    title: 'No repo target is attached yet.',
+    body: 'This session can still be used from the mobile shell, but it does not yet point at a stored repo, branch, or workspace target.',
+    repoLabel: '',
+    workspaceLabel: '',
+  };
+}
+
+function renderRepoBindingCard(session) {
+  const bindingContent = getRepoBindingStatusContent(session);
+
+  return `
+    <section class="screen-card state-card" aria-label="Repo binding state">
+      <p class="eyebrow">Repo binding</p>
+      <h3>${escapeHtml(bindingContent.title)}</h3>
+      <p class="screen-copy">${escapeHtml(bindingContent.body)}</p>
+      <div class="session-meta-pills">
+        <span class="meta-pill">${escapeHtml(bindingContent.label)}</span>
+        ${bindingContent.repoLabel ? `<span class="meta-pill">${escapeHtml(bindingContent.repoLabel)}</span>` : '<span class="meta-pill">No repo selected</span>'}
+        ${bindingContent.workspaceLabel ? `<span class="meta-pill">Workspace ${escapeHtml(bindingContent.workspaceLabel)}</span>` : ''}
+      </div>
+    </section>
+  `;
 }
 
 function renderRemoteRunCard(session) {
@@ -96,7 +137,7 @@ function renderRemoteRunCard(session) {
   const status = getRemoteRunStatus(session);
   const statusContent = getRemoteRunStatusContent(status);
   const runId = getRemoteRunId(session);
-  const repoLabel = getRemoteRepoLabel(session);
+  const repoLabel = getRepoBindingLabel(session);
   const updatedAt = Number(session?.remoteRun?.updatedAt) ? formatSessionTime(session.remoteRun.updatedAt) : '';
 
   return `
@@ -295,6 +336,8 @@ function renderSessionCard({ appState, session }) {
   const isActive = session.id === appState.selectedSessionId;
   const messageCount = getVisibleMessageCount(session);
   const statusLabel = session.isLoading ? 'Replying' : isActive ? 'Current' : 'Open';
+  const bindingStatusContent = getRepoBindingStatusContent(session);
+  const repoLabel = getRepoBindingLabel(session);
 
   return `
     <button
@@ -313,6 +356,7 @@ function renderSessionCard({ appState, session }) {
         </div>
         <span class="session-status${session.isLoading ? ' is-loading' : ''}">${statusLabel}</span>
       </div>
+      <p class="session-meta">${escapeHtml(bindingStatusContent.label)}${repoLabel ? ` · ${escapeHtml(repoLabel)}` : ''}</p>
       <p class="session-preview">${escapeHtml(getSessionPreview(session))}</p>
     </button>
   `;
@@ -455,6 +499,7 @@ export function renderTaskScreen({ appState, screens }) {
   const latestDiffResult = toolResults.find((toolResult) => getToolResultKind(toolResult) === 'diff') ?? null;
   const latestDiffFileCount = getDiffFiles(latestDiffResult).length;
   const isRemoteSession = isRemoteBackedSession(session);
+  const bindingStatusContent = getRepoBindingStatusContent(session);
   const taskDescription = isRemoteSession
     ? 'This selected session keeps durable remote run state visible from the shell, with reconnect and cancel controls that stay honest about the phone not being the executor.'
     : screens.task.description;
@@ -482,6 +527,7 @@ export function renderTaskScreen({ appState, screens }) {
             : ''
         }
         <span class="meta-pill">${isRemoteSession ? 'Remote shell' : 'Local only'}</span>
+        <span class="meta-pill">${escapeHtml(bindingStatusContent.label)}</span>
         ${isRemoteSession ? `<span class="meta-pill">${escapeHtml(remoteStatusLabel)}</span>` : ''}
       </div>
       <div class="state-actions">
@@ -495,6 +541,8 @@ export function renderTaskScreen({ appState, screens }) {
         <button class="ghost-button" type="button" data-action="create-session">New session</button>
       </div>
     </section>
+
+    ${renderRepoBindingCard(session)}
 
     ${renderRemoteRunCard(session)}
 

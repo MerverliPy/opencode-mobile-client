@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.6.0",
   "opencode": {
-    "targetRelease": "v2.0.0"
+    "targetRelease": "v2.1.0"
   },
   "type": "module",
   "scripts": {

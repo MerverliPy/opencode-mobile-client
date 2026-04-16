@@ -1,56 +1,57 @@
-# Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
+# Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:remote-backend-http-bridge
+Phase file: backlog:repo-binding-surface
 
 ## Goal
 
-Connect the mobile shell to a configured remote backend for start, resume, cancel, and status operations while preserving an honest mock fallback when remote configuration is absent.
+Add the first bounded repo and workspace binding surfaces so remote sessions can show and persist real coding targets without expanding into later preview, sharing, or voice-input work.
 
 ## Why this phase is next
 
-The previous active backlog phase is complete, all listed release phases in `docs/releases/phase-registry.md` are complete, and backlog selection now applies. There is no explicit user-scoped candidate, so deterministic ordering selects `remote-backend-http-bridge` first because it has the highest priority, continues the same `remote-runtime` module follow-up, stays within the bounded five-file scope, and has clear validation.
+The previous active backlog phase is complete, all listed release phases in `docs/releases/phase-registry.md` are complete, and backlog selection now applies. There is no explicit user-scoped candidate, so deterministic ordering selects `repo-binding-surface` because it is the highest-priority remaining candidate, stays within the bounded six-file limit, and has clear validation.
 
 ## Primary files
 
 - `package.json`
 - `README.md`
-- `src/adapters/remote-runtime.js`
 - `src/main.js`
+- `src/ui/screens.js`
+- `src/state/session-state.js`
 - `tests/quality-gates.smoke.test.js`
 
 ## Expected max files changed
 
-5
+6
 
 ## Risk
 
-High. This is the first real remote-runtime bridge, so the phase can easily overstate backend capability or break the current mock-only shell if fallback and failure behavior are not kept explicit.
+Medium. This phase changes session metadata shape and user-visible binding state, so existing sessions must remain readable and the UI must stay honest about what is and is not bound.
 
 ## Rollback note
 
-Revert the backend bridge integration, smoke coverage, and planned release-target metadata together so the app returns to the shipped `v1.6.0` mock-only baseline.
+Revert the repo-binding session metadata changes, binding-state UI surfaces, and related release-target metadata together so the app returns to the current shipped `v1.6.0` baseline safely.
 
 ## In scope
 
-- add remote runtime adapter calls to a configured backend base URL for start, resume, cancel, and status operations
-- preserve a mock fallback path when remote configuration is missing so local development remains usable
-- make backend failure states explicit instead of allowing them to masquerade as successful local execution
-- update `package.json` and `README.md` to target the planned `v2.0.0` follow-up without misrepresenting the current shipped baseline
+- persist repo owner, repo name, branch, and workspace metadata in session state
+- show whether a session is unbound, bound to a repo, or bound to a repo plus active run
+- preserve readability and safe upgrade behavior for existing local sessions
+- update `package.json` and `README.md` to target the planned `v2.1.0` follow-up
 
 ## Out of scope
 
-- repo, branch, or workspace binding surfaces
-- preview, share, or voice-input follow-up features
-- backend-owned repo/session orchestration beyond the first bounded HTTP bridge
+- remote preview or share surfaces
+- voice prompt entry
+- backend-owned repo cloning or broader workspace orchestration beyond session metadata and binding status
 - unrelated tooling, workflow, or multi-module refactors
 
 ## Tasks
 
-- implement the first bounded remote-runtime HTTP bridge in `src/adapters/remote-runtime.js`
-- connect the mobile shell to use backend start, resume, cancel, and status operations with honest fallback behavior
-- update smoke coverage and planned release metadata for the `v2.0.0` target
+- extend session-state persistence so repo and workspace metadata can be stored and older sessions upgrade safely
+- add bounded mobile UI surfaces for repo and run binding status in `src/main.js` and `src/ui/screens.js`
+- update smoke coverage and planned release-target metadata for the `v2.1.0` follow-up
 
 ## Validation command
 
@@ -63,11 +64,11 @@ Status: PASS
 Evidence:
 - `npm run workflow:check` passed before phase validation.
 - The required validation command `npm run workflow:check && npm run test && npm run build` passed.
-- The changed work stays within the phase scope: `src/adapters/remote-runtime.js`, `src/main.js`, `tests/quality-gates.smoke.test.js`, `package.json`, and `README.md` are the only product/release files changed for the phase.
-- `src/adapters/remote-runtime.js` implements configured backend calls for start, resume, cancel, and status operations, while preserving explicit mock-fallback results when no backend base URL is configured.
-- `src/main.js` now uses the remote adapter for start, status refresh, reconnect, and cancel flows, and `syncRemoteSessionState` preserves the existing run status on backend errors so failures no longer masquerade as successful execution.
-- `tests/quality-gates.smoke.test.js` covers configured backend lifecycle calls, mock-fallback behavior, and explicit backend failure reporting.
-- `package.json` and `README.md` now target the planned `v2.0.0` follow-up while preserving the shipped `v1.6.0` baseline.
+- The phase stayed within scope across `src/state/session-state.js`, `src/ui/screens.js`, `src/main.js`, `tests/quality-gates.smoke.test.js`, `package.json`, and `README.md`.
+- Session-state helpers now expose bounded repo binding labels and status so stored metadata can render consistently for unbound, repo-bound, and repo-plus-active-run sessions.
+- Task and session surfaces now show repo binding state, repo or branch labels, and workspace metadata without expanding into preview, share, or voice-input work.
+- Smoke coverage verifies repo binding status derivation and the new repo binding UI alongside existing remote-run behavior.
+- `package.json` and `README.md` now target the planned `v2.1.0` follow-up while preserving the shipped `v1.6.0` baseline.
 
 Blockers:
 - none
@@ -77,18 +78,18 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- The remote runtime adapter can call a configured backend base URL for start, resume, cancel, and status operations.
-- The app preserves a mock fallback when remote configuration is missing so local development is still usable.
-- Failure states are explicit and do not masquerade as successful local execution.
-- `package.json` and `README.md` are updated to target `v2.0.0`.
+- A session can persist repo name, owner, branch, and workspace metadata.
+- The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
+- Existing local sessions remain readable and upgrade safely to the new metadata shape.
+- `package.json` and `README.md` are updated to target `v2.1.0`.
 
 ## Release notes
 
-- Added the first bounded remote backend bridge for mobile start, resume, cancel, and status operations.
-- Preserved honest mock fallback and explicit failure handling when backend configuration is missing or requests fail.
+- Added bounded repo, branch, and workspace binding surfaces so remote sessions can show their coding target on mobile.
+- Preserved readable local-session upgrades while exposing unbound, repo-bound, and repo-plus-active-run status honestly in the shell.
 
 ## Completion summary
 
-- Added the first bounded remote-runtime HTTP bridge with explicit configured, fallback, and error result paths for start, resume, cancel, and status operations.
-- Connected existing mobile remote-shell actions to the bridge so remote-backed sessions can start and refresh durable run state honestly without expanding the UI beyond this phase.
-- Updated smoke coverage and planned release-target metadata for the `v2.0.0` follow-up while preserving the shipped `v1.6.0` baseline.
+- Added bounded repo-binding state helpers and mobile UI surfaces so sessions clearly show whether they are unbound, repo bound, or repo bound with an active run.
+- Kept existing session persistence and legacy-session normalization readable while exposing repo, branch, and workspace context in task and session views.
+- Updated smoke coverage and planned release targeting to `v2.1.0` without expanding into later preview, share, or voice-input phases.

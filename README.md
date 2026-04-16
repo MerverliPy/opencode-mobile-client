@@ -10,7 +10,7 @@ Phase 14 reconciled older duplicate release docs, release-proof workflow state, 
 
 The running app is still a local-first mobile shell with mock-backed task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
-The next planned release target is `v2.0.0`, which is scoped to adding the first real remote backend bridge for start, resume, cancel, and status operations while keeping the shipped app honest about its current `v1.6.0` mock-backed, local-first baseline when remote configuration is absent.
+The next planned release target is `v2.1.0`, which is scoped to adding repo, branch, and workspace binding surfaces so remote sessions stay tied to real coding targets while keeping the shipped app honest about its current `v1.6.0` baseline.
 
 ## Current product reality
 

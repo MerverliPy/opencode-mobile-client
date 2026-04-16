@@ -5,7 +5,16 @@ import { createMockRuntimeAdapter } from './adapters/mock-runtime.js';
 import { createRemoteRuntimeAdapter } from './adapters/remote-runtime.js';
 import { getDiffFiles, getToolResultKind } from './lib/tool-results.js';
 import { createId } from './lib/utils.js';
-import { createSession, getSelectedSession, getSessionTitle, getToolResult, getToolResults, resetToolDrawer, setSelectedSession, updateSessionById } from './state/session-state.js';
+import {
+  createSession,
+  getSelectedSession,
+  getSessionTitle,
+  getToolResult,
+  getToolResults,
+  resetToolDrawer,
+  setSelectedSession,
+  updateSessionById,
+} from './state/session-state.js';
 import { getConnectionLabel, getConnectionTone, isStandaloneMode } from './state/shell-state.js';
 import { getStoredShellState, hydrateSessions, persistSessionState, persistShellState } from './state/storage.js';
 import { renderNavigation, renderPlaceholderScreen, renderSessionsScreen, renderTaskScreen, renderUiNotice } from './ui/screens.js';
@@ -416,7 +425,7 @@ function createRemoteShellSession() {
         label: 'OpenCode',
         text: 'This session now shows a durable remote run shell state. Reconnect and cancel stay visible here without claiming live backend transport.',
       },
-    ],
+      ],
   }));
 }
 

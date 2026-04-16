@@ -14,6 +14,9 @@ import {
 } from '../src/lib/tool-results.js';
 import {
   createStarterMessages,
+  getRepoBindingLabel,
+  getRepoBindingStatus,
+  getRepoWorkspaceLabel,
   createRuntimeMetadata,
   getSelectedSession,
   getSessionPreview,
@@ -408,6 +411,31 @@ describe('Phase 13 smoke coverage', () => {
     expect(createStarterMessages('diff-tool-1')[1].toolResultId).toBe('diff-tool-1');
   });
 
+  it('derives repo binding labels and bounded binding status from session state', () => {
+    const unboundSession = {
+      repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+    };
+    const boundSession = {
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+    };
+    const activeRunSession = {
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+      remoteRun: { runId: 'run-9', status: 'running', updatedAt: 100 },
+    };
+
+    expect(getRepoBindingLabel(unboundSession)).toBe('');
+    expect(getRepoWorkspaceLabel(unboundSession)).toBe('');
+    expect(getRepoBindingStatus(unboundSession)).toBe('unbound');
+
+    expect(getRepoBindingLabel(boundSession)).toBe('acme/mobile · main');
+    expect(getRepoWorkspaceLabel(boundSession)).toBe('ws-1');
+    expect(getRepoBindingStatus(boundSession)).toBe('bound');
+
+    expect(getRepoBindingStatus(activeRunSession)).toBe('bound-active');
+  });
+
   it('creates a remote runtime contract with explicit mock fallback operations', async () => {
     const adapter = createRemoteRuntimeAdapter();
 
@@ -682,11 +710,14 @@ describe('Phase 13 smoke coverage', () => {
     const html = renderTaskScreen({ appState, screens });
 
     expect(html).toContain('Remote run state');
+    expect(html).toContain('Repo binding');
+    expect(html).toContain('Repo + active run');
     expect(html).toContain('Awaiting input');
     expect(html).toContain('data-action="reconnect-remote-run"');
     expect(html).toContain('data-action="cancel-remote-run"');
     expect(html).toContain('Run run-42');
     expect(html).toContain('acme/mobile · main');
+    expect(html).toContain('Workspace ws-1');
     expect(html).toContain('Remote shell');
     expect(html).not.toContain('Local only');
   });
@@ -720,6 +751,8 @@ describe('Phase 13 smoke coverage', () => {
     const html = renderTaskScreen({ appState, screens });
 
     expect(html).toContain('Local only');
+    expect(html).toContain('Repo binding');
+    expect(html).toContain('Unbound');
     expect(html).not.toContain('Remote run state');
     expect(html).not.toContain('data-action="reconnect-remote-run"');
   });
