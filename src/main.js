@@ -14,7 +14,16 @@ import { renderToolDrawer } from './ui/tool-drawer.js';
 const releaseTag = `v${packageVersion}`;
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
 const runtimeAdapter = createMockRuntimeAdapter();
-const remoteRuntimeAdapter = createRemoteRuntimeAdapter();
+const remoteRuntimeBaseUrl = typeof import.meta.env?.VITE_REMOTE_RUNTIME_BASE_URL === 'string'
+  ? import.meta.env.VITE_REMOTE_RUNTIME_BASE_URL.trim()
+  : '';
+const remoteRuntimeAdapter = createRemoteRuntimeAdapter({
+  backend: remoteRuntimeBaseUrl
+    ? {
+        baseUrl: remoteRuntimeBaseUrl,
+      }
+    : null,
+});
 
 const remoteRunTransitions = {
   queued: {
@@ -145,6 +154,59 @@ function clearUiNotice() {
   appState.ui.notice = null;
 }
 
+function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successNotice, fallbackNotice, errorNotice }) {
+  const session = getSelectedSession(appState);
+
+  if (!session || session.id !== sessionId) {
+    return;
+  }
+
+  const nextRun = operation.ok
+    ? operation.remoteRun ?? {
+        runId: session.remoteRun?.runId ?? null,
+        status: fallbackStatus,
+        updatedAt: Date.now(),
+      }
+    : operation.status === 'unsupported'
+      ? {
+          runId: session.remoteRun?.runId ?? null,
+          status: fallbackStatus,
+          updatedAt: Date.now(),
+        }
+      : {
+          runId: session.remoteRun?.runId ?? null,
+          status: typeof session.remoteRun?.status === 'string' && session.remoteRun.status ? session.remoteRun.status : 'idle',
+          updatedAt: session.remoteRun?.updatedAt ?? Date.now(),
+        };
+
+  updateSessionById(appState, sessionId, (currentSession) => ({
+    ...currentSession,
+    updatedAt: Date.now(),
+    runtimeMetadata: {
+      ...(currentSession.runtimeMetadata ?? {}),
+      runtimeId: remoteRuntimeAdapter.id,
+    },
+    remoteRun: {
+      runId: typeof nextRun.runId === 'string' && nextRun.runId ? nextRun.runId : currentSession.remoteRun?.runId ?? null,
+      status: typeof nextRun.status === 'string' && nextRun.status ? nextRun.status : fallbackStatus,
+      updatedAt: Number(nextRun.updatedAt) || Date.now(),
+    },
+  }));
+
+  if (operation.ok) {
+    setUiNotice(successNotice);
+  } else if (operation.status === 'unsupported') {
+    setUiNotice(fallbackNotice);
+  } else {
+    setUiNotice({
+      ...errorNotice,
+      body: `${errorNotice.body} ${operation.details ? `Reason: ${operation.details}.` : ''}`.trim(),
+    });
+  }
+
+  renderApp();
+}
+
 function focusMainContent() {
   const mainContent = app.querySelector('#main-content');
 
@@ -215,8 +277,10 @@ function syncComposerControls() {
   }
 }
 
-function finishAssistantReply(sessionId, prompt) {
+async function finishAssistantReply(sessionId, prompt) {
   responseTimers.delete(sessionId);
+
+  const sessionBeforeUpdate = getSelectedSession(appState);
 
   const updatedSession = updateSessionById(appState, sessionId, (session) => {
     const { assistantMessage, toolResults } = runtimeAdapter.respond({
@@ -238,6 +302,33 @@ function finishAssistantReply(sessionId, prompt) {
 
   if (updatedSession && appState.selectedSessionId === sessionId && getActiveScreenId() === 'task') {
     shouldScrollTaskToEnd = true;
+  }
+
+  if (sessionBeforeUpdate?.runtimeMetadata?.runtimeId === remoteRuntimeAdapter.id || sessionBeforeUpdate?.remoteRun?.runId) {
+    const operation = await remoteRuntimeAdapter.startRun({
+      prompt,
+      sessionId,
+      repoBinding: sessionBeforeUpdate.repoBinding ?? null,
+    });
+
+    syncRemoteSessionState(sessionId, operation, 'queued', {
+      successNotice: {
+        tone: 'success',
+        title: 'Remote run started.',
+        body: 'The mobile shell created a remote run and now tracks its durable state without pretending this phone is the executor.',
+      },
+      fallbackNotice: {
+        tone: 'info',
+        title: 'Remote shell fallback stayed active.',
+        body: 'No backend base URL is configured, so the mobile shell kept the remote session honest with stored mock-backed state only.',
+      },
+      errorNotice: {
+        tone: 'warning',
+        title: 'Remote run could not start.',
+        body: 'The backend request failed, so the mobile shell did not pretend the run started successfully.',
+      },
+    });
+    return;
   }
 
   renderApp();
@@ -343,7 +434,7 @@ function handleCreateRemoteSession() {
   navigateTo('task');
 }
 
-function handleReconnectRemoteRun() {
+async function handleReconnectRemoteRun() {
   const session = getSelectedSession(appState);
 
   if (!session) {
@@ -353,60 +444,71 @@ function handleReconnectRemoteRun() {
   const runId = typeof session.remoteRun?.runId === 'string' ? session.remoteRun.runId : '';
   const status = typeof session.remoteRun?.status === 'string' ? session.remoteRun.status : 'idle';
   const nextState = remoteRunTransitions[status] ?? remoteRunTransitions.idle;
-  const operation = remoteRuntimeAdapter.resumeRun({ runId, sessionId: session.id });
+  const ensuredRunId = runId || createId('run');
+  const statusOperation = await remoteRuntimeAdapter.fetchRunStatus({ runId: ensuredRunId, sessionId: session.id });
 
-  updateSessionById(appState, session.id, (currentSession) => ({
-    ...currentSession,
-    updatedAt: Date.now(),
-    runtimeMetadata: {
-      ...(currentSession.runtimeMetadata ?? {}),
-      runtimeId: remoteRuntimeAdapter.id,
-    },
-    remoteRun: {
-      runId: runId || createId('run'),
-      status: nextState.reconnect,
-      updatedAt: Date.now(),
-    },
-  }));
+  if (statusOperation.ok) {
+    syncRemoteSessionState(session.id, statusOperation, statusOperation.remoteRun?.status ?? status, {
+      successNotice: {
+        tone: 'info',
+        title: 'Remote status refreshed.',
+        body: 'The mobile shell checked the latest backend run state and updated the stored remote status.',
+      },
+      fallbackNotice: nextState.notice,
+      errorNotice: {
+        tone: 'warning',
+        title: 'Remote status check failed.',
+        body: 'The shell could not confirm the latest backend run state before reconnecting.',
+      },
+    });
+  }
 
-  setUiNotice({
-    ...nextState.notice,
-    body: `${nextState.notice.body} ${operation.ok ? '' : 'Backend transport is still not configured, so the shell only updates stored mobile state.'}`.trim(),
+  if (statusOperation.ok) {
+    return;
+  }
+
+  const operation = await remoteRuntimeAdapter.resumeRun({ runId: ensuredRunId, sessionId: session.id });
+
+  syncRemoteSessionState(session.id, operation, nextState.reconnect, {
+    successNotice: nextState.notice,
+    fallbackNotice: {
+      ...nextState.notice,
+      body: `${nextState.notice.body} Backend transport is still not configured, so the shell only updates stored mobile state.`,
+    },
+    errorNotice: {
+      tone: 'warning',
+      title: 'Remote reconnect failed.',
+      body: 'The mobile shell kept the durable run visible, but the backend resume request did not succeed.',
+    },
   });
-  renderApp();
 }
 
-function handleCancelRemoteRun() {
+async function handleCancelRemoteRun() {
   const session = getSelectedSession(appState);
 
   if (!session || typeof session.remoteRun?.runId !== 'string' || !session.remoteRun.runId) {
     return;
   }
 
-  const operation = remoteRuntimeAdapter.cancelRun({ runId: session.remoteRun.runId, sessionId: session.id });
+  const operation = await remoteRuntimeAdapter.cancelRun({ runId: session.remoteRun.runId, sessionId: session.id });
 
-  updateSessionById(appState, session.id, (currentSession) => ({
-    ...currentSession,
-    updatedAt: Date.now(),
-    runtimeMetadata: {
-      ...(currentSession.runtimeMetadata ?? {}),
-      runtimeId: remoteRuntimeAdapter.id,
+  syncRemoteSessionState(session.id, operation, 'cancelled', {
+    successNotice: {
+      tone: 'warning',
+      title: 'Remote run cancelled.',
+      body: 'The current remote run was cancelled from the mobile shell.',
     },
-    remoteRun: {
-      runId: currentSession.remoteRun.runId,
-      status: 'cancelled',
-      updatedAt: Date.now(),
+    fallbackNotice: {
+      tone: 'warning',
+      title: 'Remote run marked cancelled.',
+      body: 'The mobile shell marked the stored durable run as cancelled. Backend transport is still not configured, so this remains an honest shell-only control.',
     },
-  }));
-
-  setUiNotice({
-    tone: 'warning',
-    title: 'Remote run marked cancelled.',
-    body: operation.ok
-      ? 'The current remote run was cancelled from the mobile shell.'
-      : 'The mobile shell marked the stored durable run as cancelled. Backend transport is still not configured, so this remains an honest shell-only control.',
+    errorNotice: {
+      tone: 'warning',
+      title: 'Remote cancel failed.',
+      body: 'The backend cancel request failed, so the shell kept the run visible instead of pretending cancellation succeeded.',
+    },
   });
-  renderApp();
 }
 
 function renderApp() {

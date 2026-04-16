@@ -408,7 +408,7 @@ describe('Phase 13 smoke coverage', () => {
     expect(createStarterMessages('diff-tool-1')[1].toolResultId).toBe('diff-tool-1');
   });
 
-  it('creates a remote runtime contract with explicit mock fallback operations', () => {
+  it('creates a remote runtime contract with explicit mock fallback operations', async () => {
     const adapter = createRemoteRuntimeAdapter();
 
     expect(adapter.id).toBe('remote-runtime');
@@ -417,7 +417,7 @@ describe('Phase 13 smoke coverage', () => {
     expect(adapter.fallbackAdapterId).toBe('mock-local');
     expect(adapter.createStarterSessionPayload().toolResults.length).toBeGreaterThan(0);
     expect(adapter.respond({ prompt: 'check', sessionTitle: 'Remote draft' }).assistantMessage.text).toContain('Mock adapter reply');
-    expect(adapter.startRun({ prompt: 'check', sessionId: 'session-1' })).toEqual({
+    await expect(adapter.startRun({ prompt: 'check', sessionId: 'session-1' })).resolves.toEqual({
       ok: false,
       status: 'unsupported',
       operation: 'startRun',
@@ -426,10 +426,10 @@ describe('Phase 13 smoke coverage', () => {
       sessionId: 'session-1',
       repoBinding: null,
     });
-    expect(adapter.resumeRun({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('resumeRun');
-    expect(adapter.cancelRun({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('cancelRun');
-    expect(adapter.fetchRunStatus({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('fetchRunStatus');
-    expect(adapter.fetchPreviewLinks({ runId: 'run-1', sessionId: 'session-1' })).toEqual({
+    await expect(adapter.resumeRun({ runId: 'run-1', sessionId: 'session-1' })).resolves.toMatchObject({ operation: 'resumeRun' });
+    await expect(adapter.cancelRun({ runId: 'run-1', sessionId: 'session-1' })).resolves.toMatchObject({ operation: 'cancelRun' });
+    await expect(adapter.fetchRunStatus({ runId: 'run-1', sessionId: 'session-1' })).resolves.toMatchObject({ operation: 'fetchRunStatus' });
+    await expect(adapter.fetchPreviewLinks({ runId: 'run-1', sessionId: 'session-1' })).resolves.toEqual({
       ok: false,
       status: 'unsupported',
       operation: 'fetchPreviewLinks',
@@ -437,6 +437,170 @@ describe('Phase 13 smoke coverage', () => {
       runId: 'run-1',
       sessionId: 'session-1',
       previews: [],
+    });
+  });
+
+  it('calls a configured backend base URL for remote run lifecycle operations', async () => {
+    const fetchImpl = vi.fn(async (requestUrl, options = {}) => {
+      if (requestUrl === 'https://runtime.example/runs' && options.method === 'POST') {
+        return {
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              status: 'queued',
+              run: {
+                runId: 'run-started',
+                status: 'queued',
+                updatedAt: 101,
+              },
+            });
+          },
+        };
+      }
+
+      if (requestUrl === 'https://runtime.example/runs/run-started?sessionId=session-1' && options.method === 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              status: 'running',
+              run: {
+                runId: 'run-started',
+                status: 'running',
+                updatedAt: 202,
+              },
+            });
+          },
+        };
+      }
+
+      if (requestUrl === 'https://runtime.example/runs/run-started/resume' && options.method === 'POST') {
+        return {
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              status: 'awaiting_input',
+              run: {
+                runId: 'run-started',
+                status: 'awaiting_input',
+                updatedAt: 303,
+              },
+            });
+          },
+        };
+      }
+
+      if (requestUrl === 'https://runtime.example/runs/run-started/cancel' && options.method === 'POST') {
+        return {
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              status: 'cancelled',
+              run: {
+                runId: 'run-started',
+                status: 'cancelled',
+                updatedAt: 404,
+              },
+            });
+          },
+        };
+      }
+
+      return {
+        ok: false,
+        status: 404,
+        async text() {
+          return JSON.stringify({ error: 'missing route' });
+        },
+      };
+    });
+    const adapter = createRemoteRuntimeAdapter({
+      backend: {
+        baseUrl: 'https://runtime.example/',
+        headers: {
+          authorization: 'Bearer demo-token',
+        },
+        fetchImpl,
+      },
+    });
+
+    const startResult = await adapter.startRun({
+      prompt: 'Ship the mobile bridge',
+      sessionId: 'session-1',
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+    });
+    const statusResult = await adapter.fetchRunStatus({ runId: 'run-started', sessionId: 'session-1' });
+    const resumeResult = await adapter.resumeRun({ runId: 'run-started', sessionId: 'session-1' });
+    const cancelResult = await adapter.cancelRun({ runId: 'run-started', sessionId: 'session-1' });
+
+    expect(adapter.isConfigured).toBe(true);
+    expect(adapter.mode).toBe('configured');
+    expect(adapter.backendBaseUrl).toBe('https://runtime.example');
+    expect(startResult).toMatchObject({
+      ok: true,
+      operation: 'startRun',
+      status: 'queued',
+      remoteRun: { runId: 'run-started', status: 'queued', updatedAt: 101 },
+      prompt: 'Ship the mobile bridge',
+      sessionId: 'session-1',
+    });
+    expect(statusResult).toMatchObject({
+      ok: true,
+      operation: 'fetchRunStatus',
+      status: 'running',
+      remoteRun: { runId: 'run-started', status: 'running', updatedAt: 202 },
+    });
+    expect(resumeResult).toMatchObject({
+      ok: true,
+      operation: 'resumeRun',
+      status: 'awaiting_input',
+      remoteRun: { runId: 'run-started', status: 'awaiting_input', updatedAt: 303 },
+    });
+    expect(cancelResult).toMatchObject({
+      ok: true,
+      operation: 'cancelRun',
+      status: 'cancelled',
+      remoteRun: { runId: 'run-started', status: 'cancelled', updatedAt: 404 },
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
+    expect(fetchImpl).toHaveBeenNthCalledWith(
+      1,
+      'https://runtime.example/runs',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          accept: 'application/json',
+          'content-type': 'application/json',
+          authorization: 'Bearer demo-token',
+        }),
+      }),
+    );
+  });
+
+  it('reports backend failures honestly when configured requests fail', async () => {
+    const adapter = createRemoteRuntimeAdapter({
+      backend: {
+        baseUrl: 'https://runtime.example',
+        fetchImpl: vi.fn(async () => ({
+          ok: false,
+          status: 503,
+          async text() {
+            return JSON.stringify({ error: 'runtime unavailable' });
+          },
+        })),
+      },
+    });
+
+    await expect(adapter.startRun({ prompt: 'hello', sessionId: 'session-1' })).resolves.toMatchObject({
+      ok: false,
+      status: 'error',
+      operation: 'startRun',
+      reason: 'remote backend request failed',
+      details: 'runtime unavailable',
     });
   });
 

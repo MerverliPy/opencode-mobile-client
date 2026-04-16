@@ -34,3 +34,4 @@ Authority notes:
 - [x] clean-install-reproducibility — Restore deterministic clean installs so repo setup and workflow gates are trustworthy
 - [x] remote-runtime-contract — Define the remote runtime contract and durable run model for mobile remote coding
 - [x] remote-run-shell-state — Add durable remote run lifecycle states and reconnect controls to the mobile shell
+- [x] remote-backend-http-bridge — Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
