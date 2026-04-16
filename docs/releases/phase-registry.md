@@ -43,3 +43,4 @@ Authority notes:
 - [x] vite-security-refresh — Refresh Vite and related lockfile entries to reduce known development-server advisories
 - [x] session-state-normalization-deduplication — Deduplicate session-state normalization helpers so runtime metadata cannot drift
 - [x] main-shell-helper-extraction — Extract bounded shell helpers from src/main.js to reduce maintenance risk
+- [x] mobile-voice-prompt-entry — Add optional voice prompt entry for remote coding requests on iPhone

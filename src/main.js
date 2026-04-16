@@ -101,6 +101,17 @@ const remoteRunTransitions = {
   },
 };
 
+function createVoiceEntryState() {
+  const recognitionApi = window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
+
+  return {
+    isSupported: typeof recognitionApi === 'function',
+    isListening: false,
+    recognitionApi,
+    controller: null,
+  };
+}
+
 const screens = {
   sessions: {
     label: 'Sessions',
@@ -155,6 +166,7 @@ const appState = {
     toolId: null,
     changePath: null,
   },
+  voiceEntry: createVoiceEntryState(),
 };
 
 const responseTimers = new Map();
@@ -330,6 +342,120 @@ function syncComposerControls() {
   if (sendButton) {
     sendButton.disabled = !session || !session.draft.trim() || session.isLoading;
   }
+}
+
+function stopVoiceEntry() {
+  const voiceEntry = appState.voiceEntry;
+
+  if (!voiceEntry?.controller) {
+    if (voiceEntry) {
+      voiceEntry.isListening = false;
+    }
+    return;
+  }
+
+  const controller = voiceEntry.controller;
+  voiceEntry.controller = null;
+  voiceEntry.isListening = false;
+  controller.onresult = null;
+  controller.onerror = null;
+  controller.onend = null;
+  controller.stop();
+}
+
+function applyVoiceTranscript(transcript) {
+  const session = getSelectedSession(appState);
+  const normalizedTranscript = typeof transcript === 'string' ? transcript.replace(/\s+/g, ' ').trim() : '';
+
+  if (!session || !normalizedTranscript) {
+    return;
+  }
+
+  session.draft = session.draft.trim() ? `${session.draft.trim()} ${normalizedTranscript}` : normalizedTranscript;
+  persistSessionState(appState);
+  shouldFocusComposer = true;
+}
+
+function handleVoiceEntryError(errorCode) {
+  const blocked = errorCode === 'not-allowed' || errorCode === 'service-not-allowed';
+
+  setUiNotice({
+    tone: blocked ? 'warning' : 'info',
+    title: blocked ? 'Microphone access was denied.' : 'Voice entry is unavailable right now.',
+    body: blocked
+      ? 'Voice input stays optional. You can continue by typing in the same message composer.'
+      : 'Speech recognition is not currently available, so the mobile shell keeps typed input as the reliable path.',
+  });
+}
+
+function startVoiceEntry() {
+  const voiceEntry = appState.voiceEntry;
+  const session = getSelectedSession(appState);
+
+  if (!session) {
+    return;
+  }
+
+  if (!voiceEntry?.isSupported || typeof voiceEntry.recognitionApi !== 'function') {
+    setUiNotice({
+      tone: 'info',
+      title: 'Voice entry is not supported here.',
+      body: 'This browser does not expose speech recognition, so you can keep using the same composer by typing instead.',
+    });
+    renderApp();
+    return;
+  }
+
+  if (voiceEntry.isListening) {
+    stopVoiceEntry();
+    setUiNotice({
+      tone: 'info',
+      title: 'Voice entry stopped.',
+      body: 'You can keep editing the same draft by typing or start voice entry again.',
+    });
+    renderApp();
+    return;
+  }
+
+  const recognition = new voiceEntry.recognitionApi();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  voiceEntry.controller = recognition;
+  voiceEntry.isListening = true;
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results ?? [])
+      .map((result) => result?.[0]?.transcript ?? '')
+      .join(' ');
+
+    applyVoiceTranscript(transcript);
+    setUiNotice({
+      tone: 'success',
+      title: 'Voice entry added to draft.',
+      body: 'The dictated text now sits in the same composer flow as typed input.',
+    });
+  };
+
+  recognition.onerror = (event) => {
+    handleVoiceEntryError(event?.error ?? 'unknown');
+  };
+
+  recognition.onend = () => {
+    voiceEntry.controller = null;
+    voiceEntry.isListening = false;
+    renderApp();
+  };
+
+  setUiNotice({
+    tone: 'info',
+    title: 'Voice entry started.',
+    body: 'Speak your prompt now. The transcript will return to the same composer draft.',
+  });
+
+  recognition.start();
+  renderApp();
 }
 
 async function finishAssistantReply(sessionId, prompt) {
@@ -759,6 +885,7 @@ app.addEventListener('click', (event) => {
   const diffFileButton = event.target.closest('[data-action="select-diff-file"]');
   const openPreviewLinkButton = event.target.closest('[data-action="open-preview-link"]');
   const openShareLinkButton = event.target.closest('[data-action="open-share-link"]');
+  const startVoiceEntryButton = event.target.closest('[data-action="start-voice-entry"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
 
   if (dismissNoticeButton) {
@@ -865,6 +992,11 @@ app.addEventListener('click', (event) => {
 
   if (openShareLinkButton instanceof HTMLElement) {
     openExternalLink(openShareLinkButton.dataset.url, openShareLinkButton.dataset.label || 'Read-only share link');
+    return;
+  }
+
+  if (startVoiceEntryButton) {
+    startVoiceEntry();
     return;
   }
 

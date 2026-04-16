@@ -70,6 +70,24 @@ function withWindow(windowValue, callback) {
   }
 }
 
+function createSpeechRecognitionDouble(overrides = {}) {
+  return class SpeechRecognitionDouble {
+    constructor() {
+      this.lang = 'en-US';
+      this.interimResults = false;
+      this.maxAlternatives = 1;
+      this.onresult = null;
+      this.onerror = null;
+      this.onend = null;
+      Object.assign(this, overrides);
+    }
+
+    start() {}
+
+    stop() {}
+  };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -906,5 +924,36 @@ describe('Phase 13 smoke coverage', () => {
         () => isStandaloneMode(),
       ),
     ).toBe(false);
+  });
+
+  it('renders an honest unavailable voice-entry action when speech recognition is missing', () => {
+    const session = {
+      id: 'session-voice',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: '',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'mock-local' },
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+      repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+      messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Say something.' }],
+      toolResults: [],
+    };
+    const html = renderTaskScreen({
+      appState: {
+        isHydratingSessions: false,
+        selectedSessionId: 'session-voice',
+        sessions: [session],
+        shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+        toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+        voiceEntry: { isSupported: false, isListening: false },
+      },
+      screens: {
+        task: { description: 'Local shell description' },
+      },
+    });
+
+    expect(html).toContain('Voice unavailable');
+    expect(html).toContain('data-action="start-voice-entry"');
   });
 });

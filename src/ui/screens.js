@@ -418,6 +418,28 @@ function renderLoadingCard(eyebrow, title, body) {
   `;
 }
 
+function renderVoiceEntryAction(appState, session) {
+  if (!session) {
+    return '';
+  }
+
+  const voiceState = appState.voiceEntry ?? { isSupported: false, isListening: false };
+
+  if (!voiceState.isSupported) {
+    return '<button class="secondary-button" type="button" data-action="start-voice-entry" disabled>Voice unavailable</button>';
+  }
+
+  return `
+    <button
+      class="secondary-button"
+      type="button"
+      data-action="start-voice-entry"
+      aria-pressed="${voiceState.isListening ? 'true' : 'false'}"
+      ${session.isLoading ? 'disabled' : ''}
+    >${voiceState.isListening ? 'Listening…' : 'Voice input'}</button>
+  `;
+}
+
 function renderSessionCard({ appState, session }) {
   const isActive = session.id === appState.selectedSessionId;
   const messageCount = getVisibleMessageCount(session);
@@ -670,6 +692,7 @@ export function renderTaskScreen({ appState, screens }) {
         >${escapeHtml(session.draft)}</textarea>
         <div class="composer-footer">
           <p class="composer-hint" id="composer-hint">Drafts stay with this session while you browse the rest of the app.</p>
+          ${renderVoiceEntryAction(appState, session)}
           <button class="send-button" type="submit" aria-label="${session.isLoading ? 'Generating mock reply' : 'Generate mock reply'}" ${
             session.draft.trim() && !session.isLoading ? '' : 'disabled'
           }>
