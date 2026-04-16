@@ -1,68 +1,63 @@
-# Repair backlog selection so only true candidates remain selectable
+# Re-run workflow gates and capture authoritative evidence after workflow repairs
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:backlog-selection-determinism
+Phase file: backlog:workflow-gate-revalidation-evidence
 
 ## Goal
 
-Repair backlog selection so only true selectable candidates remain in the active backlog set and completed or deferred work cannot be reselected accidentally.
+Re-run the workflow gates after the workflow repair phases and record fresh authoritative evidence without bundling unrelated implementation work.
 
 ## Why this phase is next
 
-The prior backlog phase has shipped, all release phases remain complete, and this is now the highest-priority remaining bounded backlog candidate in the same workflow module with clear deterministic validation.
+The previous workflow backlog phase has shipped, all release phases remain complete, and this is the highest-priority remaining bounded workflow follow-up with the clearest validation.
 
 ## Primary files
 
-- `.opencode/backlog/candidates.yaml`
-- `scripts/dev/autoflow.sh`
-- `scripts/dev/repair-backlog-selection.sh`
-- `scripts/dev/workflow-check.sh`
-- `.opencode/commands/next-phase.md`
+- `.opencode/plans/current-phase.md`
 
 ## Expected max files changed
 
-5
+1
 
 ## Risk
 
-Medium. This changes authoritative backlog selection state, so the repair must stay tightly bounded to candidate counting and selection behavior.
+Low. This phase is evidence capture only, but it must avoid mixing in unrelated code or release-state changes.
 
 ## Rollback note
 
-Revert the backlog-state and selection-logic changes together so candidate eligibility and workflow counting return to the prior behavior as one unit.
+Revert the active phase evidence update if the recorded validation proof is later found to be stale or inaccurate.
 
 ## In scope
 
-- ensure only entries under `candidates` are treated as selectable backlog work
-- remove shipped backlog work from active candidate selection surfaces
-- exclude deferred ideas from active candidate counting and next-phase selection
-- keep the repair bounded to workflow state and backlog-selection logic only
+- rerun workflow gates after the shipped workflow repair phases
+- capture fresh validation evidence in the active phase file only
+- keep the phase limited to authoritative gate evidence without unrelated code changes
 
 ## Out of scope
 
 - product runtime or UI changes
-- validation-metadata parser changes beyond what is already shipped
-- release-proof artifact generation or shipping work for later phases
-- dependency upgrades or unrelated workflow refactors
+- new workflow behavior changes or further repairs unless a hard blocker is found
+- release metadata changes for unrelated phases
+- dependency updates or refactors
 
 ## Tasks
 
-- align backlog candidate counting with the `candidates` section only
-- ensure shipped backlog items no longer remain selectable after shipping
-- confirm deferred ideas do not influence next-phase selection or autoflow state
+- run `npm run workflow:check`
+- run `npm run release:proof`
+- record fresh PASS or FAIL evidence in the active phase file
 
 ## Validation command
 
-`npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor`
+`npm run workflow:check && npm run release:proof`
 
 ## Validation
 
 Status: PASS
 Evidence:
-- `npm run workflow:check` passed on 2026-04-16.
-- `bash scripts/dev/autoflow.sh inspect` reported `ACTIVE_CANDIDATE_COUNT=9`, confirming deferred and archived entries are excluded from selectable backlog counting.
-- `npm run repo:doctor` passed on 2026-04-16 with the active backlog phase reference intact.
+- `npm run workflow:check` passed on 2026-04-16 after the shipped workflow repair phases.
+- `npm run release:proof` passed on 2026-04-16, including `npm run validate:local`, lint, tests, build, and existing browser-proof artifacts.
+- The evidence pass changed only `.opencode/plans/current-phase.md` before release finalization.
 Blockers:
 - none
 Ready to ship:
@@ -70,19 +65,17 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- Only entries under `candidates` are treated as selectable backlog work.
-- Shipped backlog items no longer remain under selectable candidates.
-- Deferred ideas are excluded from active candidate counting and next-phase selection.
-- The repair stays bounded to workflow state and backlog-selection logic.
+- `npm run workflow:check` passes after the workflow repair phases.
+- `npm run release:proof` passes and the active phase records fresh evidence instead of stale audit assumptions.
+- No unrelated product or tooling changes are bundled into the evidence pass.
 
 ## Release notes
 
-- Limited selectable backlog counting to the `candidates` section only.
-- Preserved deferred backlog ideas outside the active selection surface while keeping archived entries valid for shipped references.
+- Captured fresh post-repair workflow gate evidence in the active phase file.
+- Confirmed release proof is currently green with existing required artifacts present.
 
 ## Completion summary
 
-- Updated backlog counting and selection logic so `deferred_local_first_candidates` no longer inflate active candidate totals.
-- Kept backlog-repair normalization preserving deferred entries while moving shipped work out of selectable candidates.
-- Clarified next-phase instructions so only `candidates` entries are selectable.
+- Re-ran `workflow:check` and `release:proof` after the shipped workflow repair phases.
+- Recorded authoritative PASS evidence without bundling unrelated implementation work.
 - Archived the shipped backlog candidate and recorded the shipped phase in the registry.

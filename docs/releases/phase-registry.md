@@ -39,3 +39,4 @@ Authority notes:
 - [x] remote-preview-share-surface — Add remote preview link and read-only share surfaces so phone-based review is practical
 - [x] workflow-validation-metadata-alignment — Normalize workflow validation metadata so phase state parses consistently
 - [x] backlog-selection-determinism — Repair backlog selection so only true candidates remain selectable
+- [x] workflow-gate-revalidation-evidence — Re-run workflow gates and capture authoritative evidence after workflow repairs

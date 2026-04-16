@@ -19,24 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: workflow-gate-revalidation-evidence
-    title: Re-run workflow gates and capture authoritative evidence after workflow repairs
-    module: workflow
-    priority: 10
-    release_bump: patch
-    target_release: v2.2.3
-    execution_flow: /autoflow
-    expected_max_files_changed: 1
-    drivers:
-      - The audit fix order explicitly calls for rerunning workflow gates once workflow-state repairs land.
-      - The repo should not claim repaired workflow state without fresh gate evidence.
-    files:
-      - .opencode/plans/current-phase.md
-    validation: npm run workflow:check && npm run release:proof
-    acceptance:
-      - "`npm run workflow:check` passes after the workflow repair phases."
-      - "`npm run release:proof` passes and the active phase records fresh evidence instead of stale audit assumptions."
-      - No unrelated product or tooling changes are bundled into the evidence pass.
   - id: vite-security-refresh
     title: Refresh Vite and related lockfile entries to reduce known development-server advisories
     module: tooling
@@ -272,6 +254,26 @@ archived:
       - Shipped backlog items no longer remain under selectable candidates.
       - Deferred ideas are excluded from active candidate counting and next-phase selection.
       - The repair stays bounded to workflow state and backlog-selection logic.
+    shipped: true
+
+  - id: workflow-gate-revalidation-evidence
+    title: Re-run workflow gates and capture authoritative evidence after workflow repairs
+    module: workflow
+    priority: 10
+    release_bump: patch
+    target_release: v2.2.3
+    execution_flow: /autoflow
+    expected_max_files_changed: 1
+    drivers:
+      - The audit fix order explicitly calls for rerunning workflow gates once workflow-state repairs land.
+      - The repo should not claim repaired workflow state without fresh gate evidence.
+    files:
+      - .opencode/plans/current-phase.md
+    validation: npm run workflow:check && npm run release:proof
+    acceptance:
+      - "`npm run workflow:check` passes after the workflow repair phases."
+      - "`npm run release:proof` passes and the active phase records fresh evidence instead of stale audit assumptions."
+      - No unrelated product or tooling changes are bundled into the evidence pass.
     shipped: true
 
   - id: clean-install-reproducibility
