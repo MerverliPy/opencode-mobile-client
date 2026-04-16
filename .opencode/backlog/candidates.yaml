@@ -19,28 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: main-shell-helper-extraction
-    title: Extract bounded shell helpers from src/main.js to reduce maintenance risk
-    module: shell
-    priority: 7
-    release_bump: patch
-    target_release: v2.2.6
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`src/main.js` currently carries too many responsibilities for safe review and bounded follow-up work."
-      - A small helper extraction is safer than a broad shell redesign and keeps future mobile changes reviewable.
-    files:
-      - src/main.js
-      - src/lib/remote-links.js
-      - src/lib/ui-notices.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - "A bounded set of pure helpers moves out of `src/main.js` without changing current shell behavior."
-      - Remote link validation and UI notice behavior remain honest and covered by smoke tests.
-      - The phase avoids speculative architecture changes or broader shell refactors.
-      - The resulting extraction keeps the task shell readable and mobile-safe.
   - id: remote-backend-http-bridge
     title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
     module: remote-runtime
@@ -308,4 +286,28 @@ archived:
       - Storage hydration and session-state updates still normalize legacy and remote session data safely.
       - Existing smoke coverage still passes without changing user-visible behavior.
       - The phase stays bounded to state normalization and related test coverage.
+    shipped: true
+
+  - id: main-shell-helper-extraction
+    title: Extract bounded shell helpers from src/main.js to reduce maintenance risk
+    module: shell
+    priority: 7
+    release_bump: patch
+    target_release: v2.2.6
+    execution_flow: /autoflow
+    expected_max_files_changed: 4
+    drivers:
+      - "`src/main.js` currently carries too many responsibilities for safe review and bounded follow-up work."
+      - A small helper extraction is safer than a broad shell redesign and keeps future mobile changes reviewable.
+    files:
+      - src/main.js
+      - src/lib/remote-links.js
+      - src/lib/ui-notices.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run build
+    acceptance:
+      - "A bounded set of pure helpers moves out of `src/main.js` without changing current shell behavior."
+      - Remote link validation and UI notice behavior remain honest and covered by smoke tests.
+      - The phase avoids speculative architecture changes or broader shell refactors.
+      - The resulting extraction keeps the task shell readable and mobile-safe.
     shipped: true

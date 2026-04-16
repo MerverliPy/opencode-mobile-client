@@ -3,7 +3,15 @@ import './styles.css';
 
 import { createMockRuntimeAdapter } from './adapters/mock-runtime.js';
 import { createRemoteRuntimeAdapter } from './adapters/remote-runtime.js';
+import { currentSessionRemoteLinks, createRemoteLinkState } from './lib/remote-links.js';
 import { getDiffFiles, getToolResultKind } from './lib/tool-results.js';
+import {
+  createBlockedLinkNotice,
+  createInvalidLinkNotice,
+  createUiNotice,
+  createUnavailableLinkNotice,
+  createUnsupportedLinkNotice,
+} from './lib/ui-notices.js';
 import { createId } from './lib/utils.js';
 import {
   createSession,
@@ -156,77 +164,18 @@ let shouldFocusDrawerClose = false;
 let shouldRestoreTaskFocus = false;
 
 function setUiNotice({ tone = 'info', title, body }) {
-  appState.ui.notice = title && body ? { tone, title, body } : null;
+  appState.ui.notice = createUiNotice({ tone, title, body });
 }
 
 function clearUiNotice() {
   appState.ui.notice = null;
 }
 
-function normalizeExternalLink(value, fallbackLabel) {
-  if (typeof value === 'string') {
-    const url = value.trim();
-
-    return url
-      ? {
-          label: fallbackLabel,
-          url,
-        }
-      : null;
-  }
-
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const urlCandidate = [value.url, value.href, value.link].find((candidate) => typeof candidate === 'string' && candidate.trim());
-
-  if (!urlCandidate) {
-    return null;
-  }
-
-  const labelCandidate = [value.label, value.title, value.name].find((candidate) => typeof candidate === 'string' && candidate.trim());
-
-  return {
-    label: labelCandidate?.trim() ?? fallbackLabel,
-    url: urlCandidate.trim(),
-  };
-}
-
-function normalizePreviewLinks(payload) {
-  const previewSource = Array.isArray(payload?.previews)
-    ? payload.previews
-    : Array.isArray(payload?.previewLinks)
-      ? payload.previewLinks
-      : Array.isArray(payload?.links?.previews)
-        ? payload.links.previews
-        : [];
-
-  return previewSource
-    .map((entry, index) => normalizeExternalLink(entry, `Preview ${index + 1}`))
-    .filter(Boolean);
-}
-
-function normalizeShareLink(payload) {
-  return normalizeExternalLink(payload?.share ?? payload?.shareLink ?? payload?.links?.share ?? null, 'Read-only share');
-}
-
-function createRemoteLinkState(payload = null) {
-  return {
-    previews: normalizePreviewLinks(payload),
-    share: normalizeShareLink(payload),
-  };
-}
-
 function openExternalLink(url, label) {
   const normalizedUrl = typeof url === 'string' ? url.trim() : '';
 
   if (!normalizedUrl) {
-    setUiNotice({
-      tone: 'warning',
-      title: 'Link unavailable.',
-      body: `${label} is not available for this session yet.`,
-    });
+    setUiNotice(createUnavailableLinkNotice(label));
     renderApp();
     return;
   }
@@ -236,21 +185,13 @@ function openExternalLink(url, label) {
   try {
     parsedUrl = new URL(normalizedUrl);
   } catch {
-    setUiNotice({
-      tone: 'warning',
-      title: 'Link could not open.',
-      body: `${label} did not include a valid URL, so the mobile shell kept the state honest instead of opening the wrong destination.`,
-    });
+    setUiNotice(createInvalidLinkNotice(label));
     renderApp();
     return;
   }
 
   if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-    setUiNotice({
-      tone: 'warning',
-      title: 'Link could not open.',
-      body: `${label} must use an http or https URL before the mobile shell can open it.`,
-    });
+    setUiNotice(createUnsupportedLinkNotice(label));
     renderApp();
     return;
   }
@@ -258,11 +199,7 @@ function openExternalLink(url, label) {
   const openedWindow = window.open(parsedUrl.toString(), '_blank', 'noopener,noreferrer');
 
   if (!openedWindow) {
-    setUiNotice({
-      tone: 'warning',
-      title: 'Link could not open.',
-      body: `${label} was available, but the browser blocked the new tab request. Try again from the same session if needed.`,
-    });
+    setUiNotice(createBlockedLinkNotice(label));
     renderApp();
   }
 }
@@ -323,17 +260,6 @@ function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successN
   }
 
   renderApp();
-}
-
-function currentSessionRemoteLinks(session) {
-  return {
-    previews: Array.isArray(session?.remoteLinks?.previews)
-      ? session.remoteLinks.previews
-          .map((entry, index) => normalizeExternalLink(entry, `Preview ${index + 1}`))
-          .filter(Boolean)
-      : [],
-    share: normalizeExternalLink(session?.remoteLinks?.share ?? null, 'Read-only share'),
-  };
 }
 
 function focusMainContent() {

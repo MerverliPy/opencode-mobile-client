@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMockRuntimeAdapter } from '../src/adapters/mock-runtime.js';
 import { createRemoteRuntimeAdapter } from '../src/adapters/remote-runtime.js';
+import { currentSessionRemoteLinks, createRemoteLinkState, normalizeExternalLink } from '../src/lib/remote-links.js';
 import { renderTaskScreen } from '../src/ui/screens.js';
+import {
+  createBlockedLinkNotice,
+  createInvalidLinkNotice,
+  createUiNotice,
+  createUnavailableLinkNotice,
+  createUnsupportedLinkNotice,
+} from '../src/lib/ui-notices.js';
 import {
   getDiffFile,
   getDiffFiles,
@@ -649,6 +657,68 @@ describe('Phase 13 smoke coverage', () => {
       remoteRun: { runId: 'run-7', status: 'running', updatedAt: 77 },
       repoBinding: { owner: 'acme', repo: 'client', branch: 'feature/mobile', workspace: 'ws-9' },
     });
+  });
+
+  it('keeps extracted remote link helpers honest for preview and share data', () => {
+    expect(normalizeExternalLink(' https://preview.example/app ', 'Preview 1')).toEqual({
+      label: 'Preview 1',
+      url: 'https://preview.example/app',
+    });
+    expect(
+      normalizeExternalLink(
+        { href: 'https://share.example/session', name: 'Shared session' },
+        'Read-only share',
+      ),
+    ).toEqual({
+      label: 'Shared session',
+      url: 'https://share.example/session',
+    });
+    expect(normalizeExternalLink({ href: '   ' }, 'Preview 1')).toBe(null);
+
+    expect(
+      createRemoteLinkState({
+        previewLinks: ['https://preview.example/app', { url: 'https://preview.example/admin', label: 'Admin' }],
+        links: { share: { href: 'https://share.example/session', title: 'Review share' } },
+      }),
+    ).toEqual({
+      previews: [
+        { label: 'Preview 1', url: 'https://preview.example/app' },
+        { label: 'Admin', url: 'https://preview.example/admin' },
+      ],
+      share: { label: 'Review share', url: 'https://share.example/session' },
+    });
+
+    expect(
+      currentSessionRemoteLinks({
+        remoteLinks: {
+          previews: ['https://preview.example/app', { url: 'https://preview.example/admin', label: 'Admin' }, { href: '   ' }],
+          share: { link: 'https://share.example/session' },
+        },
+      }),
+    ).toEqual({
+      previews: [
+        { label: 'Preview 1', url: 'https://preview.example/app' },
+        { label: 'Admin', url: 'https://preview.example/admin' },
+      ],
+      share: { label: 'Read-only share', url: 'https://share.example/session' },
+    });
+  });
+
+  it('keeps extracted ui notice helpers honest for bounded shell messaging', () => {
+    expect(createUiNotice({ tone: 'info', title: 'Heads up', body: 'Stay on task.' })).toEqual({
+      tone: 'info',
+      title: 'Heads up',
+      body: 'Stay on task.',
+    });
+    expect(createUiNotice({ title: 'Missing body' })).toBe(null);
+    expect(createUnavailableLinkNotice('Preview link')).toEqual({
+      tone: 'warning',
+      title: 'Link unavailable.',
+      body: 'Preview link is not available for this session yet.',
+    });
+    expect(createInvalidLinkNotice('Preview link').body).toContain('kept the state honest');
+    expect(createUnsupportedLinkNotice('Share link').body).toContain('http or https');
+    expect(createBlockedLinkNotice('Preview link').body).toContain('browser blocked the new tab request');
   });
 
   it('keeps shell-state labels and install hints honest for mobile shell conditions', () => {
