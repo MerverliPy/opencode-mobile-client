@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMockRuntimeAdapter } from '../src/adapters/mock-runtime.js';
 import { createRemoteRuntimeAdapter } from '../src/adapters/remote-runtime.js';
+import { renderTaskScreen } from '../src/ui/screens.js';
 import {
   getDiffFile,
   getDiffFiles,
@@ -486,6 +487,77 @@ describe('Phase 13 smoke coverage', () => {
     expect(getConnectionMessage(offlineAppState)).toContain('You are offline.');
     expect(getInstallHint(offlineAppState)).toBe('Installed to Home Screen');
     expect(getInstallBody(offlineAppState)).toContain('installed mobile app');
+  });
+
+  it('renders durable remote run states and reconnect controls in the task shell', () => {
+    const remoteSession = {
+      id: 'session-remote',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: '',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-42', status: 'awaiting_input', updatedAt: 30 },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+      messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Remote session status is visible.' }],
+      toolResults: [],
+    };
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-remote',
+      sessions: [remoteSession],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+      toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+    };
+    const screens = {
+      task: {
+        description: 'Local shell description',
+      },
+    };
+
+    const html = renderTaskScreen({ appState, screens });
+
+    expect(html).toContain('Remote run state');
+    expect(html).toContain('Awaiting input');
+    expect(html).toContain('data-action="reconnect-remote-run"');
+    expect(html).toContain('data-action="cancel-remote-run"');
+    expect(html).toContain('Run run-42');
+    expect(html).toContain('acme/mobile · main');
+    expect(html).toContain('Remote shell');
+    expect(html).not.toContain('Local only');
+  });
+
+  it('keeps local sessions honest without remote shell controls', () => {
+    const localSession = {
+      id: 'session-local',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: '',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'mock-local' },
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+      repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+      messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Local session remains honest.' }],
+      toolResults: [],
+    };
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-local',
+      sessions: [localSession],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+      toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+    };
+    const screens = {
+      task: {
+        description: 'Local shell description',
+      },
+    };
+
+    const html = renderTaskScreen({ appState, screens });
+
+    expect(html).toContain('Local only');
+    expect(html).not.toContain('Remote run state');
+    expect(html).not.toContain('data-action="reconnect-remote-run"');
   });
 
   it('detects standalone runtime mode from browser display mode or navigator state', () => {

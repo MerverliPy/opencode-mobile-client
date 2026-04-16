@@ -10,7 +10,7 @@ Phase 14 reconciled older duplicate release docs, release-proof workflow state, 
 
 The running app is still a local-first mobile shell with mock-backed task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
-The next planned release target is `v1.7.0`, which is scoped to defining a remote runtime contract and durable run model while keeping the shipped app honest about its current mock-backed, local-first behavior.
+The next planned release target is `v1.8.0`, which is scoped to adding durable remote run lifecycle states and reconnect controls in the mobile shell while keeping the shipped app honest about its current mock-backed, local-first behavior.
 
 ## Current product reality
 

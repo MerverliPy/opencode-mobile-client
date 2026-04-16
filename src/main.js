@@ -2,6 +2,7 @@ import { version as packageVersion } from '../package.json';
 import './styles.css';
 
 import { createMockRuntimeAdapter } from './adapters/mock-runtime.js';
+import { createRemoteRuntimeAdapter } from './adapters/remote-runtime.js';
 import { getDiffFiles, getToolResultKind } from './lib/tool-results.js';
 import { createId } from './lib/utils.js';
 import { createSession, getSelectedSession, getSessionTitle, getToolResult, getToolResults, resetToolDrawer, setSelectedSession, updateSessionById } from './state/session-state.js';
@@ -13,6 +14,66 @@ import { renderToolDrawer } from './ui/tool-drawer.js';
 const releaseTag = `v${packageVersion}`;
 const retryPrompt = 'Continue from the interrupted reply using the visible context.';
 const runtimeAdapter = createMockRuntimeAdapter();
+const remoteRuntimeAdapter = createRemoteRuntimeAdapter();
+
+const remoteRunTransitions = {
+  queued: {
+    reconnect: 'running',
+    notice: {
+      tone: 'info',
+      title: 'Remote run reconnected.',
+      body: 'The mobile shell resumed the queued durable run state so you can keep following it from this session.',
+    },
+  },
+  running: {
+    reconnect: 'awaiting_input',
+    notice: {
+      tone: 'info',
+      title: 'Remote run refreshed.',
+      body: 'The session still points at an active remote run. The phone remains a shell for reconnect and status, not the executor.',
+    },
+  },
+  awaiting_input: {
+    reconnect: 'running',
+    notice: {
+      tone: 'info',
+      title: 'Remote run resumed.',
+      body: 'The session stays attached to the durable run so you can continue from mobile without losing context.',
+    },
+  },
+  failed: {
+    reconnect: 'awaiting_input',
+    notice: {
+      tone: 'warning',
+      title: 'Remote run reopened.',
+      body: 'The failed run is now marked as waiting for input so you can decide the next step from the mobile shell.',
+    },
+  },
+  cancelled: {
+    reconnect: 'queued',
+    notice: {
+      tone: 'info',
+      title: 'Cancelled run reattached.',
+      body: 'This session is linked to the stored durable run again for review, while execution still remains remote-only.',
+    },
+  },
+  completed: {
+    reconnect: 'completed',
+    notice: {
+      tone: 'success',
+      title: 'Completed run reopened.',
+      body: 'The completed remote run remains visible for review from the mobile shell.',
+    },
+  },
+  idle: {
+    reconnect: 'queued',
+    notice: {
+      tone: 'info',
+      title: 'Remote run attached.',
+      body: 'A durable remote run state is now attached to this session so reconnect controls stay visible on mobile.',
+    },
+  },
+};
 
 const screens = {
   sessions: {
@@ -234,11 +295,118 @@ function appendRetryPrompt() {
   renderApp();
 }
 
+function createRemoteShellSession() {
+  const session = createSession(appState, runtimeAdapter);
+  const remoteRunId = createId('run');
+
+  updateSessionById(appState, session.id, (currentSession) => ({
+    ...currentSession,
+    updatedAt: Date.now(),
+    runtimeMetadata: {
+      ...(currentSession.runtimeMetadata ?? {}),
+      runtimeId: remoteRuntimeAdapter.id,
+    },
+    remoteRun: {
+      runId: remoteRunId,
+      status: 'queued',
+      updatedAt: Date.now(),
+    },
+    repoBinding: {
+      owner: 'demo',
+      repo: 'mobile-shell',
+      branch: 'remote-run-shell',
+      workspace: 'iphone-preview',
+    },
+    messages: [
+      ...currentSession.messages,
+      {
+        id: createId('msg'),
+        role: 'assistant',
+        label: 'OpenCode',
+        text: 'This session now shows a durable remote run shell state. Reconnect and cancel stay visible here without claiming live backend transport.',
+      },
+    ],
+  }));
+}
+
 function handleCreateSession() {
   createSession(appState, runtimeAdapter);
   shouldScrollTaskToEnd = true;
   shouldFocusComposer = true;
   navigateTo('task');
+}
+
+function handleCreateRemoteSession() {
+  createRemoteShellSession();
+  shouldScrollTaskToEnd = true;
+  shouldFocusComposer = true;
+  navigateTo('task');
+}
+
+function handleReconnectRemoteRun() {
+  const session = getSelectedSession(appState);
+
+  if (!session) {
+    return;
+  }
+
+  const runId = typeof session.remoteRun?.runId === 'string' ? session.remoteRun.runId : '';
+  const status = typeof session.remoteRun?.status === 'string' ? session.remoteRun.status : 'idle';
+  const nextState = remoteRunTransitions[status] ?? remoteRunTransitions.idle;
+  const operation = remoteRuntimeAdapter.resumeRun({ runId, sessionId: session.id });
+
+  updateSessionById(appState, session.id, (currentSession) => ({
+    ...currentSession,
+    updatedAt: Date.now(),
+    runtimeMetadata: {
+      ...(currentSession.runtimeMetadata ?? {}),
+      runtimeId: remoteRuntimeAdapter.id,
+    },
+    remoteRun: {
+      runId: runId || createId('run'),
+      status: nextState.reconnect,
+      updatedAt: Date.now(),
+    },
+  }));
+
+  setUiNotice({
+    ...nextState.notice,
+    body: `${nextState.notice.body} ${operation.ok ? '' : 'Backend transport is still not configured, so the shell only updates stored mobile state.'}`.trim(),
+  });
+  renderApp();
+}
+
+function handleCancelRemoteRun() {
+  const session = getSelectedSession(appState);
+
+  if (!session || typeof session.remoteRun?.runId !== 'string' || !session.remoteRun.runId) {
+    return;
+  }
+
+  const operation = remoteRuntimeAdapter.cancelRun({ runId: session.remoteRun.runId, sessionId: session.id });
+
+  updateSessionById(appState, session.id, (currentSession) => ({
+    ...currentSession,
+    updatedAt: Date.now(),
+    runtimeMetadata: {
+      ...(currentSession.runtimeMetadata ?? {}),
+      runtimeId: remoteRuntimeAdapter.id,
+    },
+    remoteRun: {
+      runId: currentSession.remoteRun.runId,
+      status: 'cancelled',
+      updatedAt: Date.now(),
+    },
+  }));
+
+  setUiNotice({
+    tone: 'warning',
+    title: 'Remote run marked cancelled.',
+    body: operation.ok
+      ? 'The current remote run was cancelled from the mobile shell.'
+      : 'The mobile shell marked the stored durable run as cancelled. Backend transport is still not configured, so this remains an honest shell-only control.',
+  });
+  renderApp();
 }
 
 function renderApp() {
@@ -415,9 +583,12 @@ app.addEventListener('click', (event) => {
   const actionButton = event.target.closest('[data-action="use-retry-prompt"]');
   const dismissNoticeButton = event.target.closest('[data-action="dismiss-ui-notice"]');
   const createSessionButton = event.target.closest('[data-action="create-session"]');
+  const createRemoteSessionButton = event.target.closest('[data-action="create-remote-session"]');
   const openSessionsButton = event.target.closest('[data-action="open-sessions"]');
   const openTaskButton = event.target.closest('[data-action="open-task"]');
   const openSelectedSessionButton = event.target.closest('[data-action="open-selected-session"]');
+  const reconnectRemoteRunButton = event.target.closest('[data-action="reconnect-remote-run"]');
+  const cancelRemoteRunButton = event.target.closest('[data-action="cancel-remote-run"]');
   const openToolDrawerButton = event.target.closest('[data-action="open-tool-drawer"]');
   const openToolFileButton = event.target.closest('[data-action="open-tool-file"]');
   const openToolDiffButton = event.target.closest('[data-action="open-tool-diff"]');
@@ -526,6 +697,21 @@ app.addEventListener('click', (event) => {
 
   if (createSessionButton) {
     handleCreateSession();
+    return;
+  }
+
+  if (createRemoteSessionButton) {
+    handleCreateRemoteSession();
+    return;
+  }
+
+  if (reconnectRemoteRunButton) {
+    handleReconnectRemoteRun();
+    return;
+  }
+
+  if (cancelRemoteRunButton) {
+    handleCancelRemoteRun();
     return;
   }
 

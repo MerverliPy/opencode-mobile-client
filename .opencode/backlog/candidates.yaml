@@ -19,32 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: remote-run-shell-state
-    title: Add durable remote run lifecycle states and reconnect controls to the mobile shell
-    module: remote-runtime
-    priority: 9
-    release_bump: minor
-    target_release: v1.8.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    inspired_by_open_agents:
-      - streaming and resumable workflow runs
-      - long-lived background execution separate from request lifecycle
-    drivers:
-      - After the runtime contract exists, the UI needs honest states for queued, running, awaiting input, failed, cancelled, and completed remote runs.
-      - Mobile users need reconnect and resume controls because the phone cannot be treated as a stable long-running execution host.
-    files:
-      - package.json
-      - README.md
-      - src/main.js
-      - src/ui/screens.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - The task surface can render durable remote run states without pretending the phone is the executor.
-      - Reconnect and cancel actions are visible and deterministic from the mobile shell.
-      - Existing local/mock sessions still render honestly when no remote run exists.
-      - `package.json` and `README.md` are updated to target `v1.8.0`.
   - id: remote-backend-http-bridge
     title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
     module: remote-runtime
@@ -191,5 +165,10 @@ archived:
 
   - id: remote-runtime-contract
     title: Define the remote runtime contract and durable run model for mobile remote coding
+    module: remote-runtime
+    shipped: true
+
+  - id: remote-run-shell-state
+    title: Add durable remote run lifecycle states and reconnect controls to the mobile shell
     module: remote-runtime
     shipped: true

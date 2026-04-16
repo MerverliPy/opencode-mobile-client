@@ -16,6 +16,109 @@ import {
   getInstallHint,
 } from '../state/shell-state.js';
 
+const remoteRunStatusContent = {
+  idle: {
+    label: 'Idle',
+    title: 'Remote shell is ready for a durable run.',
+    body: 'This session is marked for the remote runtime contract, but no durable run is stored yet in mobile session state.',
+  },
+  queued: {
+    label: 'Queued',
+    title: 'Remote run is queued.',
+    body: 'The mobile shell is holding the queued remote state so you can safely come back and reconnect later without pretending this phone is the executor.',
+  },
+  running: {
+    label: 'Running',
+    title: 'Remote run is in progress.',
+    body: 'Work is happening remotely, while this phone stays focused on readable status, messages, and follow-up controls.',
+  },
+  awaiting_input: {
+    label: 'Awaiting input',
+    title: 'Remote run is waiting on your next input.',
+    body: 'The shell keeps the durable run visible so you can reconnect and continue from mobile without losing the stored session context.',
+  },
+  failed: {
+    label: 'Failed',
+    title: 'Remote run needs attention.',
+    body: 'The shell preserves the failed remote state honestly so you can inspect it, reconnect, and decide the next step from mobile.',
+  },
+  cancelled: {
+    label: 'Cancelled',
+    title: 'Remote run was cancelled.',
+    body: 'This mobile shell keeps the cancelled state visible for later review instead of implying the run is still active.',
+  },
+  completed: {
+    label: 'Completed',
+    title: 'Remote run finished.',
+    body: 'The durable completion state stays attached to the session so the result remains understandable when you reopen it on mobile.',
+  },
+};
+
+function isRemoteBackedSession(session) {
+  return session?.runtimeMetadata?.runtimeId === 'remote-runtime' || Boolean(session?.remoteRun?.runId);
+}
+
+function getRemoteRunStatus(session) {
+  return typeof session?.remoteRun?.status === 'string' ? session.remoteRun.status : 'idle';
+}
+
+function getRemoteRunStatusContent(status) {
+  return remoteRunStatusContent[status] ?? remoteRunStatusContent.idle;
+}
+
+function getRemoteRunId(session) {
+  return typeof session?.remoteRun?.runId === 'string' ? session.remoteRun.runId : '';
+}
+
+function getRemoteRepoLabel(session) {
+  const owner = typeof session?.repoBinding?.owner === 'string' ? session.repoBinding.owner : '';
+  const repo = typeof session?.repoBinding?.repo === 'string' ? session.repoBinding.repo : '';
+  const branch = typeof session?.repoBinding?.branch === 'string' ? session.repoBinding.branch : '';
+
+  if (!owner && !repo && !branch) {
+    return '';
+  }
+
+  const repoLabel = owner && repo ? `${owner}/${repo}` : repo || owner;
+  return branch ? `${repoLabel} · ${branch}` : repoLabel;
+}
+
+function canCancelRemoteRun(session) {
+  const status = getRemoteRunStatus(session);
+  return Boolean(getRemoteRunId(session)) && ['queued', 'running', 'awaiting_input'].includes(status);
+}
+
+function renderRemoteRunCard(session) {
+  if (!isRemoteBackedSession(session)) {
+    return '';
+  }
+
+  const status = getRemoteRunStatus(session);
+  const statusContent = getRemoteRunStatusContent(status);
+  const runId = getRemoteRunId(session);
+  const repoLabel = getRemoteRepoLabel(session);
+  const updatedAt = Number(session?.remoteRun?.updatedAt) ? formatSessionTime(session.remoteRun.updatedAt) : '';
+
+  return `
+    <section class="screen-card state-card" aria-label="Remote run state">
+      <p class="eyebrow">Remote run state</p>
+      <h3>${escapeHtml(statusContent.title)}</h3>
+      <p class="screen-copy">${escapeHtml(statusContent.body)}</p>
+      <div class="session-meta-pills">
+        <span class="meta-pill">Remote shell</span>
+        <span class="meta-pill">${escapeHtml(statusContent.label)}</span>
+        ${runId ? `<span class="meta-pill">Run ${escapeHtml(runId)}</span>` : '<span class="meta-pill">Run not started</span>'}
+        ${repoLabel ? `<span class="meta-pill">${escapeHtml(repoLabel)}</span>` : ''}
+        ${updatedAt ? `<span class="meta-pill">Updated ${escapeHtml(updatedAt)}</span>` : ''}
+      </div>
+      <div class="state-actions">
+        <button class="secondary-button" type="button" data-action="reconnect-remote-run" ${runId ? '' : 'disabled'}>Reconnect</button>
+        <button class="ghost-button" type="button" data-action="cancel-remote-run" ${canCancelRemoteRun(session) ? '' : 'disabled'}>Cancel run</button>
+      </div>
+    </section>
+  `;
+}
+
 export function renderUiNotice(notice) {
   if (!notice) {
     return '';
@@ -254,6 +357,7 @@ export function renderSessionsScreen({ appState }) {
         <p class="screen-copy">This device is ready for saved in-app work, but nothing has been started yet.</p>
         <div class="state-actions">
           <button class="primary-button" type="button" data-action="create-session">Start first session</button>
+          <button class="secondary-button" type="button" data-action="create-remote-session">Start remote shell session</button>
           <button class="secondary-button" type="button" data-action="open-task">Open Task</button>
         </div>
       </section>
@@ -273,6 +377,7 @@ export function renderSessionsScreen({ appState }) {
       <p class="screen-copy">Recent work stays on this device so it is easy to reopen with one tap while keeping the app thumb-friendly.</p>
       <div class="state-actions">
         <button class="primary-button" type="button" data-action="create-session">New session</button>
+        <button class="secondary-button" type="button" data-action="create-remote-session">Remote shell session</button>
         ${
           appState.selectedSessionId
             ? '<button class="secondary-button" type="button" data-action="open-selected-session">Open current</button>'
@@ -349,6 +454,11 @@ export function renderTaskScreen({ appState, screens }) {
   const latestToolResult = toolResults[0] ?? null;
   const latestDiffResult = toolResults.find((toolResult) => getToolResultKind(toolResult) === 'diff') ?? null;
   const latestDiffFileCount = getDiffFiles(latestDiffResult).length;
+  const isRemoteSession = isRemoteBackedSession(session);
+  const taskDescription = isRemoteSession
+    ? 'This selected session keeps durable remote run state visible from the shell, with reconnect and cancel controls that stay honest about the phone not being the executor.'
+    : screens.task.description;
+  const remoteStatusLabel = getRemoteRunStatusContent(getRemoteRunStatus(session)).label;
 
   return `
     ${renderShellStatusBanner(appState)}
@@ -359,7 +469,7 @@ export function renderTaskScreen({ appState, screens }) {
         <h2 id="screen-title">${escapeHtml(getSessionTitle(session))}</h2>
         <span class="location-chip">Current session</span>
       </div>
-      <p class="screen-copy">${screens.task.description}</p>
+      <p class="screen-copy">${taskDescription}</p>
       <div class="session-meta-pills">
         <span class="meta-pill">Updated ${escapeHtml(formatSessionTime(session.updatedAt))}</span>
         <span class="meta-pill">${messageCount} ${messageCount === 1 ? 'message' : 'messages'}</span>
@@ -371,7 +481,8 @@ export function renderTaskScreen({ appState, screens }) {
               }</span>`
             : ''
         }
-        <span class="meta-pill">Local only</span>
+        <span class="meta-pill">${isRemoteSession ? 'Remote shell' : 'Local only'}</span>
+        ${isRemoteSession ? `<span class="meta-pill">${escapeHtml(remoteStatusLabel)}</span>` : ''}
       </div>
       <div class="state-actions">
         <button class="secondary-button" type="button" data-action="open-sessions">Sessions</button>
@@ -380,9 +491,12 @@ export function renderTaskScreen({ appState, screens }) {
             ? '<button class="ghost-button" type="button" data-action="open-tool-drawer">Tools</button>'
             : ''
         }
+        ${isRemoteSession ? '<button class="secondary-button" type="button" data-action="reconnect-remote-run">Reconnect</button>' : ''}
         <button class="ghost-button" type="button" data-action="create-session">New session</button>
       </div>
     </section>
+
+    ${renderRemoteRunCard(session)}
 
     <section class="screen-card conversation-card" aria-label="Task conversation" aria-busy="${session.isLoading ? 'true' : 'false'}">
       <div class="conversation-summary">
