@@ -19,29 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: backlog-selection-determinism
-    title: Repair backlog selection so only true candidates remain selectable
-    module: workflow
-    priority: 11
-    release_bump: patch
-    target_release: v2.2.2
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    drivers:
-      - Completed backlog work is still present in selectable backlog state, and deferred ideas are too close to active selection surfaces.
-      - "`/autoflow` should only count real selectable candidates so completed or deferred work cannot be reselected accidentally."
-    files:
-      - .opencode/backlog/candidates.yaml
-      - scripts/dev/autoflow.sh
-      - scripts/dev/repair-backlog-selection.sh
-      - scripts/dev/workflow-check.sh
-      - .opencode/commands/next-phase.md
-    validation: npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
-    acceptance:
-      - Only entries under `candidates` are treated as selectable backlog work.
-      - Shipped backlog items no longer remain under selectable candidates.
-      - Deferred ideas are excluded from active candidate counting and next-phase selection.
-      - The repair stays bounded to workflow state and backlog-selection logic.
   - id: workflow-gate-revalidation-evidence
     title: Re-run workflow gates and capture authoritative evidence after workflow repairs
     module: workflow
@@ -270,6 +247,31 @@ archived:
       - "`npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly."
       - "`bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present."
       - The phase stays bounded to workflow metadata and parser alignment only.
+    shipped: true
+
+  - id: backlog-selection-determinism
+    title: Repair backlog selection so only true candidates remain selectable
+    module: workflow
+    priority: 11
+    release_bump: patch
+    target_release: v2.2.2
+    execution_flow: /autoflow
+    expected_max_files_changed: 5
+    drivers:
+      - Completed backlog work is still present in selectable backlog state, and deferred ideas are too close to active selection surfaces.
+      - "`/autoflow` should only count real selectable candidates so completed or deferred work cannot be reselected accidentally."
+    files:
+      - .opencode/backlog/candidates.yaml
+      - scripts/dev/autoflow.sh
+      - scripts/dev/repair-backlog-selection.sh
+      - scripts/dev/workflow-check.sh
+      - .opencode/commands/next-phase.md
+    validation: npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
+    acceptance:
+      - Only entries under `candidates` are treated as selectable backlog work.
+      - Shipped backlog items no longer remain under selectable candidates.
+      - Deferred ideas are excluded from active candidate counting and next-phase selection.
+      - The repair stays bounded to workflow state and backlog-selection logic.
     shipped: true
 
   - id: clean-install-reproducibility

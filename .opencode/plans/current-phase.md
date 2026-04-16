@@ -1,67 +1,68 @@
-# Normalize workflow validation metadata so phase state parses consistently
+# Repair backlog selection so only true candidates remain selectable
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:workflow-validation-metadata-alignment
+Phase file: backlog:backlog-selection-determinism
 
 ## Goal
 
-Normalize active-phase validation metadata so the workflow parsers agree on one authoritative phase state without changing product behavior.
+Repair backlog selection so only true selectable candidates remain in the active backlog set and completed or deferred work cannot be reselected accidentally.
 
 ## Why this phase is next
 
-This backlog candidate remains the active incomplete phase. All release phases in the registry are already complete, and the current phase is neither completed nor explicitly replaced by new user scope, so it must stay selected.
+The prior backlog phase has shipped, all release phases remain complete, and this is now the highest-priority remaining bounded backlog candidate in the same workflow module with clear deterministic validation.
 
 ## Primary files
 
-- `.opencode/commands/next-phase.md`
-- `scripts/dev/workflow-check.sh`
-- `scripts/dev/doctor.sh`
+- `.opencode/backlog/candidates.yaml`
 - `scripts/dev/autoflow.sh`
+- `scripts/dev/repair-backlog-selection.sh`
+- `scripts/dev/workflow-check.sh`
+- `.opencode/commands/next-phase.md`
 
 ## Expected max files changed
 
-4
+5
 
 ## Risk
 
-Medium. This work changes authoritative workflow parsing, so the repair must stay tightly bounded and keep all workflow commands reading the same validation shape.
+Medium. This changes authoritative backlog selection state, so the repair must stay tightly bounded to candidate counting and selection behavior.
 
 ## Rollback note
 
-Revert the parser and template-alignment changes together so workflow metadata generation and workflow-state inspection return to the prior implementation as one unit.
+Revert the backlog-state and selection-logic changes together so candidate eligibility and workflow counting return to the prior behavior as one unit.
 
 ## In scope
 
-- align the canonical validation block shape used by backlog phase templates and workflow parsers
-- ensure `npm run workflow:check` and `npm run repo:doctor` read the same validation status keys
-- ensure `bash scripts/dev/autoflow.sh inspect` reads validation status and ready-to-ship values consistently when present
-- keep the repair bounded to workflow metadata and parser logic only
+- ensure only entries under `candidates` are treated as selectable backlog work
+- remove shipped backlog work from active candidate selection surfaces
+- exclude deferred ideas from active candidate counting and next-phase selection
+- keep the repair bounded to workflow state and backlog-selection logic only
 
 ## Out of scope
 
 - product runtime or UI changes
-- backlog archival or selection repairs beyond validation-metadata parsing
-- release-proof artifact generation or shipping work
-- dependency upgrades or unrelated refactors
+- validation-metadata parser changes beyond what is already shipped
+- release-proof artifact generation or shipping work for later phases
+- dependency upgrades or unrelated workflow refactors
 
 ## Tasks
 
-- define one canonical validation metadata shape for active-phase files
-- align workflow parser scripts and next-phase template instructions with that canonical shape
-- confirm pending, PASS, and FAIL validation states remain readable across workflow commands
+- align backlog candidate counting with the `candidates` section only
+- ensure shipped backlog items no longer remain selectable after shipping
+- confirm deferred ideas do not influence next-phase selection or autoflow state
 
 ## Validation command
 
-`npm run workflow:check && npm run repo:doctor && bash scripts/dev/autoflow.sh inspect`
+`npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor`
 
 ## Validation
 
 Status: PASS
 Evidence:
 - `npm run workflow:check` passed on 2026-04-16.
-- `npm run repo:doctor` passed on 2026-04-16 and reported `Validation status: pending` from the active phase file before validation finalization.
-- `bash scripts/dev/autoflow.sh inspect` reported non-empty `VALIDATION_STATUS=pending` and `READY_TO_SHIP=no`, confirming the parser reads the canonical validation block shape.
+- `bash scripts/dev/autoflow.sh inspect` reported `ACTIVE_CANDIDATE_COUNT=9`, confirming deferred and archived entries are excluded from selectable backlog counting.
+- `npm run repo:doctor` passed on 2026-04-16 with the active backlog phase reference intact.
 Blockers:
 - none
 Ready to ship:
@@ -69,18 +70,19 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- The canonical active-phase validation keys are consistent across phase templates and workflow parsers.
-- `npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly.
-- `bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present.
-- The phase stays bounded to workflow metadata and parser alignment only.
+- Only entries under `candidates` are treated as selectable backlog work.
+- Shipped backlog items no longer remain under selectable candidates.
+- Deferred ideas are excluded from active candidate counting and next-phase selection.
+- The repair stays bounded to workflow state and backlog-selection logic.
 
 ## Release notes
 
-- Confirmed the active workflow surfaces already share one canonical validation metadata shape.
-- Recorded authoritative PASS evidence for workflow parsing without changing product behavior.
+- Limited selectable backlog counting to the `candidates` section only.
+- Preserved deferred backlog ideas outside the active selection surface while keeping archived entries valid for shipped references.
 
 ## Completion summary
 
-- Verified that `.opencode/commands/next-phase.md`, `scripts/dev/workflow-check.sh`, `scripts/dev/doctor.sh`, and `scripts/dev/autoflow.sh` already use the same canonical validation block shape.
-- Confirmed the phase validation command passes without product-code changes.
+- Updated backlog counting and selection logic so `deferred_local_first_candidates` no longer inflate active candidate totals.
+- Kept backlog-repair normalization preserving deferred entries while moving shipped work out of selectable candidates.
+- Clarified next-phase instructions so only `candidates` entries are selectable.
 - Archived the shipped backlog candidate and recorded the shipped phase in the registry.

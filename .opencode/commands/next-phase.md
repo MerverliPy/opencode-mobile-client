@@ -19,6 +19,7 @@ Selection rules:
    - smallest safe scope
    - clearest validation
 5. Never select a generic or multi-module task when a smaller bounded candidate exists.
+6. Only entries under `candidates` are selectable; do not select from `deferred_local_first_candidates` or `archived`.
 
 When the chosen work item is a release phase file in `docs/releases/`, copy that file into `.opencode/plans/current-phase.md`.
 

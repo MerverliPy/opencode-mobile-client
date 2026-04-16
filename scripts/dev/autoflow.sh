@@ -114,7 +114,7 @@ if not path.exists():
     raise SystemExit(0)
 
 text = path.read_text()
-match = re.search(r'(?ms)^candidates:\s*(.*?)(?=^archived:|\Z)', text)
+match = re.search(r'(?ms)^candidates:\s*(.*?)(?=^(?:deferred_local_first_candidates|archived):|\Z)', text)
 block = match.group(1) if match else ''
 pattern = re.compile(r'(?m)^\s*-\s+id:\s*([A-Za-z0-9._:-]+)\s*$')
 

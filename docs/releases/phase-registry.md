@@ -38,3 +38,4 @@ Authority notes:
 - [x] repo-binding-surface — Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
 - [x] remote-preview-share-surface — Add remote preview link and read-only share surfaces so phone-based review is practical
 - [x] workflow-validation-metadata-alignment — Normalize workflow validation metadata so phase state parses consistently
+- [x] backlog-selection-determinism — Repair backlog selection so only true candidates remain selectable

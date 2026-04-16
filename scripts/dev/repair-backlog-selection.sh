@@ -28,17 +28,26 @@ current_ready = (ready_match.group(1).strip().lower() == "yes") if ready_match e
 current_title = title_match.group(1).strip() if title_match else current_backlog_id
 
 idx_candidates = text.find("candidates:")
+idx_deferred = text.find("deferred_local_first_candidates:")
 idx_archived = text.find("archived:")
 
 if idx_candidates == -1:
     raise SystemExit("repair-backlog-selection: missing candidates section")
 
 before = text[:idx_candidates]
+section_end = len(text)
+if idx_deferred != -1:
+    section_end = idx_deferred
+elif idx_archived != -1:
+    section_end = idx_archived
+
 if idx_archived == -1:
-    candidate_section = text[idx_candidates + len("candidates:"):].strip()
+    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip()
+    deferred_section = text[section_end:].strip() if idx_deferred != -1 else ""
     archived_section = ""
 else:
-    candidate_section = text[idx_candidates + len("candidates:"):idx_archived].strip()
+    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip()
+    deferred_section = text[idx_deferred:idx_archived].rstrip() if idx_deferred != -1 and idx_deferred < idx_archived else ""
     archived_section = text[idx_archived + len("archived:"):].strip()
 
 def parse_blocks(section):
@@ -107,6 +116,8 @@ if new_candidates:
     out += "\n".join(block.rstrip() for block in new_candidates) + "\n\n"
 else:
     out += "  []\n\n"
+if deferred_section:
+    out += deferred_section.rstrip() + "\n\n"
 out += "archived:\n"
 if archived_blocks:
     out += "\n\n".join(block.rstrip() for block in archived_blocks) + "\n"
