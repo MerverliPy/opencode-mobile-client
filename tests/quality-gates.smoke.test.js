@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createMockRuntimeAdapter } from '../src/adapters/mock-runtime.js';
+import { createRemoteRuntimeAdapter } from '../src/adapters/remote-runtime.js';
 import {
   getDiffFile,
   getDiffFiles,
@@ -12,6 +13,7 @@ import {
 } from '../src/lib/tool-results.js';
 import {
   createStarterMessages,
+  createRuntimeMetadata,
   getSelectedSession,
   getSessionPreview,
   getSessionTitle,
@@ -125,6 +127,13 @@ describe('Phase 13 smoke coverage', () => {
     expect(appState.sessions[0].id).toBe('session-2');
     expect(appState.sessions[0].draft).toBe('');
     expect(appState.sessions[0].isLoading).toBe(false);
+    expect(appState.sessions[0].runtimeMetadata).toEqual({
+      runtimeId: 'mock-local',
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+      repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+    });
+    expect(appState.sessions[0].remoteRun).toEqual({ runId: null, status: 'idle', updatedAt: null });
+    expect(appState.sessions[0].repoBinding).toEqual({ owner: '', repo: '', branch: '', workspace: '' });
     expect(appState.sessions[0].toolResults).toHaveLength(1);
     expect(appState.sessions[0].toolResults[0].kind).toBe('diff');
     expect(appState.sessions[0].toolResults[0].files[0].status).toBe('M');
@@ -268,6 +277,9 @@ describe('Phase 13 smoke coverage', () => {
               id: 'session-1',
               draft: 'keep draft',
               isLoading: true,
+              runtimeMetadata: { runtimeId: 'remote-runtime' },
+              remoteRun: { runId: 'run-1', status: 'queued', updatedAt: 123 },
+              repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'sandbox-1' },
               messages: [{ id: 'msg-1', role: 'user', label: 'You', text: 'hello' }],
               toolResults: [],
             },
@@ -282,6 +294,13 @@ describe('Phase 13 smoke coverage', () => {
         {
           id: 'session-1',
           draft: 'keep draft',
+          runtimeMetadata: {
+            runtimeId: 'remote-runtime',
+            remoteRun: { runId: 'run-1', status: 'queued', updatedAt: 123 },
+            repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'sandbox-1' },
+          },
+          remoteRun: { runId: 'run-1', status: 'queued', updatedAt: 123 },
+          repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'sandbox-1' },
           messages: [{ id: 'msg-1', role: 'user', label: 'You', text: 'hello' }],
           toolResults: [],
         },
@@ -386,6 +405,58 @@ describe('Phase 13 smoke coverage', () => {
     expect(getToolResult(session, 'tool-9')).toEqual(session.toolResults[0]);
     expect(getToolResult(session, 'missing')).toBe(null);
     expect(createStarterMessages('diff-tool-1')[1].toolResultId).toBe('diff-tool-1');
+  });
+
+  it('creates a remote runtime contract with explicit mock fallback operations', () => {
+    const adapter = createRemoteRuntimeAdapter();
+
+    expect(adapter.id).toBe('remote-runtime');
+    expect(adapter.mode).toBe('mock-fallback');
+    expect(adapter.isConfigured).toBe(false);
+    expect(adapter.fallbackAdapterId).toBe('mock-local');
+    expect(adapter.createStarterSessionPayload().toolResults.length).toBeGreaterThan(0);
+    expect(adapter.respond({ prompt: 'check', sessionTitle: 'Remote draft' }).assistantMessage.text).toContain('Mock adapter reply');
+    expect(adapter.startRun({ prompt: 'check', sessionId: 'session-1' })).toEqual({
+      ok: false,
+      status: 'unsupported',
+      operation: 'startRun',
+      reason: 'remote backend not configured',
+      prompt: 'check',
+      sessionId: 'session-1',
+      repoBinding: null,
+    });
+    expect(adapter.resumeRun({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('resumeRun');
+    expect(adapter.cancelRun({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('cancelRun');
+    expect(adapter.fetchRunStatus({ runId: 'run-1', sessionId: 'session-1' }).operation).toBe('fetchRunStatus');
+    expect(adapter.fetchPreviewLinks({ runId: 'run-1', sessionId: 'session-1' })).toEqual({
+      ok: false,
+      status: 'unsupported',
+      operation: 'fetchPreviewLinks',
+      reason: 'remote backend not configured',
+      runId: 'run-1',
+      sessionId: 'session-1',
+      previews: [],
+    });
+  });
+
+  it('normalizes remote runtime metadata for legacy and bound sessions', () => {
+    expect(createRuntimeMetadata({})).toEqual({
+      runtimeId: 'mock-local',
+      remoteRun: { runId: null, status: 'idle', updatedAt: null },
+      repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+    });
+
+    expect(
+      createRuntimeMetadata({
+        runtimeMetadata: { runtimeId: 'remote-runtime' },
+        remoteRun: { runId: 'run-7', status: 'running', updatedAt: 77 },
+        repoBinding: { owner: 'acme', repo: 'client', branch: 'feature/mobile', workspace: 'ws-9' },
+      }),
+    ).toEqual({
+      runtimeId: 'remote-runtime',
+      remoteRun: { runId: 'run-7', status: 'running', updatedAt: 77 },
+      repoBinding: { owner: 'acme', repo: 'client', branch: 'feature/mobile', workspace: 'ws-9' },
+    });
   });
 
   it('keeps shell-state labels and install hints honest for mobile shell conditions', () => {

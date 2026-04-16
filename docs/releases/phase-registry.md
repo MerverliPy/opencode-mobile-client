@@ -32,3 +32,4 @@ Authority notes:
 - [x] browser-proof-runner — Add repo-root browser-proof and release-proof helpers for SSH/iPhone workflows
 - [x] phase-validation-status-normalization — Normalize new phase templates so validation status starts as pending
 - [x] clean-install-reproducibility — Restore deterministic clean installs so repo setup and workflow gates are trustworthy
+- [x] remote-runtime-contract — Define the remote runtime contract and durable run model for mobile remote coding

@@ -19,35 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: remote-runtime-contract
-    title: Define the remote runtime contract and durable run model for mobile remote coding
-    module: remote-runtime
-    priority: 10
-    release_bump: minor
-    target_release: v1.7.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    inspired_by_open_agents:
-      - Web -> Agent workflow -> Sandbox VM separation
-      - durable workflow runs that survive reconnects
-      - agent control plane separated from execution environment
-    drivers:
-      - The current app is still mock-backed and local-first, so it needs a formal remote runtime contract before any real backend can be attached.
-      - `open-agents` shows that the phone should be a control surface, while durable agent execution and sandbox work happen remotely.
-      - This is the smallest safe first step toward becoming a real remote-coding client without pulling in the full open-agents stack.
-    files:
-      - package.json
-      - README.md
-      - src/adapters/remote-runtime.js
-      - src/state/session-state.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - A new `remote-runtime` adapter exists with explicit methods for start, resume, cancel, fetch status, and fetch preview links.
-      - Session state can persist remote run identifiers, remote status, and repo binding metadata without corrupting existing local sessions.
-      - The current mock runtime remains available as a fallback when no remote backend is configured.
-      - `package.json` and `README.md` are updated to target `v1.7.0`.
-
   - id: remote-run-shell-state
     title: Add durable remote run lifecycle states and reconnect controls to the mobile shell
     module: remote-runtime
@@ -74,7 +45,6 @@ candidates:
       - Reconnect and cancel actions are visible and deterministic from the mobile shell.
       - Existing local/mock sessions still render honestly when no remote run exists.
       - `package.json` and `README.md` are updated to target `v1.8.0`.
-
   - id: remote-backend-http-bridge
     title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
     module: remote-runtime
@@ -102,7 +72,6 @@ candidates:
       - The app preserves a mock fallback when remote configuration is missing so local development is still usable.
       - Failure states are explicit and do not masquerade as successful local execution.
       - `package.json` and `README.md` are updated to target `v2.0.0`.
-
   - id: repo-binding-surface
     title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
     module: repo-session
@@ -131,7 +100,6 @@ candidates:
       - The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
       - Existing local sessions remain readable and upgrade safely to the new metadata shape.
       - `package.json` and `README.md` are updated to target `v2.1.0`.
-
   - id: remote-preview-share-surface
     title: Add remote preview link and read-only share surfaces so phone-based review is practical
     module: remote-runtime
@@ -159,7 +127,6 @@ candidates:
       - The UI can display a read-only share link surface without claiming backend support that does not exist.
       - Preview and share surfaces fail honestly when the backend does not return them.
       - `package.json` and `README.md` are updated to target `v2.2.0`.
-
   - id: mobile-voice-prompt-entry
     title: Add optional voice prompt entry for remote coding requests on iPhone
     module: input
@@ -190,19 +157,14 @@ candidates:
 deferred_local_first_candidates:
   - id: session-lifecycle-actions
     title: Add rename and delete actions so local sessions stay manageable on a phone
-
   - id: session-search-filter
     title: Add session search and empty-filter states so larger local histories remain usable
-
   - id: session-export-import
     title: Add local JSON export and import so device-only sessions can be backed up and moved safely
-
   - id: tool-drawer-copy-share
     title: Add copy and share actions for file and diff output so generated results are reusable on mobile
-
   - id: browser-proof-automation
     title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
-
   - id: vite-security-refresh
     title: Refresh Vite and related lockfile entries to reduce known development-server advisories
 
@@ -225,4 +187,9 @@ archived:
   - id: phase-validation-status-normalization
     title: Normalize new phase templates so validation status starts as pending
     module: workflow
+    shipped: true
+
+  - id: remote-runtime-contract
+    title: Define the remote runtime contract and durable run model for mobile remote coding
+    module: remote-runtime
     shipped: true
