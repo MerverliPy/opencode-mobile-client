@@ -1,5 +1,6 @@
 import { compactText, createId, trimText } from '../lib/utils.js';
 import { persistSessionState } from './storage.js';
+import { createRemoteRunState, createRepoBindingState } from './runtime-metadata.js';
 
 export function createStarterMessages(diffToolResultId) {
   return [
@@ -76,30 +77,7 @@ export function getVisibleMessageCount(session) {
   return session.messages.filter((message) => message.role !== 'notice').length;
 }
 
-export function createRemoteRunState(remote = {}) {
-  return {
-    runId: typeof remote.runId === 'string' ? remote.runId : null,
-    status: typeof remote.status === 'string' ? remote.status : 'idle',
-    updatedAt: Number(remote.updatedAt) || null,
-  };
-}
-
-export function createRepoBindingState(repoBinding = {}) {
-  return {
-    owner: typeof repoBinding.owner === 'string' ? repoBinding.owner : '',
-    repo: typeof repoBinding.repo === 'string' ? repoBinding.repo : '',
-    branch: typeof repoBinding.branch === 'string' ? repoBinding.branch : '',
-    workspace: typeof repoBinding.workspace === 'string' ? repoBinding.workspace : '',
-  };
-}
-
-export function createRuntimeMetadata(session = {}) {
-  return {
-    runtimeId: typeof session.runtimeMetadata?.runtimeId === 'string' ? session.runtimeMetadata.runtimeId : 'mock-local',
-    remoteRun: createRemoteRunState(session.remoteRun),
-    repoBinding: createRepoBindingState(session.repoBinding),
-  };
-}
+export { createRemoteRunState, createRepoBindingState, createRuntimeMetadata } from './runtime-metadata.js';
 
 export function getRepoBindingLabel(session) {
   const owner = compactText(session?.repoBinding?.owner ?? '');

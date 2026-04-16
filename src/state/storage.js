@@ -1,29 +1,5 @@
 import { normalizeToolResult } from '../lib/tool-results.js';
-
-function createRemoteRunState(remote = {}) {
-  return {
-    runId: typeof remote.runId === 'string' ? remote.runId : null,
-    status: typeof remote.status === 'string' ? remote.status : 'idle',
-    updatedAt: Number(remote.updatedAt) || null,
-  };
-}
-
-function createRepoBindingState(repoBinding = {}) {
-  return {
-    owner: typeof repoBinding.owner === 'string' ? repoBinding.owner : '',
-    repo: typeof repoBinding.repo === 'string' ? repoBinding.repo : '',
-    branch: typeof repoBinding.branch === 'string' ? repoBinding.branch : '',
-    workspace: typeof repoBinding.workspace === 'string' ? repoBinding.workspace : '',
-  };
-}
-
-function createRuntimeMetadata(session = {}) {
-  return {
-    runtimeId: typeof session.runtimeMetadata?.runtimeId === 'string' ? session.runtimeMetadata.runtimeId : 'mock-local',
-    remoteRun: createRemoteRunState(session.remoteRun),
-    repoBinding: createRepoBindingState(session.repoBinding),
-  };
-}
+import { createRemoteRunState, createRepoBindingState, createRuntimeMetadata } from './runtime-metadata.js';
 
 const storageKey = 'opencode-mobile.phase-05';
 const legacyStorageKey = 'opencode-mobile.phase-04';

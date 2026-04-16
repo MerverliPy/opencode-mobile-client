@@ -41,3 +41,4 @@ Authority notes:
 - [x] backlog-selection-determinism — Repair backlog selection so only true candidates remain selectable
 - [x] workflow-gate-revalidation-evidence — Re-run workflow gates and capture authoritative evidence after workflow repairs
 - [x] vite-security-refresh — Refresh Vite and related lockfile entries to reduce known development-server advisories
+- [x] session-state-normalization-deduplication — Deduplicate session-state normalization helpers so runtime metadata cannot drift

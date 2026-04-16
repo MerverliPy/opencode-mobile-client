@@ -19,28 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: session-state-normalization-deduplication
-    title: Deduplicate session-state normalization helpers so runtime metadata cannot drift
-    module: session-state
-    priority: 8
-    release_bump: patch
-    target_release: v2.2.5
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - Session runtime metadata normalization is currently duplicated across state modules, which raises drift risk.
-      - A small shared helper reduces maintenance cost without changing product behavior.
-    files:
-      - src/state/session-state.js
-      - src/state/storage.js
-      - src/state/runtime-metadata.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run lint
-    acceptance:
-      - Session runtime metadata normalization is defined in one shared helper path.
-      - Storage hydration and session-state updates still normalize legacy and remote session data safely.
-      - Existing smoke coverage still passes without changing user-visible behavior.
-      - The phase stays bounded to state normalization and related test coverage.
   - id: main-shell-helper-extraction
     title: Extract bounded shell helpers from src/main.js to reduce maintenance risk
     module: shell
@@ -306,4 +284,28 @@ archived:
       - Local validation and preview-oriented workflow commands still work after the refresh.
       - "Any unavoidable advisory tradeoff is documented honestly in `README.md`."
       - The phase stays bounded to dependency and compatibility updates.
+    shipped: true
+
+  - id: session-state-normalization-deduplication
+    title: Deduplicate session-state normalization helpers so runtime metadata cannot drift
+    module: session-state
+    priority: 8
+    release_bump: patch
+    target_release: v2.2.5
+    execution_flow: /autoflow
+    expected_max_files_changed: 4
+    drivers:
+      - Session runtime metadata normalization is currently duplicated across state modules, which raises drift risk.
+      - A small shared helper reduces maintenance cost without changing product behavior.
+    files:
+      - src/state/session-state.js
+      - src/state/storage.js
+      - src/state/runtime-metadata.js
+      - tests/quality-gates.smoke.test.js
+    validation: npm run workflow:check && npm run test && npm run lint
+    acceptance:
+      - Session runtime metadata normalization is defined in one shared helper path.
+      - Storage hydration and session-state updates still normalize legacy and remote session data safely.
+      - Existing smoke coverage still passes without changing user-visible behavior.
+      - The phase stays bounded to state normalization and related test coverage.
     shipped: true

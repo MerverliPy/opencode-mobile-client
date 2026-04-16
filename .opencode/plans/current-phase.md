@@ -1,23 +1,23 @@
-# Refresh Vite and related lockfile entries to reduce known development-server advisories
+# Deduplicate session-state normalization helpers so runtime metadata cannot drift
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:vite-security-refresh
+Phase file: backlog:session-state-normalization-deduplication
 
 ## Goal
 
-Refresh the Vite-related dependency set to reduce or remove the currently reported development-server advisories while keeping local validation and preview workflows working.
+Deduplicate session runtime metadata normalization into one shared helper path so normalization behavior stays consistent without changing user-visible behavior.
 
 ## Why this phase is next
 
-All listed release phases are complete, the previous backlog phase is complete, and this is the highest-priority remaining bounded backlog candidate with single-module tooling scope and clear validation.
+The Vite security refresh backlog phase has shipped, all listed release phases remain complete, and this is now the highest-priority remaining bounded candidate with a clear validation path.
 
 ## Primary files
 
-- `package.json`
-- `package-lock.json`
-- `vite.config.js`
-- `README.md`
+- `src/state/session-state.js`
+- `src/state/storage.js`
+- `src/state/runtime-metadata.js`
+- `tests/quality-gates.smoke.test.js`
 
 ## Expected max files changed
 
@@ -25,66 +25,64 @@ All listed release phases are complete, the previous backlog phase is complete, 
 
 ## Risk
 
-Low to medium. Dependency refresh work can introduce tooling or preview compatibility regressions if versions drift beyond current repo assumptions.
+Medium. State normalization changes can accidentally alter legacy hydration behavior if the shared helper is not kept behaviorally identical.
 
 ## Rollback note
 
-Revert the Vite-related dependency, lockfile, config, and documentation changes if the refresh regresses validation or preview behavior.
+Revert the shared-helper extraction if storage hydration or session metadata normalization behavior changes unexpectedly.
 
 ## In scope
 
-- refresh Vite and related lockfile entries
-- make only the minimal compatibility updates needed for the refresh
-- document any unavoidable advisory tradeoff honestly in `README.md`
-- validate the refresh with audit and local repo checks
+- move duplicated session runtime metadata normalization into one shared helper path
+- keep storage hydration and session-state updates behaviorally consistent
+- update related smoke coverage only as needed for the bounded helper consolidation
 
 ## Out of scope
 
-- unrelated product or UI changes
-- broad tooling upgrades outside the Vite-related dependency set
-- refactors unrelated to dependency compatibility
-- multi-module backlog work or future remote-runtime features
+- new session features or UI changes
+- remote runtime behavior changes
+- broad state refactors beyond normalization deduplication
+- unrelated release or tooling work
 
 ## Tasks
 
-- inspect the current Vite-related advisory surface
-- update the chosen Vite-related dependency set and lockfile entries
-- make any minimal compatibility adjustment required in `vite.config.js`
-- document any unavoidable advisory tradeoff in `README.md` if needed
+- locate duplicated normalization logic across session-state modules
+- extract the smallest shared helper that preserves existing normalization behavior
+- update the affected callers to use the shared helper
+- confirm smoke coverage still protects legacy and remote session data normalization
 - run the phase validation command and record the result
 
 ## Validation command
 
-`npm audit --json && npm run validate:local`
+`npm run workflow:check && npm run test && npm run lint`
 
 ## Validation
 
 Status: PASS
 Evidence:
-- `npm run workflow:check` passed on 2026-04-16 before and during phase validation.
-- `npm audit --json` reported 0 vulnerabilities after upgrading `vite` to `^6.4.2` and refreshing the lockfile to patched `esbuild` transitive entries.
-- `npm run validate:local` passed on 2026-04-16, including workflow check, lint, tests, and production build.
-- `npm run preview -- --host 127.0.0.1 --port 4173 --strictPort` started successfully at `http://127.0.0.1:4173/`, confirming preview-oriented workflow compatibility.
+- `npm run workflow:check` passed on 2026-04-16 before validation and again after the bounded lint fix.
+- `npm run test` passed on 2026-04-16 with existing smoke coverage still green after moving normalization logic to a shared helper module.
+- `npm run lint` passed on 2026-04-16 after removing an unused import introduced during the extraction.
 Blockers:
 - none
 Ready to ship:
-- no
+- yes
 
 ## Acceptance criteria
 
-- The chosen Vite-related dependency set reduces or removes the currently reported moderate advisories.
-- Local validation and preview-oriented workflow commands still work after the refresh.
-- Any unavoidable advisory tradeoff is documented honestly in `README.md`.
-- The phase stays bounded to dependency and compatibility updates.
+- Session runtime metadata normalization is defined in one shared helper path.
+- Storage hydration and session-state updates still normalize legacy and remote session data safely.
+- Existing smoke coverage still passes without changing user-visible behavior.
+- The phase stays bounded to state normalization and related test coverage.
 
 ## Release notes
 
-- Upgraded the repo to `vite@^6.4.2` and refreshed the lockfile to pull in patched transitive build tooling.
-- Cleared the previously reported moderate Vite and esbuild development-server advisories without changing product behavior.
+- Moved remote runtime metadata normalization into a shared state helper module used by both storage and session-state code paths.
+- Reduced drift risk without changing user-visible session behavior or widening phase scope.
 
 ## Completion summary
 
-- Upgraded `vite` from `^5.4.19` to `^6.4.2` and refreshed the lockfile to remove the reported moderate advisories.
-- Kept the phase bounded to dependency and compatibility work without product or UI changes.
-- Confirmed workflow, lint, test, build, audit, and preview startup behavior remain healthy.
+- Extracted shared runtime metadata normalization helpers into `src/state/runtime-metadata.js`.
+- Updated `session-state` and `storage` to use the shared helper path without changing user-visible behavior.
+- Confirmed workflow check, smoke tests, and lint remain green after the bounded consolidation.
 - Archived the shipped backlog candidate and recorded the shipped phase in the registry.
