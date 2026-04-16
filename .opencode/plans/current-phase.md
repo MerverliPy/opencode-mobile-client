@@ -1,6 +1,6 @@
 # Normalize workflow validation metadata so phase state parses consistently
 
-Status: pending
+Status: complete
 Release: v1.6.0
 Phase file: backlog:workflow-validation-metadata-alignment
 
@@ -10,7 +10,7 @@ Normalize active-phase validation metadata so the workflow parsers agree on one 
 
 ## Why this phase is next
 
-All listed release phases are already complete. The user scoped this planning pass to the full audit fix order, and this candidate is the first bounded workflow repair in that order with the highest priority, smallest safe scope, and clearest deterministic validation.
+This backlog candidate remains the active incomplete phase. All release phases in the registry are already complete, and the current phase is neither completed nor explicitly replaced by new user scope, so it must stay selected.
 
 ## Primary files
 
@@ -57,11 +57,13 @@ Revert the parser and template-alignment changes together so workflow metadata g
 
 ## Validation
 
-Status: pending
+Status: PASS
 Evidence:
-- not run yet
+- `npm run workflow:check` passed on 2026-04-16.
+- `npm run repo:doctor` passed on 2026-04-16 and reported `Validation status: pending` from the active phase file before validation finalization.
+- `bash scripts/dev/autoflow.sh inspect` reported non-empty `VALIDATION_STATUS=pending` and `READY_TO_SHIP=no`, confirming the parser reads the canonical validation block shape.
 Blockers:
-- not validated yet
+- none
 Ready to ship:
 - no
 
@@ -72,6 +74,13 @@ Ready to ship:
 - `bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present.
 - The phase stays bounded to workflow metadata and parser alignment only.
 
+## Release notes
+
+- Confirmed the active workflow surfaces already share one canonical validation metadata shape.
+- Recorded authoritative PASS evidence for workflow parsing without changing product behavior.
+
 ## Completion summary
 
-- not started
+- Verified that `.opencode/commands/next-phase.md`, `scripts/dev/workflow-check.sh`, `scripts/dev/doctor.sh`, and `scripts/dev/autoflow.sh` already use the same canonical validation block shape.
+- Confirmed the phase validation command passes without product-code changes.
+- Archived the shipped backlog candidate and recorded the shipped phase in the registry.

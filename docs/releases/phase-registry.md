@@ -37,3 +37,4 @@ Authority notes:
 - [x] remote-backend-http-bridge — Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
 - [x] repo-binding-surface — Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
 - [x] remote-preview-share-surface — Add remote preview link and read-only share surfaces so phone-based review is practical
+- [x] workflow-validation-metadata-alignment — Normalize workflow validation metadata so phase state parses consistently

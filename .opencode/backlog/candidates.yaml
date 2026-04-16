@@ -19,28 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: workflow-validation-metadata-alignment
-    title: Normalize workflow validation metadata so phase state parses consistently
-    module: workflow
-    priority: 12
-    release_bump: patch
-    target_release: v2.2.1
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`workflow:check`, `repo:doctor`, and `autoflow inspect` currently disagree because active-phase validation metadata is not parsed consistently."
-      - Workflow automation must become trustworthy again before later backlog selection, release proof, or product work continues.
-    files:
-      - .opencode/commands/next-phase.md
-      - scripts/dev/workflow-check.sh
-      - scripts/dev/doctor.sh
-      - scripts/dev/autoflow.sh
-    validation: npm run workflow:check && npm run repo:doctor && bash scripts/dev/autoflow.sh inspect
-    acceptance:
-      - The canonical active-phase validation keys are consistent across phase templates and workflow parsers.
-      - "`npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly."
-      - "`bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present."
-      - The phase stays bounded to workflow metadata and parser alignment only.
   - id: backlog-selection-determinism
     title: Repair backlog selection so only true candidates remain selectable
     module: workflow
@@ -270,6 +248,30 @@ deferred_local_first_candidates:
     title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
 
 archived:
+  - id: workflow-validation-metadata-alignment
+    title: Normalize workflow validation metadata so phase state parses consistently
+    module: workflow
+    priority: 12
+    release_bump: patch
+    target_release: v2.2.1
+    execution_flow: /autoflow
+    expected_max_files_changed: 4
+    drivers:
+      - "`workflow:check`, `repo:doctor`, and `autoflow inspect` currently disagree because active-phase validation metadata is not parsed consistently."
+      - Workflow automation must become trustworthy again before later backlog selection, release proof, or product work continues.
+    files:
+      - .opencode/commands/next-phase.md
+      - scripts/dev/workflow-check.sh
+      - scripts/dev/doctor.sh
+      - scripts/dev/autoflow.sh
+    validation: npm run workflow:check && npm run repo:doctor && bash scripts/dev/autoflow.sh inspect
+    acceptance:
+      - The canonical active-phase validation keys are consistent across phase templates and workflow parsers.
+      - "`npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly."
+      - "`bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present."
+      - The phase stays bounded to workflow metadata and parser alignment only.
+    shipped: true
+
   - id: clean-install-reproducibility
     title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
     module: tooling
