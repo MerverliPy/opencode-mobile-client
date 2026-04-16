@@ -10,7 +10,7 @@ Phase 14 reconciled older duplicate release docs, release-proof workflow state, 
 
 The running app is still a local-first mobile shell with mock-backed task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
-The next planned release target is `v2.2.0`, which is scoped to adding remote preview link and read-only share surfaces so phone-based review is practical while keeping the shipped app honest about its current `v1.6.0` baseline.
+The current workflow target is `v2.2.0`, scoped to remote preview link and read-only share surfaces so phone-based review is practical while keeping the shipped app honest about its current `v1.6.0` baseline.
 
 ## Current product reality
 

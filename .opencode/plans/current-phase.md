@@ -58,23 +58,21 @@ Revert the preview-link and read-only share UI surfaces together with the relate
 
 ## Validation
 
-Status: PASS
+status: PASS
 
-Evidence:
-- `npm run workflow:check` passed before phase validation.
-- The required validation command `npm run workflow:check && npm run test && npm run build` passed.
-- The phase stayed within scope across `src/main.js`, `src/ui/screens.js`, `tests/quality-gates.smoke.test.js`, `package.json`, and `README.md`.
-- Remote task surfaces now render preview-link and read-only share sections that stay explicit when backend links are missing and open returned links without implying editable collaboration support.
-- Remote sessions can now render stored preview and share links when those links are present on session state, while preserving honest fallback behavior when links are unavailable.
-- Smoke coverage verifies visible preview/share UI and honest empty-link states for remote sessions.
-- No voice-entry, collaboration-editing, or broader backend-contract work was added in this phase.
-- `package.json` and `README.md` now target the planned `v2.2.0` follow-up while preserving the shipped `v1.6.0` baseline.
+evidence:
+- `npm run workflow:check` passed before declaring PASS.
+- The stated validation command `npm run workflow:check && npm run test && npm run build` passed.
+- `src/ui/screens.js` renders remote preview and read-only share cards only for remote-backed sessions, with explicit unavailable states when no links are returned.
+- `src/main.js` normalizes preview/share payloads and opens only valid `http`/`https` links, showing honest warnings instead of implying success when links are missing or invalid.
+- `tests/quality-gates.smoke.test.js` covers both available preview/share surfaces and honest empty-link states.
+- `package.json` targets `v2.2.0` via `opencode.targetRelease`, and `README.md` describes `v2.2.0` as the current workflow target while preserving the shipped `v1.6.0` baseline.
+- No active-phase evidence shows voice entry, editable collaboration, or broader backend-contract expansion beyond consuming preview/share data.
 
-Blockers:
+blockers:
 - none
 
-Ready to ship:
-- yes
+ready-to-ship: yes
 
 ## Acceptance criteria
 
