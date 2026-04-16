@@ -19,7 +19,8 @@
     "repo:doctor": "bash scripts/dev/doctor.sh",
     "phase:show": "cat .opencode/plans/current-phase.md",
     "backlog:show": "cat .opencode/backlog/candidates.yaml",
-    "validate:local": "npm run workflow:check && npm run lint && npm run test && npm run build"
+    "validate:local": "npm run workflow:check && npm run lint && npm run test && npm run build",
+    "autoflow:test": "bash scripts/dev/test-autoflow.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
