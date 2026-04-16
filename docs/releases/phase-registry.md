@@ -40,3 +40,4 @@ Authority notes:
 - [x] workflow-validation-metadata-alignment — Normalize workflow validation metadata so phase state parses consistently
 - [x] backlog-selection-determinism — Repair backlog selection so only true candidates remain selectable
 - [x] workflow-gate-revalidation-evidence — Re-run workflow gates and capture authoritative evidence after workflow repairs
+- [x] vite-security-refresh — Refresh Vite and related lockfile entries to reduce known development-server advisories

@@ -1,63 +1,70 @@
-# Re-run workflow gates and capture authoritative evidence after workflow repairs
+# Refresh Vite and related lockfile entries to reduce known development-server advisories
 
 Status: complete
 Release: v1.6.0
-Phase file: backlog:workflow-gate-revalidation-evidence
+Phase file: backlog:vite-security-refresh
 
 ## Goal
 
-Re-run the workflow gates after the workflow repair phases and record fresh authoritative evidence without bundling unrelated implementation work.
+Refresh the Vite-related dependency set to reduce or remove the currently reported development-server advisories while keeping local validation and preview workflows working.
 
 ## Why this phase is next
 
-The previous workflow backlog phase has shipped, all release phases remain complete, and this is the highest-priority remaining bounded workflow follow-up with the clearest validation.
+All listed release phases are complete, the previous backlog phase is complete, and this is the highest-priority remaining bounded backlog candidate with single-module tooling scope and clear validation.
 
 ## Primary files
 
-- `.opencode/plans/current-phase.md`
+- `package.json`
+- `package-lock.json`
+- `vite.config.js`
+- `README.md`
 
 ## Expected max files changed
 
-1
+4
 
 ## Risk
 
-Low. This phase is evidence capture only, but it must avoid mixing in unrelated code or release-state changes.
+Low to medium. Dependency refresh work can introduce tooling or preview compatibility regressions if versions drift beyond current repo assumptions.
 
 ## Rollback note
 
-Revert the active phase evidence update if the recorded validation proof is later found to be stale or inaccurate.
+Revert the Vite-related dependency, lockfile, config, and documentation changes if the refresh regresses validation or preview behavior.
 
 ## In scope
 
-- rerun workflow gates after the shipped workflow repair phases
-- capture fresh validation evidence in the active phase file only
-- keep the phase limited to authoritative gate evidence without unrelated code changes
+- refresh Vite and related lockfile entries
+- make only the minimal compatibility updates needed for the refresh
+- document any unavoidable advisory tradeoff honestly in `README.md`
+- validate the refresh with audit and local repo checks
 
 ## Out of scope
 
-- product runtime or UI changes
-- new workflow behavior changes or further repairs unless a hard blocker is found
-- release metadata changes for unrelated phases
-- dependency updates or refactors
+- unrelated product or UI changes
+- broad tooling upgrades outside the Vite-related dependency set
+- refactors unrelated to dependency compatibility
+- multi-module backlog work or future remote-runtime features
 
 ## Tasks
 
-- run `npm run workflow:check`
-- run `npm run release:proof`
-- record fresh PASS or FAIL evidence in the active phase file
+- inspect the current Vite-related advisory surface
+- update the chosen Vite-related dependency set and lockfile entries
+- make any minimal compatibility adjustment required in `vite.config.js`
+- document any unavoidable advisory tradeoff in `README.md` if needed
+- run the phase validation command and record the result
 
 ## Validation command
 
-`npm run workflow:check && npm run release:proof`
+`npm audit --json && npm run validate:local`
 
 ## Validation
 
 Status: PASS
 Evidence:
-- `npm run workflow:check` passed on 2026-04-16 after the shipped workflow repair phases.
-- `npm run release:proof` passed on 2026-04-16, including `npm run validate:local`, lint, tests, build, and existing browser-proof artifacts.
-- The evidence pass changed only `.opencode/plans/current-phase.md` before release finalization.
+- `npm run workflow:check` passed on 2026-04-16 before and during phase validation.
+- `npm audit --json` reported 0 vulnerabilities after upgrading `vite` to `^6.4.2` and refreshing the lockfile to patched `esbuild` transitive entries.
+- `npm run validate:local` passed on 2026-04-16, including workflow check, lint, tests, and production build.
+- `npm run preview -- --host 127.0.0.1 --port 4173 --strictPort` started successfully at `http://127.0.0.1:4173/`, confirming preview-oriented workflow compatibility.
 Blockers:
 - none
 Ready to ship:
@@ -65,17 +72,19 @@ Ready to ship:
 
 ## Acceptance criteria
 
-- `npm run workflow:check` passes after the workflow repair phases.
-- `npm run release:proof` passes and the active phase records fresh evidence instead of stale audit assumptions.
-- No unrelated product or tooling changes are bundled into the evidence pass.
+- The chosen Vite-related dependency set reduces or removes the currently reported moderate advisories.
+- Local validation and preview-oriented workflow commands still work after the refresh.
+- Any unavoidable advisory tradeoff is documented honestly in `README.md`.
+- The phase stays bounded to dependency and compatibility updates.
 
 ## Release notes
 
-- Captured fresh post-repair workflow gate evidence in the active phase file.
-- Confirmed release proof is currently green with existing required artifacts present.
+- Upgraded the repo to `vite@^6.4.2` and refreshed the lockfile to pull in patched transitive build tooling.
+- Cleared the previously reported moderate Vite and esbuild development-server advisories without changing product behavior.
 
 ## Completion summary
 
-- Re-ran `workflow:check` and `release:proof` after the shipped workflow repair phases.
-- Recorded authoritative PASS evidence without bundling unrelated implementation work.
+- Upgraded `vite` from `^5.4.19` to `^6.4.2` and refreshed the lockfile to remove the reported moderate advisories.
+- Kept the phase bounded to dependency and compatibility work without product or UI changes.
+- Confirmed workflow, lint, test, build, audit, and preview startup behavior remain healthy.
 - Archived the shipped backlog candidate and recorded the shipped phase in the registry.

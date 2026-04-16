@@ -19,28 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: vite-security-refresh
-    title: Refresh Vite and related lockfile entries to reduce known development-server advisories
-    module: tooling
-    priority: 9
-    release_bump: patch
-    target_release: v2.2.4
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`npm audit` currently reports moderate advisories affecting Vite and transitive esbuild in the repo's dev and preview workflow."
-      - The refresh should stay bounded to dependency and config compatibility work, not unrelated app changes.
-    files:
-      - package.json
-      - package-lock.json
-      - vite.config.js
-      - README.md
-    validation: npm audit --json && npm run validate:local
-    acceptance:
-      - The chosen Vite-related dependency set reduces or removes the currently reported moderate advisories.
-      - Local validation and preview-oriented workflow commands still work after the refresh.
-      - "Any unavoidable advisory tradeoff is documented honestly in `README.md`."
-      - The phase stays bounded to dependency and compatibility updates.
   - id: session-state-normalization-deduplication
     title: Deduplicate session-state normalization helpers so runtime metadata cannot drift
     module: session-state
@@ -304,4 +282,28 @@ archived:
   - id: remote-run-shell-state
     title: Add durable remote run lifecycle states and reconnect controls to the mobile shell
     module: remote-runtime
+    shipped: true
+
+  - id: vite-security-refresh
+    title: Refresh Vite and related lockfile entries to reduce known development-server advisories
+    module: tooling
+    priority: 9
+    release_bump: patch
+    target_release: v2.2.4
+    execution_flow: /autoflow
+    expected_max_files_changed: 4
+    drivers:
+      - "`npm audit` currently reports moderate advisories affecting Vite and transitive esbuild in the repo's dev and preview workflow."
+      - The refresh should stay bounded to dependency and config compatibility work, not unrelated app changes.
+    files:
+      - package.json
+      - package-lock.json
+      - vite.config.js
+      - README.md
+    validation: npm audit --json && npm run validate:local
+    acceptance:
+      - The chosen Vite-related dependency set reduces or removes the currently reported moderate advisories.
+      - Local validation and preview-oriented workflow commands still work after the refresh.
+      - "Any unavoidable advisory tradeoff is documented honestly in `README.md`."
+      - The phase stays bounded to dependency and compatibility updates.
     shipped: true
