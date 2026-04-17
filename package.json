@@ -1,7 +1,7 @@
 {
   "name": "opencode-mobile-client",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.7.0",
   "opencode": {
     "targetRelease": "v2.3.0"
   },

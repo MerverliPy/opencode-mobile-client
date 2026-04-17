@@ -14,8 +14,12 @@ import {
 } from './lib/ui-notices.js';
 import { createId } from './lib/utils.js';
 import {
+  createRemoteAssistantMessage,
+  findRemoteAssistantMessage,
   createSession,
+  getSessionById,
   getSelectedSession,
+  isRemoteSession,
   getSessionTitle,
   getToolResult,
   getToolResults,
@@ -217,9 +221,9 @@ function openExternalLink(url, label) {
 }
 
 function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successNotice, fallbackNotice, errorNotice }) {
-  const session = getSelectedSession(appState);
+  const session = getSessionById(appState, sessionId);
 
-  if (!session || session.id !== sessionId) {
+  if (!session) {
     return;
   }
 
@@ -237,8 +241,8 @@ function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successN
         }
       : {
           runId: session.remoteRun?.runId ?? null,
-          status: typeof session.remoteRun?.status === 'string' && session.remoteRun.status ? session.remoteRun.status : 'idle',
-          updatedAt: session.remoteRun?.updatedAt ?? Date.now(),
+          status: 'failed',
+          updatedAt: Date.now(),
         };
 
   const nextRemoteLinks = operation.ok
@@ -247,6 +251,7 @@ function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successN
 
   updateSessionById(appState, sessionId, (currentSession) => ({
     ...currentSession,
+    isLoading: operation.ok ? currentSession.isLoading : false,
     updatedAt: Date.now(),
     runtimeMetadata: {
       ...(currentSession.runtimeMetadata ?? {}),
@@ -272,6 +277,86 @@ function syncRemoteSessionState(sessionId, operation, fallbackStatus, { successN
   }
 
   renderApp();
+}
+
+function clearResponseTimer(sessionId) {
+  if (!responseTimers.has(sessionId)) {
+    return;
+  }
+
+  window.clearTimeout(responseTimers.get(sessionId));
+  responseTimers.delete(sessionId);
+}
+
+function finalizeRemoteAssistantHydration(sessionId, result) {
+  const hydration = remoteRuntimeAdapter.hydrateCompletedRun(result);
+
+  updateSessionById(appState, sessionId, (session) => {
+    const nextMessages = [...session.messages];
+    const runId = hydration.remoteRun?.runId ?? session.remoteRun?.runId ?? null;
+    const existingRemoteMessage = findRemoteAssistantMessage(session, runId);
+    const remoteAssistantMessage = hydration.ok
+      ? createRemoteAssistantMessage({
+          runId,
+          text: hydration.assistantResponse?.text,
+          label: hydration.assistantResponse?.label,
+        })
+      : null;
+
+    if (remoteAssistantMessage && !existingRemoteMessage) {
+      nextMessages.push(remoteAssistantMessage);
+    }
+
+    return {
+      ...session,
+      isLoading: false,
+      updatedAt: Date.now(),
+      messages: nextMessages,
+      remoteRun: {
+        runId,
+        status: hydration.remoteRun?.status ?? session.remoteRun?.status ?? 'idle',
+        updatedAt: hydration.remoteRun?.updatedAt ?? Date.now(),
+      },
+    };
+  });
+
+  if (hydration.ok) {
+    setUiNotice({
+      tone: 'success',
+      title: 'Remote response loaded.',
+      body: 'The completed backend-owned assistant response is now attached to this session.',
+    });
+  } else if (hydration.status === 'completed') {
+    setUiNotice({
+      tone: 'warning',
+      title: 'Remote run completed without response output.',
+      body: 'The shell kept the run marked complete instead of inventing a local success message.',
+    });
+  }
+}
+
+function buildRemotePendingNotice(operation) {
+  if (operation.ok) {
+    return {
+      tone: 'info',
+      title: 'Remote run is active.',
+      body: 'This session is waiting for backend-owned output, so the shell does not generate a local assistant reply.',
+    };
+  }
+
+  if (operation.status === 'unsupported') {
+    return {
+      tone: 'info',
+      title: 'Remote shell fallback stayed active.',
+      body: 'Remote backend transport is unavailable by configuration, so no fake local success reply was generated for this remote session.',
+    };
+  }
+
+  return {
+    tone: 'warning',
+    title: 'Remote run failed to start.',
+    body: 'The backend request failed, and the shell kept the session honest instead of fabricating a local assistant success.',
+  };
 }
 
 function focusMainContent() {
@@ -459,9 +544,45 @@ function startVoiceEntry() {
 }
 
 async function finishAssistantReply(sessionId, prompt) {
-  responseTimers.delete(sessionId);
+  clearResponseTimer(sessionId);
 
   const sessionBeforeUpdate = getSelectedSession(appState);
+
+  if (isRemoteSession(sessionBeforeUpdate)) {
+    const operation = await remoteRuntimeAdapter.startRun({
+      prompt,
+      sessionId,
+      repoBinding: sessionBeforeUpdate?.repoBinding ?? null,
+    });
+
+    updateSessionById(appState, sessionId, (session) => ({
+      ...session,
+      isLoading: operation.ok,
+      updatedAt: Date.now(),
+      runtimeMetadata: {
+        ...(session.runtimeMetadata ?? {}),
+        runtimeId: remoteRuntimeAdapter.id,
+      },
+      remoteRun: {
+        runId: operation.remoteRun?.runId ?? session.remoteRun?.runId ?? null,
+        status: operation.remoteRun?.status ?? (operation.status === 'unsupported' ? 'idle' : 'failed'),
+        updatedAt: operation.remoteRun?.updatedAt ?? Date.now(),
+      },
+    }));
+
+    setUiNotice(buildRemotePendingNotice(operation));
+
+    if (operation.ok && operation.remoteRun?.status === 'completed') {
+      finalizeRemoteAssistantHydration(sessionId, operation);
+    }
+
+    if (appState.selectedSessionId === sessionId && getActiveScreenId() === 'task') {
+      shouldScrollTaskToEnd = true;
+    }
+
+    renderApp();
+    return;
+  }
 
   const updatedSession = updateSessionById(appState, sessionId, (session) => {
     const { assistantMessage, toolResults } = runtimeAdapter.respond({
@@ -485,33 +606,6 @@ async function finishAssistantReply(sessionId, prompt) {
     shouldScrollTaskToEnd = true;
   }
 
-  if (sessionBeforeUpdate?.runtimeMetadata?.runtimeId === remoteRuntimeAdapter.id || sessionBeforeUpdate?.remoteRun?.runId) {
-    const operation = await remoteRuntimeAdapter.startRun({
-      prompt,
-      sessionId,
-      repoBinding: sessionBeforeUpdate.repoBinding ?? null,
-    });
-
-    syncRemoteSessionState(sessionId, operation, 'queued', {
-      successNotice: {
-        tone: 'success',
-        title: 'Remote run started.',
-        body: 'The mobile shell created a remote run and now tracks its durable state without pretending this phone is the executor.',
-      },
-      fallbackNotice: {
-        tone: 'info',
-        title: 'Remote shell fallback stayed active.',
-        body: 'No backend base URL is configured, so the mobile shell kept the remote session honest with stored mock-backed state only.',
-      },
-      errorNotice: {
-        tone: 'warning',
-        title: 'Remote run could not start.',
-        body: 'The backend request failed, so the mobile shell did not pretend the run started successfully.',
-      },
-    });
-    return;
-  }
-
   renderApp();
 }
 
@@ -523,10 +617,7 @@ function submitDraft() {
     return;
   }
 
-  if (responseTimers.has(session.id)) {
-    window.clearTimeout(responseTimers.get(session.id));
-    responseTimers.delete(session.id);
-  }
+  clearResponseTimer(session.id);
 
   updateSessionById(appState, session.id, (currentSession) => ({
     ...currentSession,
@@ -633,6 +724,12 @@ async function handleReconnectRemoteRun() {
   const statusOperation = await remoteRuntimeAdapter.fetchRunStatus({ runId: ensuredRunId, sessionId: session.id });
 
   if (statusOperation.ok) {
+    if (statusOperation.remoteRun?.status === 'completed') {
+      finalizeRemoteAssistantHydration(session.id, statusOperation);
+      renderApp();
+      return;
+    }
+
     syncRemoteSessionState(session.id, statusOperation, statusOperation.remoteRun?.status ?? status, {
       successNotice: {
         tone: 'info',
@@ -666,6 +763,10 @@ async function handleReconnectRemoteRun() {
       body: 'The mobile shell kept the durable run visible, but the backend resume request did not succeed.',
     },
   });
+
+  if (operation.ok && operation.remoteRun?.status === 'completed') {
+    finalizeRemoteAssistantHydration(session.id, operation);
+  }
 }
 
 async function handleCancelRemoteRun() {

@@ -21,7 +21,10 @@ import {
   normalizeToolResult,
 } from '../src/lib/tool-results.js';
 import {
+  createRemoteAssistantMessage,
   createStarterMessages,
+  findRemoteAssistantMessage,
+  getRemoteResponseLifecycleState,
   getRepoBindingLabel,
   getRepoBindingStatus,
   getRepoWorkspaceLabel,
@@ -32,6 +35,7 @@ import {
   getToolResult,
   getToolResults,
   getVisibleMessageCount,
+  isRemoteSession,
 } from '../src/state/session-state.js';
 import {
   getConnectionLabel,
@@ -639,6 +643,86 @@ describe('Phase 13 smoke coverage', () => {
     });
   });
 
+  it('hydrates backend-owned assistant output only from completed remote runs', async () => {
+    const adapter = createRemoteRuntimeAdapter({
+      backend: {
+        baseUrl: 'https://runtime.example',
+        fetchImpl: vi.fn(async () => ({
+          ok: true,
+          status: 200,
+          async text() {
+            return JSON.stringify({
+              status: 'completed',
+              run: { runId: 'run-55', status: 'completed', updatedAt: 550 },
+              response: { text: 'Backend-owned final reply', label: 'OpenCode' },
+            });
+          },
+        })),
+      },
+    });
+
+    const result = await adapter.fetchRunStatus({ runId: 'run-55', sessionId: 'session-1' });
+    const hydration = adapter.hydrateCompletedRun(result);
+    const message = createRemoteAssistantMessage({
+      runId: hydration.remoteRun.runId,
+      text: hydration.assistantResponse.text,
+      label: hydration.assistantResponse.label,
+    });
+    const session = {
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: hydration.remoteRun,
+      messages: [message],
+    };
+
+    expect(hydration).toMatchObject({
+      ok: true,
+      status: 'completed',
+      remoteRun: { runId: 'run-55', status: 'completed', updatedAt: 550 },
+      assistantResponse: { text: 'Backend-owned final reply', label: 'OpenCode' },
+    });
+    expect(isRemoteSession(session)).toBe(true);
+    expect(findRemoteAssistantMessage(session, 'run-55')).toEqual(message);
+    expect(getRemoteResponseLifecycleState(session)).toBe('hydrated');
+  });
+
+  it('keeps remote sessions honest when runs complete without assistant output', () => {
+    const adapter = createRemoteRuntimeAdapter();
+    const hydration = adapter.hydrateCompletedRun({
+      ok: true,
+      status: 'completed',
+      runId: 'run-66',
+      payload: {
+        status: 'completed',
+        run: { runId: 'run-66', status: 'completed', updatedAt: 660 },
+      },
+    });
+    const session = {
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-66', status: 'completed', updatedAt: 660 },
+      isLoading: false,
+      messages: [],
+    };
+
+    expect(hydration).toMatchObject({
+      ok: false,
+      status: 'completed',
+      reason: 'completed remote run did not return assistant output',
+    });
+    expect(getRemoteResponseLifecycleState(session)).toBe('missing');
+    expect(findRemoteAssistantMessage(session, 'run-66')).toBe(null);
+  });
+
+  it('treats failed remote runs as failed instead of pending once loading stops', () => {
+    const session = {
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-88', status: 'failed', updatedAt: 880 },
+      isLoading: false,
+      messages: [],
+    };
+
+    expect(getRemoteResponseLifecycleState(session)).toBe('failed');
+  });
+
   it('normalizes remote runtime metadata for legacy and bound sessions', () => {
     expect(createRuntimeMetadata({})).toEqual({
       runtimeId: 'mock-local',
@@ -795,9 +879,82 @@ describe('Phase 13 smoke coverage', () => {
     expect(html).toContain('Remote preview');
     expect(html).toContain('Preview app');
     expect(html).toContain('Read-only share');
+    expect(html).toContain('Backend response pending');
     expect(html).toContain('data-action="open-preview-link"');
     expect(html).toContain('data-action="open-share-link"');
     expect(html).not.toContain('Local only');
+  });
+
+  it('renders completed remote response ownership honestly in the task shell', () => {
+    const remoteMessage = createRemoteAssistantMessage({
+      runId: 'run-77',
+      text: 'Backend-owned final reply',
+    });
+    const remoteSession = {
+      id: 'session-remote-complete',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: '',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-77', status: 'completed', updatedAt: 30 },
+      remoteLinks: { previews: [], share: null },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-3' },
+      messages: [remoteMessage],
+      toolResults: [],
+    };
+
+    const html = renderTaskScreen({
+      appState: {
+        isHydratingSessions: false,
+        selectedSessionId: 'session-remote-complete',
+        sessions: [remoteSession],
+        shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+        toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+      },
+      screens: {
+        task: { description: 'Local shell description' },
+      },
+    });
+
+    expect(html).toContain('Backend response attached');
+    expect(html).toContain('Backend-owned final reply');
+    expect(html).toContain('This session now shows the backend-owned assistant response inside the thread.');
+    expect(html).toContain('aria-label="Send to remote run"');
+  });
+
+  it('renders remote composer labels without mock wording while loading', () => {
+    const remoteSession = {
+      id: 'session-remote-loading',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: 'Continue the remote task',
+      isLoading: true,
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-90', status: 'running', updatedAt: 30 },
+      remoteLinks: { previews: [], share: null },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-4' },
+      messages: [{ id: 'msg-1', role: 'user', label: 'You', text: 'Continue the remote task' }],
+      toolResults: [],
+    };
+
+    const html = renderTaskScreen({
+      appState: {
+        isHydratingSessions: false,
+        selectedSessionId: 'session-remote-loading',
+        sessions: [remoteSession],
+        shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+        toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+        voiceEntry: { isSupported: false, isListening: false },
+      },
+      screens: {
+        task: { description: 'Local shell description' },
+      },
+    });
+
+    expect(html).toContain('aria-label="Waiting for remote response"');
+    expect(html).not.toContain('Generate mock reply');
+    expect(html).not.toContain('Generating mock reply');
   });
 
   it('shows honest empty preview and share states when returned links are absent', () => {

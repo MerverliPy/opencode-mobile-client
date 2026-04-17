@@ -8,7 +8,7 @@ Legend:
 
 Authority notes:
 - `.opencode/plans/current-phase.md` and this registry are the active workflow source of truth.
-- The runtime and package metadata currently advertise the shipped `v1.6.0` release established by Phase 14; Phase 09 reconciled the older planning state that had drifted around the previous `v1.5.0` baseline.
+- The runtime and package metadata currently advertise the shipped `v1.7.0` release established by `remote-response-ownership`; Phase 14 established the prior `v1.6.0` baseline.
 - The previously shipped `v1.1.0` skip-link follow-up that once used Phase 09 numbering is preserved at `docs/releases/phase-09-v1-1-history.md` as a superseded historical record.
 
 ## Implementation releases
@@ -44,8 +44,7 @@ Authority notes:
 - [x] session-state-normalization-deduplication — Deduplicate session-state normalization helpers so runtime metadata cannot drift
 - [x] main-shell-helper-extraction — Extract bounded shell helpers from src/main.js to reduce maintenance risk
 - [x] mobile-voice-prompt-entry — Add optional voice prompt entry for remote coding requests on iPhone
+- [x] remote-response-ownership — v1.7.0 — Make remote runs own assistant responses instead of the local mock path
 
 ## In progress
-
-- `remote-response-ownership` — v1.7.0 — Make remote runs own assistant responses instead of the local mock path.
 

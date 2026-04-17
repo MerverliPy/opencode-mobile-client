@@ -4,20 +4,21 @@ An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use 
 
 ## Release baseline
 
-The current release baseline is `v1.7.0`, while the shipped `package.json` version `1.6.0` and runtime release badge remain unchanged until this phase validates and ships.
+The current release baseline is `v1.7.0`, and the shipped `package.json` version `1.7.0` now matches that release.
 
 Phase 14 reconciled older duplicate release docs, release-proof workflow state, and browser-validation commands around that baseline. Treat `.opencode/plans/current-phase.md` and `docs/releases/phase-registry.md` as the authoritative workflow surfaces.
 
-The running app is still a local-first mobile shell with mock-backed task replies, file viewing, diff review, installability, and offline-aware shell behavior.
+The running app is still a local-first mobile shell with mock-backed local task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
-The current workflow target is `v1.7.0`, scoped to making remote runs own assistant responses instead of the local mock path while keeping the shipped app honest about its current `1.6.0` package version until release ship time.
+The latest shipped `v1.7.0` release makes remote runs own assistant responses instead of the local mock path while keeping the app honest about its still-local-first product scope.
 
 ## Current product reality
 
 This repository currently ships a local-first mobile shell, not a live backend client.
 
 - sessions and shell state persist on the current device
-- task replies, file views, and diff review are shell or mock-backed experiences for mobile workflow validation
+- local sessions still use mock-backed task replies, file views, and diff review for mobile workflow validation
+- remote-marked sessions no longer invent a final local assistant success while a remote run is active; they wait for backend-owned completion output or show an explicit missing or failed state
 - online and offline indicators reflect browser connectivity and install or reload conditions, not a live OpenCode session
 - the product is being delivered in small phases before any real transport or authentication work exists
 

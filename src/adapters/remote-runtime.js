@@ -90,6 +90,24 @@ function normalizeRemoteRun(payload, fallback = {}) {
   };
 }
 
+function normalizeRemoteAssistantResponse(payload) {
+  const source = payload?.response && typeof payload.response === 'object'
+    ? payload.response
+    : payload?.assistant && typeof payload.assistant === 'object'
+      ? payload.assistant
+      : payload;
+  const text = normalizeText(source?.text) || normalizeText(source?.message) || normalizeText(source?.output);
+
+  if (!text) {
+    return null;
+  }
+
+  return {
+    text,
+    label: normalizeText(source?.label) || 'OpenCode',
+  };
+}
+
 async function performBackendRequest({ operation, backendConfig, path, method = 'GET', body, query, fallbackStatus }) {
   if (!backendConfig) {
     return buildUnsupportedResult(operation);
@@ -137,6 +155,7 @@ async function performBackendRequest({ operation, backendConfig, path, method = 
       status: normalizeText(payload?.status) || fallbackStatus,
       requestUrl,
       remoteRun: normalizeRemoteRun(payload, { status: fallbackStatus }),
+      assistantResponse: normalizeRemoteAssistantResponse(payload),
       payload,
     };
   } catch (error) {
@@ -282,6 +301,55 @@ export function createRemoteRuntimeAdapter({ mockAdapter = createMockRuntimeAdap
         ...result,
         runId: normalizedRunId,
         sessionId: normalizedSessionId,
+      };
+    },
+    hydrateCompletedRun(result) {
+      if (!result?.ok) {
+        return {
+          ok: false,
+          status: result?.status ?? 'error',
+          operation: 'hydrateCompletedRun',
+          reason: result?.reason ?? 'remote response unavailable',
+          details: result?.details ?? '',
+          remoteRun: result?.remoteRun ?? null,
+          assistantResponse: null,
+        };
+      }
+
+      const remoteRun = normalizeRemoteRun(result.remoteRun ?? result.payload ?? result, {
+        runId: result.runId,
+        status: result.status,
+      });
+      const assistantResponse = normalizeRemoteAssistantResponse(result.payload ?? result);
+
+      if (remoteRun.status !== 'completed') {
+        return {
+          ok: false,
+          status: remoteRun.status || result.status || 'idle',
+          operation: 'hydrateCompletedRun',
+          reason: 'remote run not completed',
+          remoteRun,
+          assistantResponse,
+        };
+      }
+
+      if (!assistantResponse) {
+        return {
+          ok: false,
+          status: 'completed',
+          operation: 'hydrateCompletedRun',
+          reason: 'completed remote run did not return assistant output',
+          remoteRun,
+          assistantResponse: null,
+        };
+      }
+
+      return {
+        ok: true,
+        status: 'completed',
+        operation: 'hydrateCompletedRun',
+        remoteRun,
+        assistantResponse,
       };
     },
     async fetchPreviewLinks({ runId, sessionId } = {}) {

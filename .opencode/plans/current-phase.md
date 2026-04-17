@@ -1,9 +1,9 @@
 # Make remote runs own assistant responses instead of the local mock path
 
-Status: ready
+Status: complete
 Release: v1.7.0
 Phase file: backlog:remote-response-ownership
-Validation status: pending
+Validation status: PASS
 
 ## Goal
 Make remote-mode sessions use backend-owned assistant responses instead of generating user-visible output from the local/mock path when remote runtime is active.
@@ -54,18 +54,26 @@ Revert to the current local/mock response path behind an explicit fallback branc
 npm run workflow:check && npm run test && npm run build && npm run release:proof
 
 ## Validation
-pending
+PASS
 
-Status: pending
+Status: PASS
 
 Evidence:
-- not run yet
+- `npm run workflow:check` passed.
+- `npm run test && npm run build && npm run release:proof` passed.
+- Remote sessions now avoid local mock final replies, completed runs hydrate backend-owned assistant output, and failed runs surface explicit failed state.
+- `src/ui/screens.js` now uses remote-specific composer labels (`Send to remote run`, `Waiting for remote response`) while local sessions keep mock-specific labels, satisfying the remaining UI-truthfulness gap.
 
 Blockers:
 - none
 
 Ready to ship:
-- no
+- yes
+
+## Release notes
+- Remote sessions now wait for backend-owned assistant output instead of showing a local mock final reply.
+- Completed, missing-output, and failed remote runs stay explicit in the mobile task UI and accessibility labels.
+
 ## Acceptance criteria
 - Remote-enabled sessions do not create final user-visible assistant output from the local mock path while a remote run is active.
 - Completed remote runs can hydrate backend-owned assistant output into the session.
@@ -75,4 +83,4 @@ Ready to ship:
 - All validation commands pass.
 
 ## Completion summary
-pending
+Shipped `v1.7.0` with backend-owned remote response hydration, explicit remote failure and missing-output states, and truthful remote composer messaging.

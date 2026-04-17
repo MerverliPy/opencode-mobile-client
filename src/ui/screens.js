@@ -1,12 +1,14 @@
 import { escapeHtml, formatSessionTime } from '../lib/utils.js';
 import { getDiffFiles, getToolResultKind } from '../lib/tool-results.js';
 import {
+  getRemoteResponseLifecycleState,
   getRepoBindingLabel,
   getRepoBindingStatus,
   getRepoWorkspaceLabel,
   getSelectedSession,
   getSessionPreview,
   getSessionTitle,
+  isRemoteSession,
   getToolResult,
   getToolResults,
   getVisibleMessageCount,
@@ -56,10 +58,6 @@ const remoteRunStatusContent = {
     body: 'The durable completion state stays attached to the session so the result remains understandable when you reopen it on mobile.',
   },
 };
-
-function isRemoteBackedSession(session) {
-  return session?.runtimeMetadata?.runtimeId === 'remote-runtime' || Boolean(session?.remoteRun?.runId);
-}
 
 function getRemoteRunStatus(session) {
   return typeof session?.remoteRun?.status === 'string' ? session.remoteRun.status : 'idle';
@@ -130,15 +128,23 @@ function renderRepoBindingCard(session) {
 }
 
 function renderRemoteRunCard(session) {
-  if (!isRemoteBackedSession(session)) {
+  if (!isRemoteSession(session)) {
     return '';
   }
 
   const status = getRemoteRunStatus(session);
   const statusContent = getRemoteRunStatusContent(status);
+  const responseLifecycle = getRemoteResponseLifecycleState(session);
   const runId = getRemoteRunId(session);
   const repoLabel = getRepoBindingLabel(session);
   const updatedAt = Number(session?.remoteRun?.updatedAt) ? formatSessionTime(session.remoteRun.updatedAt) : '';
+  const responseLabel = {
+    pending: 'Waiting for backend response',
+    hydrated: 'Backend response attached',
+    failed: 'No response available',
+    missing: 'Completed without response output',
+    idle: 'No response yet',
+  }[responseLifecycle] ?? 'Response state unknown';
 
   return `
     <section class="screen-card state-card" aria-label="Remote run state">
@@ -148,6 +154,7 @@ function renderRemoteRunCard(session) {
       <div class="session-meta-pills">
         <span class="meta-pill">Remote shell</span>
         <span class="meta-pill">${escapeHtml(statusContent.label)}</span>
+        <span class="meta-pill">${escapeHtml(responseLabel)}</span>
         ${runId ? `<span class="meta-pill">Run ${escapeHtml(runId)}</span>` : '<span class="meta-pill">Run not started</span>'}
         ${repoLabel ? `<span class="meta-pill">${escapeHtml(repoLabel)}</span>` : ''}
         ${updatedAt ? `<span class="meta-pill">Updated ${escapeHtml(updatedAt)}</span>` : ''}
@@ -171,7 +178,7 @@ function getRemoteShareLink(session) {
 }
 
 function renderRemotePreviewCard(session) {
-  if (!isRemoteBackedSession(session)) {
+  if (!isRemoteSession(session)) {
     return '';
   }
 
@@ -211,7 +218,7 @@ function renderRemotePreviewCard(session) {
 }
 
 function renderRemoteShareCard(session) {
-  if (!isRemoteBackedSession(session)) {
+  if (!isRemoteSession(session)) {
     return '';
   }
 
@@ -392,6 +399,8 @@ function renderLoadingMessage(session) {
     return '';
   }
 
+  const remoteSession = isRemoteSession(session);
+
   return `
     <li class="message-row is-assistant is-loading" aria-live="polite">
       <article class="message-bubble" role="status">
@@ -399,10 +408,20 @@ function renderLoadingMessage(session) {
           <span class="message-label">OpenCode</span>
           <span class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></span>
         </div>
-        <p class="loading-copy">Generating a local mock reply while keeping this thread readable.</p>
+        <p class="loading-copy">${remoteSession ? 'Waiting for backend-owned assistant output while keeping the remote run state readable.' : 'Generating a local mock reply while keeping this thread readable.'}</p>
       </article>
     </li>
   `;
+}
+
+function getComposerActionLabel(session) {
+  const remoteSession = isRemoteSession(session);
+
+  if (remoteSession) {
+    return session.isLoading ? 'Waiting for remote response' : 'Send to remote run';
+  }
+
+  return session.isLoading ? 'Generating mock reply' : 'Generate mock reply';
 }
 
 function renderLoadingCard(eyebrow, title, body) {
@@ -606,12 +625,20 @@ export function renderTaskScreen({ appState, screens }) {
   const latestToolResult = toolResults[0] ?? null;
   const latestDiffResult = toolResults.find((toolResult) => getToolResultKind(toolResult) === 'diff') ?? null;
   const latestDiffFileCount = getDiffFiles(latestDiffResult).length;
-  const isRemoteSession = isRemoteBackedSession(session);
+  const remoteSession = isRemoteSession(session);
   const bindingStatusContent = getRepoBindingStatusContent(session);
-  const taskDescription = isRemoteSession
+  const taskDescription = remoteSession
     ? 'This selected session keeps durable remote run state visible from the shell, with reconnect and cancel controls that stay honest about the phone not being the executor.'
     : screens.task.description;
   const remoteStatusLabel = getRemoteRunStatusContent(getRemoteRunStatus(session)).label;
+  const responseLifecycle = getRemoteResponseLifecycleState(session);
+  const responseLifecycleLabel = {
+    pending: 'Backend response pending',
+    hydrated: 'Backend response attached',
+    failed: 'Remote response failed',
+    missing: 'Completed without output',
+    idle: 'Remote response idle',
+  }[responseLifecycle] ?? 'Remote response state';
 
   return `
     ${renderShellStatusBanner(appState)}
@@ -622,8 +649,8 @@ export function renderTaskScreen({ appState, screens }) {
         <h2 id="screen-title">${escapeHtml(getSessionTitle(session))}</h2>
         <span class="location-chip">Current session</span>
       </div>
-      <p class="screen-copy">${taskDescription}</p>
-      <div class="session-meta-pills">
+       <p class="screen-copy">${remoteSession ? `${taskDescription} ${responseLifecycle === 'hydrated' ? 'This session now shows the backend-owned assistant response inside the thread.' : responseLifecycle === 'missing' ? 'The shell stays explicit when a run completes without backend response output.' : responseLifecycle === 'failed' ? 'Failed runs stay visible without pretending a local success happened.' : 'The shell waits for backend-owned output instead of fabricating a local final reply.'}` : taskDescription}</p>
+       <div class="session-meta-pills">
         <span class="meta-pill">Updated ${escapeHtml(formatSessionTime(session.updatedAt))}</span>
         <span class="meta-pill">${messageCount} ${messageCount === 1 ? 'message' : 'messages'}</span>
         <span class="meta-pill">${toolResults.length} ${toolResults.length === 1 ? 'tool output' : 'tool outputs'}</span>
@@ -634,9 +661,10 @@ export function renderTaskScreen({ appState, screens }) {
               }</span>`
             : ''
         }
-        <span class="meta-pill">${isRemoteSession ? 'Remote shell' : 'Local only'}</span>
+        <span class="meta-pill">${remoteSession ? 'Remote shell' : 'Local only'}</span>
         <span class="meta-pill">${escapeHtml(bindingStatusContent.label)}</span>
-        ${isRemoteSession ? `<span class="meta-pill">${escapeHtml(remoteStatusLabel)}</span>` : ''}
+        ${remoteSession ? `<span class="meta-pill">${escapeHtml(remoteStatusLabel)}</span>` : ''}
+        ${remoteSession ? `<span class="meta-pill">${escapeHtml(responseLifecycleLabel)}</span>` : ''}
       </div>
       <div class="state-actions">
         <button class="secondary-button" type="button" data-action="open-sessions">Sessions</button>
@@ -645,7 +673,7 @@ export function renderTaskScreen({ appState, screens }) {
             ? '<button class="ghost-button" type="button" data-action="open-tool-drawer">Tools</button>'
             : ''
         }
-        ${isRemoteSession ? '<button class="secondary-button" type="button" data-action="reconnect-remote-run">Reconnect</button>' : ''}
+        ${remoteSession ? '<button class="secondary-button" type="button" data-action="reconnect-remote-run">Reconnect</button>' : ''}
         <button class="ghost-button" type="button" data-action="create-session">New session</button>
       </div>
     </section>
@@ -693,7 +721,7 @@ export function renderTaskScreen({ appState, screens }) {
         <div class="composer-footer">
           <p class="composer-hint" id="composer-hint">Drafts stay with this session while you browse the rest of the app.</p>
           ${renderVoiceEntryAction(appState, session)}
-          <button class="send-button" type="submit" aria-label="${session.isLoading ? 'Generating mock reply' : 'Generate mock reply'}" ${
+          <button class="send-button" type="submit" aria-label="${getComposerActionLabel(session)}" ${
             session.draft.trim() && !session.isLoading ? '' : 'disabled'
           }>
             ${session.isLoading ? 'Generating' : 'Generate'}

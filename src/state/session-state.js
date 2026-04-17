@@ -41,6 +41,10 @@ export function getSelectedSession(appState) {
   return appState.sessions.find((session) => session.id === appState.selectedSessionId) ?? null;
 }
 
+export function getSessionById(appState, sessionId) {
+  return appState.sessions.find((session) => session.id === sessionId) ?? null;
+}
+
 export function getToolResults(session) {
   return Array.isArray(session?.toolResults) ? session.toolResults : [];
 }
@@ -75,6 +79,74 @@ export function getSessionPreview(session) {
 
 export function getVisibleMessageCount(session) {
   return session.messages.filter((message) => message.role !== 'notice').length;
+}
+
+export function isRemoteSession(session) {
+  return session?.runtimeMetadata?.runtimeId === 'remote-runtime' || Boolean(session?.remoteRun?.runId);
+}
+
+export function getRemoteRunId(session) {
+  return compactText(session?.remoteRun?.runId ?? '');
+}
+
+export function findRemoteAssistantMessage(session, runId = getRemoteRunId(session)) {
+  const normalizedRunId = compactText(runId);
+
+  if (!normalizedRunId) {
+    return null;
+  }
+
+  return session?.messages?.find(
+    (message) =>
+      message?.role === 'assistant'
+      && message?.source === 'remote-runtime'
+      && compactText(message?.remoteRunId ?? '') === normalizedRunId,
+  ) ?? null;
+}
+
+export function createRemoteAssistantMessage({ runId, text, label = 'OpenCode' } = {}) {
+  const normalizedRunId = compactText(runId);
+  const normalizedText = typeof text === 'string' ? text.trim() : '';
+
+  if (!normalizedRunId || !normalizedText) {
+    return null;
+  }
+
+  return {
+    id: createId('msg'),
+    role: 'assistant',
+    label,
+    text: normalizedText,
+    source: 'remote-runtime',
+    remoteRunId: normalizedRunId,
+  };
+}
+
+export function getRemoteResponseLifecycleState(session) {
+  if (!isRemoteSession(session)) {
+    return 'none';
+  }
+
+  const status = compactText(session?.remoteRun?.status ?? 'idle') || 'idle';
+  const runId = getRemoteRunId(session);
+
+  if (runId && findRemoteAssistantMessage(session, runId)) {
+    return 'hydrated';
+  }
+
+  if (session?.isLoading || ['queued', 'running', 'awaiting_input'].includes(status)) {
+    return 'pending';
+  }
+
+  if (status === 'failed') {
+    return 'failed';
+  }
+
+  if (status === 'completed') {
+    return 'missing';
+  }
+
+  return 'idle';
 }
 
 export { createRemoteRunState, createRepoBindingState, createRuntimeMetadata } from './runtime-metadata.js';
