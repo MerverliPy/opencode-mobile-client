@@ -45,6 +45,6 @@ Authority notes:
 - [x] main-shell-helper-extraction — Extract bounded shell helpers from src/main.js to reduce maintenance risk
 - [x] mobile-voice-prompt-entry — Add optional voice prompt entry for remote coding requests on iPhone
 - [x] remote-response-ownership — v1.7.0 — Make remote runs own assistant responses instead of the local mock path
+- [x] browser-proof-automation — Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
 
 ## In progress
-- [~] browser-proof-automation — Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path

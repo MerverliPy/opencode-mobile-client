@@ -1,6 +1,6 @@
 # Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
 
-Status: pending
+Status: complete
 Release: v1.7.0
 Phase file: backlog:browser-proof-automation
 
@@ -49,16 +49,24 @@ Revert to the current manual screenshot handoff while preserving the existing br
 npm run workflow:check && npm run browser:smoke && npm run release:proof
 
 ## Validation
-Status: pending
+Status: PASS
 
 Evidence:
-- not run yet
+- `npm run workflow:check` passed.
+- `npm run workflow:check && npm run browser:smoke && npm run release:proof` passed.
+- `scripts/dev/browser-smoke.sh` now starts preview and captures the full standard browser-proof artifact set (`sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, `offline-recovered.png`) from a repo-owned flow instead of manual operator handoff.
+- `scripts/dev/release-proof.sh` now checks the same artifact path and reports `READY_TO_SHIP`, so release proof is aligned with the automated browser-proof capture path.
+- Scope stayed bounded to the five workflow/script/doc files listed for the phase; no unrelated product, backend, or CI changes were introduced.
 
 Blockers:
-- not validated yet
+- none
 
 Ready to ship:
-- no
+- yes
+
+## Release notes
+- Browser proof now captures the standard Sessions, Task, tool-drawer, and offline recovery screenshots from a repo-owned flow.
+- Release proof now checks the same automated artifact set instead of relying on a manual screenshot handoff.
 
 ## Acceptance criteria
 - The standard browser-proof screenshot path is runnable from repo-owned workflow commands.
@@ -67,4 +75,4 @@ Ready to ship:
 - The phase remains bounded to browser-proof workflow automation and does not expand into unrelated product changes.
 
 ## Completion summary
-pending
+Shipped the browser-proof automation follow-up on `v1.7.0` by moving the standard release-proof screenshots onto a repeatable repo-owned capture flow and aligning release proof with the same artifact path.

@@ -57,8 +57,7 @@ if [ "${#missing_artifacts[@]}" -gt 0 ]; then
     printf '  - %s\n' "$artifact"
   done
   printf '\n%s\n' "Next steps:"
-  printf '%s\n' "  - Run npm run browser:smoke for route and drawer browser proof"
-  printf '%s\n' "  - Run /browser-offline for offline and recovery proof"
+  printf '%s\n' "  - Run npm run browser:smoke to regenerate the full standard browser-proof set"
   printf '%s\n' "  - Re-run npm run release:proof"
   exit 1
 fi
