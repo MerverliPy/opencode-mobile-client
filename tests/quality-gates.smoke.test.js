@@ -70,24 +70,6 @@ function withWindow(windowValue, callback) {
   }
 }
 
-function createSpeechRecognitionDouble(overrides = {}) {
-  return class SpeechRecognitionDouble {
-    constructor() {
-      this.lang = 'en-US';
-      this.interimResults = false;
-      this.maxAlternatives = 1;
-      this.onresult = null;
-      this.onerror = null;
-      this.onend = null;
-      Object.assign(this, overrides);
-    }
-
-    start() {}
-
-    stop() {}
-  };
-}
-
 afterEach(() => {
   vi.restoreAllMocks();
 });

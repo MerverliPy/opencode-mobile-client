@@ -18,116 +18,7 @@ constraints:
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates:
-  - id: remote-backend-http-bridge
-    title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
-    module: remote-runtime
-    priority: 8
-    release_bump: major
-    target_release: v2.0.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    inspired_by_open_agents:
-      - hosted durable agent runtime
-      - backend-owned execution lifecycle
-      - remote sandbox orchestration through tools instead of local device execution
-    drivers:
-      - This is the transition from mock-only behavior to the first real remote coding capability.
-      - A major version bump is appropriate because the product stops being only a local shell and begins acting as a true remote client.
-    files:
-      - package.json
-      - README.md
-      - src/adapters/remote-runtime.js
-      - src/main.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - The remote runtime adapter can call a configured backend base URL for start, resume, cancel, and status operations.
-      - The app preserves a mock fallback when remote configuration is missing so local development is still usable.
-      - Failure states are explicit and do not masquerade as successful local execution.
-      - "`package.json` and `README.md` are updated to target `v2.0.0`."
-  - id: repo-binding-surface
-    title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
-    module: repo-session
-    priority: 7
-    release_bump: minor
-    target_release: v2.1.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 6
-    inspired_by_open_agents:
-      - installation-based repo access
-      - per-session repo metadata
-      - branch-aware coding sessions
-    drivers:
-      - A real remote coding client needs to show which repo and branch a session is operating on.
-      - "`open-agents` demonstrates that repo metadata belongs to the session layer, not just the backend."
-    files:
-      - package.json
-      - README.md
-      - src/main.js
-      - src/ui/screens.js
-      - src/state/session-state.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - A session can persist repo name, owner, branch, and workspace metadata.
-      - The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
-      - Existing local sessions remain readable and upgrade safely to the new metadata shape.
-      - "`package.json` and `README.md` are updated to target `v2.1.0`."
-  - id: remote-preview-share-surface
-    title: Add remote preview link and read-only share surfaces so phone-based review is practical
-    module: remote-runtime
-    priority: 6
-    release_bump: minor
-    target_release: v2.2.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    inspired_by_open_agents:
-      - exposed preview ports
-      - read-only session sharing
-      - long-running run inspection without direct laptop involvement
-    drivers:
-      - Once remote runs exist, the mobile client needs a first-class way to open preview links and share read-only session state.
-      - This is one of the most valuable phone-native benefits from the open-agents model.
-    files:
-      - package.json
-      - README.md
-      - src/main.js
-      - src/ui/screens.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - The app can render and open remote preview links from a bound remote run.
-      - The UI can display a read-only share link surface without claiming backend support that does not exist.
-      - Preview and share surfaces fail honestly when the backend does not return them.
-      - "`package.json` and `README.md` are updated to target `v2.2.0`."
-  - id: mobile-voice-prompt-entry
-    title: Add optional voice prompt entry for remote coding requests on iPhone
-    module: input
-    priority: 5
-    release_bump: minor
-    target_release: v2.3.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    inspired_by_open_agents:
-      - optional ElevenLabs-powered voice transcription
-      - mobile-friendly prompt capture
-    drivers:
-      - Voice input is one of the few open-agents features that is directly more valuable on a phone than on desktop.
-      - It should come after the remote runtime path exists so spoken prompts feed a real coding workflow.
-    files:
-      - package.json
-      - README.md
-      - src/main.js
-      - src/ui/screens.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - The mobile shell can accept a dictated prompt through an explicit voice entry action.
-      - Voice entry is clearly optional and degrades honestly when transcription is unavailable.
-      - The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
-      - "`package.json` and `README.md` are updated to target `v2.3.0`."
-
+candidates: []
 deferred_local_first_candidates:
   - id: session-lifecycle-actions
     title: Add rename and delete actions so local sessions stay manageable on a phone
@@ -311,3 +202,115 @@ archived:
       - The phase avoids speculative architecture changes or broader shell refactors.
       - The resulting extraction keeps the task shell readable and mobile-safe.
     shipped: true
+- id: remote-backend-http-bridge
+  title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
+  module: remote-runtime
+  priority: 8
+  release_bump: major
+  target_release: v2.0.0
+  execution_flow: /autoflow
+  expected_max_files_changed: 5
+  inspired_by_open_agents:
+  - hosted durable agent runtime
+  - backend-owned execution lifecycle
+  - remote sandbox orchestration through tools instead of local device execution
+  drivers:
+  - This is the transition from mock-only behavior to the first real remote coding capability.
+  - A major version bump is appropriate because the product stops being only a local shell and begins acting as a true remote client.
+  files:
+  - package.json
+  - README.md
+  - src/adapters/remote-runtime.js
+  - src/main.js
+  - tests/quality-gates.smoke.test.js
+  validation: npm run workflow:check && npm run test && npm run build
+  acceptance:
+  - The remote runtime adapter can call a configured backend base URL for start, resume, cancel, and status operations.
+  - The app preserves a mock fallback when remote configuration is missing so local development is still usable.
+  - Failure states are explicit and do not masquerade as successful local execution.
+  - '`package.json` and `README.md` are updated to target `v2.0.0`.'
+  shipped: true
+- id: repo-binding-surface
+  title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
+  module: repo-session
+  priority: 7
+  release_bump: minor
+  target_release: v2.1.0
+  execution_flow: /autoflow
+  expected_max_files_changed: 6
+  inspired_by_open_agents:
+  - installation-based repo access
+  - per-session repo metadata
+  - branch-aware coding sessions
+  drivers:
+  - A real remote coding client needs to show which repo and branch a session is operating on.
+  - '`open-agents` demonstrates that repo metadata belongs to the session layer, not just the backend.'
+  files:
+  - package.json
+  - README.md
+  - src/main.js
+  - src/ui/screens.js
+  - src/state/session-state.js
+  - tests/quality-gates.smoke.test.js
+  validation: npm run workflow:check && npm run test && npm run build
+  acceptance:
+  - A session can persist repo name, owner, branch, and workspace metadata.
+  - The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
+  - Existing local sessions remain readable and upgrade safely to the new metadata shape.
+  - '`package.json` and `README.md` are updated to target `v2.1.0`.'
+  shipped: true
+- id: remote-preview-share-surface
+  title: Add remote preview link and read-only share surfaces so phone-based review is practical
+  module: remote-runtime
+  priority: 6
+  release_bump: minor
+  target_release: v2.2.0
+  execution_flow: /autoflow
+  expected_max_files_changed: 5
+  inspired_by_open_agents:
+  - exposed preview ports
+  - read-only session sharing
+  - long-running run inspection without direct laptop involvement
+  drivers:
+  - Once remote runs exist, the mobile client needs a first-class way to open preview links and share read-only session state.
+  - This is one of the most valuable phone-native benefits from the open-agents model.
+  files:
+  - package.json
+  - README.md
+  - src/main.js
+  - src/ui/screens.js
+  - tests/quality-gates.smoke.test.js
+  validation: npm run workflow:check && npm run test && npm run build
+  acceptance:
+  - The app can render and open remote preview links from a bound remote run.
+  - The UI can display a read-only share link surface without claiming backend support that does not exist.
+  - Preview and share surfaces fail honestly when the backend does not return them.
+  - '`package.json` and `README.md` are updated to target `v2.2.0`.'
+  shipped: true
+- id: mobile-voice-prompt-entry
+  title: Add optional voice prompt entry for remote coding requests on iPhone
+  module: input
+  priority: 5
+  release_bump: minor
+  target_release: v2.3.0
+  execution_flow: /autoflow
+  expected_max_files_changed: 5
+  inspired_by_open_agents:
+  - optional ElevenLabs-powered voice transcription
+  - mobile-friendly prompt capture
+  drivers:
+  - Voice input is one of the few open-agents features that is directly more valuable on a phone than on desktop.
+  - It should come after the remote runtime path exists so spoken prompts feed a real coding workflow.
+  files:
+  - package.json
+  - README.md
+  - src/main.js
+  - src/ui/screens.js
+  - tests/quality-gates.smoke.test.js
+  validation: npm run workflow:check && npm run test && npm run build
+  acceptance:
+  - The mobile shell can accept a dictated prompt through an explicit voice entry action.
+  - Voice entry is clearly optional and degrades honestly when transcription is unavailable.
+  - The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
+  - '`package.json` and `README.md` are updated to target `v2.3.0`.'
+  shipped: true
