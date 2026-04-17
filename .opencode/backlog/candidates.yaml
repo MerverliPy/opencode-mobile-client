@@ -18,33 +18,7 @@ constraints:
   prefer_single_module: true
   avoid_generic_tasks: true
 
-candidates:
-  - id: remote-response-ownership
-    title: Make remote runs own assistant responses instead of the local mock path
-    module: remote-runtime
-    priority: 9
-    release_bump: minor
-    target_release: v1.7.0
-    execution_flow: /autoflow
-    expected_max_files_changed: 6
-    drivers:
-      - Remote lifecycle state exists, but response ownership is still partially local.
-      - The app should not imply backend execution while showing mock-local success.
-      - This phase makes remote mode behavior honest end-to-end.
-    files:
-      - src/main.js
-      - src/adapters/remote-runtime.js
-      - src/state/session-state.js
-      - src/ui/screens.js
-      - tests/quality-gates.smoke.test.js
-      - README.md
-    validation: npm run workflow:check && npm run test && npm run build && npm run release:proof
-    acceptance:
-      - Remote-enabled sessions do not synthesize final assistant output from the local mock path while a remote run is active.
-      - Completed remote runs hydrate backend-owned assistant output into session state.
-      - Backend failures are explicit and do not masquerade as successful local execution.
-      - Local/mock fallback only occurs when remote mode is unavailable by configuration or intentionally disabled.
-      - The UI distinguishes local sessions from remote sessions.
+candidates: []
 
 deferred_local_first_candidates:
   - id: session-lifecycle-actions
@@ -341,3 +315,8 @@ archived:
   - The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
   - '`package.json` and `README.md` are updated to target `v2.3.0`.'
   shipped: true
+
+  - id: remote-response-ownership
+    title: Make remote runs own assistant responses instead of the local mock path
+    module: workflow
+    shipped: true
