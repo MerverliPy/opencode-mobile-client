@@ -44,3 +44,8 @@ Authority notes:
 - [x] session-state-normalization-deduplication — Deduplicate session-state normalization helpers so runtime metadata cannot drift
 - [x] main-shell-helper-extraction — Extract bounded shell helpers from src/main.js to reduce maintenance risk
 - [x] mobile-voice-prompt-entry — Add optional voice prompt entry for remote coding requests on iPhone
+
+## In progress
+
+- `remote-response-ownership` — v1.7.0 — Make remote runs own assistant responses instead of the local mock path.
+

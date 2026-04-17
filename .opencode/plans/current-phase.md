@@ -3,7 +3,7 @@
 Status: ready
 Release: v1.7.0
 Phase file: backlog:remote-response-ownership
-Validation status: PENDING
+Validation status: pending
 
 ## Goal
 Make remote-mode sessions use backend-owned assistant responses instead of generating user-visible output from the local/mock path when remote runtime is active.
@@ -56,6 +56,16 @@ npm run workflow:check && npm run test && npm run build && npm run release:proof
 ## Validation
 pending
 
+Status: pending
+
+Evidence:
+- not run yet
+
+Blockers:
+- none
+
+Ready to ship:
+- no
 ## Acceptance criteria
 - Remote-enabled sessions do not create final user-visible assistant output from the local mock path while a remote run is active.
 - Completed remote runs can hydrate backend-owned assistant output into the session.
