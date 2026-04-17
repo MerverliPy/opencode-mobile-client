@@ -1,86 +1,70 @@
-# Make remote runs own assistant responses instead of the local mock path
+# Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
 
-Status: complete
+Status: pending
 Release: v1.7.0
-Phase file: backlog:remote-response-ownership
-Validation status: PASS
+Phase file: backlog:browser-proof-automation
 
 ## Goal
-Make remote-mode sessions use backend-owned assistant responses instead of generating user-visible output from the local/mock path when remote runtime is active.
+Replace the remaining manual browser-proof screenshot handoff with a repeatable repo-owned capture path so release proof can be reproduced from repository commands instead of ad hoc operator steps.
 
 ## Why this phase is next
-The repository is now validation-clean and release-proof clean. The highest remaining product gap is execution truth: remote lifecycle state exists, but the visible response path is still partially local. This phase closes that mismatch and makes remote mode honest end-to-end.
+All listed release phases are already complete, and this is the only selectable backlog entry under `candidates`. It is a bounded follow-up to the existing browser-proof workflow and improves deterministic validation without expanding into unrelated product work.
 
 ## Primary files
-- src/main.js
-- src/adapters/remote-runtime.js
-- src/state/session-state.js
-- src/ui/screens.js
-- tests/quality-gates.smoke.test.js
-- README.md
+- scripts/dev/browser-smoke.sh
+- scripts/dev/release-proof.sh
+- .opencode/commands/browser-smoke.md
+- .opencode/commands/browser-offline.md
+- .opencode/commands/screenshot-capture.md
 
 ## Expected max files changed
-6
+5
 
 ## Risk
-Moderate. This phase changes the response source-of-truth for remote sessions and could create ambiguous fallbacks if not handled explicitly.
+Moderate. Browser-proof automation can become flaky or over-broad if it expands beyond the standard proof path.
 
 ## Rollback note
-Revert to the current local/mock response path behind an explicit fallback branch while preserving remote lifecycle metadata and UI state.
+Revert to the current manual screenshot handoff while preserving the existing browser-proof and release-proof command surfaces.
 
 ## In scope
-- remote-mode response ownership
-- remote run completion hydration
-- honest running/completed/failed UI states
-- explicit fallback rules
-- regression coverage for remote response truthfulness
+- a repeatable repo-owned screenshot capture path for standard browser-proof artifacts
+- wiring the existing browser-proof workflow to deterministic artifact generation
+- bounded command and workflow doc updates needed for the capture path
+- keeping release proof truthful about what was actually captured
 
 ## Out of scope
-- streaming token transport
-- provider OAuth or auth redesign
-- preview/share redesign
-- CI workflow changes
-- collaboration features
+- full end-to-end test suite expansion
+- hosted browser providers or CI browser infrastructure
+- unrelated UI or product behavior changes
+- authentication, backend transport, or remote runtime redesign
+- broad multi-module workflow refactors
 
 ## Tasks
-- Refactor src/main.js so remote-enabled sessions do not synthesize the final assistant reply from the local mock adapter during an active remote run.
-- Extend src/adapters/remote-runtime.js with a response hydration contract for completed runs.
-- Persist remote response lifecycle state in src/state/session-state.js.
-- Update src/ui/screens.js to render honest queued, running, completed, and failed remote states.
-- Add tests proving remote mode does not silently downgrade to fake local success.
-- Update README.md so the remote behavior matches reality.
+- Define the smallest repo-owned capture flow that replaces manual screenshot handoff for standard browser proof.
+- Update the browser-proof command surfaces so the capture flow is explicit and repeatable.
+- Ensure release proof consumes the same deterministic artifact path instead of assuming manual operator steps.
+- Keep the phase bounded to browser-proof workflow automation and truthful validation messaging.
 
 ## Validation command
-npm run workflow:check && npm run test && npm run build && npm run release:proof
+npm run workflow:check && npm run browser:smoke && npm run release:proof
 
 ## Validation
-PASS
-
-Status: PASS
+Status: pending
 
 Evidence:
-- `npm run workflow:check` passed.
-- `npm run test && npm run build && npm run release:proof` passed.
-- Remote sessions now avoid local mock final replies, completed runs hydrate backend-owned assistant output, and failed runs surface explicit failed state.
-- `src/ui/screens.js` now uses remote-specific composer labels (`Send to remote run`, `Waiting for remote response`) while local sessions keep mock-specific labels, satisfying the remaining UI-truthfulness gap.
+- not run yet
 
 Blockers:
-- none
+- not validated yet
 
 Ready to ship:
-- yes
-
-## Release notes
-- Remote sessions now wait for backend-owned assistant output instead of showing a local mock final reply.
-- Completed, missing-output, and failed remote runs stay explicit in the mobile task UI and accessibility labels.
+- no
 
 ## Acceptance criteria
-- Remote-enabled sessions do not create final user-visible assistant output from the local mock path while a remote run is active.
-- Completed remote runs can hydrate backend-owned assistant output into the session.
-- Backend failures render explicit failure states and do not masquerade as successful local execution.
-- Local/mock fallback only happens when remote mode is unavailable by configuration or intentionally disabled.
-- The UI clearly distinguishes local sessions from remote sessions.
-- All validation commands pass.
+- The standard browser-proof screenshot path is runnable from repo-owned workflow commands.
+- Required browser-proof artifacts are produced through the repeatable capture path instead of a manual handoff.
+- Release proof reports readiness based on the same artifact path used by browser-proof capture.
+- The phase remains bounded to browser-proof workflow automation and does not expand into unrelated product changes.
 
 ## Completion summary
-Shipped `v1.7.0` with backend-owned remote response hydration, explicit remote failure and missing-output states, and truthful remote composer messaging.
+pending

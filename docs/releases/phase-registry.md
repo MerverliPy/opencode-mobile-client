@@ -47,4 +47,4 @@ Authority notes:
 - [x] remote-response-ownership — v1.7.0 — Make remote runs own assistant responses instead of the local mock path
 
 ## In progress
-
+- [~] browser-proof-automation — Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
