@@ -1,94 +1,68 @@
-# Add optional voice prompt entry for remote coding requests on iPhone
+# Make remote runs own assistant responses instead of the local mock path
 
-Status: complete
-Release: v1.6.0
-Phase file: backlog:mobile-voice-prompt-entry
+Status: ready
+Release: v1.7.0
+Phase file: backlog:remote-response-ownership
+Validation status: PENDING
 
 ## Goal
-
-Add an optional voice prompt entry path for remote coding requests on iPhone so spoken input can feed the same mobile composer workflow without implying transcription support when it is unavailable.
+Make remote-mode sessions use backend-owned assistant responses instead of generating user-visible output from the local/mock path when remote runtime is active.
 
 ## Why this phase is next
-
-The previous active phase is complete, all listed implementation releases are already complete, and the higher-priority backlog candidates remaining under `candidates` are already marked complete in `docs/releases/phase-registry.md`. `mobile-voice-prompt-entry` is the next remaining selectable backlog candidate with bounded scope, clear mobile value, and a straightforward validation path.
+The repository is now validation-clean and release-proof clean. The highest remaining product gap is execution truth: remote lifecycle state exists, but the visible response path is still partially local. This phase closes that mismatch and makes remote mode honest end-to-end.
 
 ## Primary files
-
-- `package.json`
-- `README.md`
-- `src/main.js`
-- `src/ui/screens.js`
-- `tests/quality-gates.smoke.test.js`
+- src/main.js
+- src/adapters/remote-runtime.js
+- src/state/session-state.js
+- src/ui/screens.js
+- tests/quality-gates.smoke.test.js
+- README.md
 
 ## Expected max files changed
-
-5
+6
 
 ## Risk
-
-Medium. Voice entry touches mobile input behavior and browser capability boundaries, so the feature must stay optional, degrade honestly, and avoid forking the existing composer workflow.
+Moderate. This phase changes the response source-of-truth for remote sessions and could create ambiguous fallbacks if not handled explicitly.
 
 ## Rollback note
-
-Revert the voice-entry changes if dictated prompts stop flowing through the existing composer path, unsupported browsers imply transcription is available, or the mobile shell becomes less predictable for typed input.
+Revert to the current local/mock response path behind an explicit fallback branch while preserving remote lifecycle metadata and UI state.
 
 ## In scope
-
-- add an explicit optional voice-entry action for prompt capture on iPhone
-- degrade honestly when transcription support is unavailable or denied
-- land dictated text in the same composer flow as typed input
-- update version targeting and README surfaces only as required by this bounded phase
-- add focused smoke coverage for voice-entry behavior
+- remote-mode response ownership
+- remote run completion hydration
+- honest running/completed/failed UI states
+- explicit fallback rules
+- regression coverage for remote response truthfulness
 
 ## Out of scope
-
-- backend orchestration changes beyond feeding the existing prompt flow
-- repo binding, preview/share, or other remote-session expansion work
-- mandatory voice-first UX or replacing typed input
-- unrelated shell redesign or multi-module follow-up work
+- streaming token transport
+- provider OAuth or auth redesign
+- preview/share redesign
+- CI workflow changes
+- collaboration features
 
 ## Tasks
-
-- add a bounded voice-entry trigger in the mobile shell UI
-- keep unsupported or unavailable transcription states explicit and honest
-- route dictated text into the existing composer path without creating a separate workflow
-- update `package.json` and `README.md` for the target release boundary described by the candidate
-- add focused smoke coverage for the new voice-entry behavior
-- run the validation command and record the result
+- Refactor src/main.js so remote-enabled sessions do not synthesize the final assistant reply from the local mock adapter during an active remote run.
+- Extend src/adapters/remote-runtime.js with a response hydration contract for completed runs.
+- Persist remote response lifecycle state in src/state/session-state.js.
+- Update src/ui/screens.js to render honest queued, running, completed, and failed remote states.
+- Add tests proving remote mode does not silently downgrade to fake local success.
+- Update README.md so the remote behavior matches reality.
 
 ## Validation command
-
-`npm run workflow:check && npm run test && npm run build`
+npm run workflow:check && npm run test && npm run build && npm run release:proof
 
 ## Validation
-
-Status: PASS
-Evidence:
-- `npm run workflow:check` passed during validator review on 2026-04-16.
-- The stated validation command `npm run workflow:check && npm run test && npm run build` passed during validator review on 2026-04-16.
-- `src/main.js` adds a bounded optional speech-recognition path that appends dictated text to the existing composer draft and reports unsupported or denied states explicitly through UI notices.
-- `src/ui/screens.js` adds a single optional voice-entry control in the existing composer footer without replacing typed input or expanding into a separate workflow.
-- `package.json` and `README.md` now target `v2.3.0`, matching the phase acceptance criterion.
-- `tests/quality-gates.smoke.test.js` adds focused coverage for the honest unavailable voice-entry state, and the phase stays within the listed implementation files.
-Blockers:
-- none
-Ready to ship:
-- yes
+pending
 
 ## Acceptance criteria
-
-- The mobile shell can accept a dictated prompt through an explicit voice entry action.
-- Voice entry is clearly optional and degrades honestly when transcription is unavailable.
-- The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
-- `package.json` and `README.md` are updated to target `v2.3.0`.
-
-## Release notes
-
-- Added an optional voice-entry control in the task composer that uses browser speech recognition when available.
-- Kept unavailable or denied voice states honest and routed dictated text into the existing draft flow.
+- Remote-enabled sessions do not create final user-visible assistant output from the local mock path while a remote run is active.
+- Completed remote runs can hydrate backend-owned assistant output into the session.
+- Backend failures render explicit failure states and do not masquerade as successful local execution.
+- Local/mock fallback only happens when remote mode is unavailable by configuration or intentionally disabled.
+- The UI clearly distinguishes local sessions from remote sessions.
+- All validation commands pass.
 
 ## Completion summary
-
-- Added an optional voice-entry action in the task composer so dictated prompts can feed the same draft path as typed input.
-- Kept unsupported and denied speech-recognition states explicit through existing notice handling rather than implying guaranteed transcription support.
-- Updated release-target metadata to `v2.3.0` and added focused smoke coverage for the new bounded behavior.
+pending
