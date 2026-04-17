@@ -52,11 +52,10 @@ npm run workflow:check && npm run browser:smoke && npm run release:proof
 Status: PASS
 
 Evidence:
-- `npm run workflow:check` passed.
-- `npm run workflow:check && npm run browser:smoke && npm run release:proof` passed.
-- `scripts/dev/browser-smoke.sh` now starts preview and captures the full standard browser-proof artifact set (`sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, `offline-recovered.png`) from a repo-owned flow instead of manual operator handoff.
-- `scripts/dev/release-proof.sh` now checks the same artifact path and reports `READY_TO_SHIP`, so release proof is aligned with the automated browser-proof capture path.
-- Scope stayed bounded to the five workflow/script/doc files listed for the phase; no unrelated product, backend, or CI changes were introduced.
+- `npm run workflow:check` passed during validation.
+- Required validation command `npm run workflow:check && npm run browser:smoke && npm run release:proof` passed, and `npm run release:proof` reported `READY_TO_SHIP` after confirming `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- Reviewed phase diff for `scripts/dev/browser-smoke.sh`, `scripts/dev/release-proof.sh`, `.opencode/commands/browser-smoke.md`, `.opencode/commands/browser-offline.md`, and `.opencode/commands/screenshot-capture.md`: the browser-proof flow now generates the standard artifacts from a repo-owned capture path and release proof checks the same artifact path.
+- Changes stayed bounded to the five in-scope workflow/script/doc files plus phase-tracking release metadata; no unrelated product, backend, or CI files were introduced.
 
 Blockers:
 - none
