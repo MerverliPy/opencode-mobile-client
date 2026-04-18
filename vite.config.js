@@ -1,14 +1,15 @@
 import { defineConfig } from 'vite'
 
+const allowedHosts = (process.env.OPENCODE_ALLOWED_HOSTS ?? '')
+  .split(',')
+  .map((host) => host.trim())
+  .filter(Boolean)
+
 export default defineConfig({
   server: {
-    allowedHosts: [
-      'opencode-wsl.tail309be3.ts.net'
-    ]
+    allowedHosts
   },
   preview: {
-    allowedHosts: [
-      'opencode-wsl.tail309be3.ts.net'
-    ]
+    allowedHosts
   }
 })

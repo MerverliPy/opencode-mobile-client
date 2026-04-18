@@ -44,6 +44,18 @@ The normal workflow is:
 
 Use `npm run repo:doctor` before starting a new phase when you want a fast health check for release-state truth, clean-install reproducibility, and workflow-file presence.
 
+## Preview host configuration
+
+`npm run preview:host` keeps the existing localhost and `127.0.0.1` behavior by default.
+
+If you need to open the preview from a phone through a LAN, Tailscale, or other named host, set `OPENCODE_ALLOWED_HOSTS` explicitly instead of editing `vite.config.js` for one machine.
+
+Examples:
+- `OPENCODE_ALLOWED_HOSTS=phone-preview.example.ts.net npm run preview:host`
+- `OPENCODE_ALLOWED_HOSTS=phone-preview.example.ts.net,second-host.local npm run preview:host`
+
+Leave `OPENCODE_ALLOWED_HOSTS` unset when you only need the default local preview path.
+
 ## Delivery rules
 
 - One phase at a time

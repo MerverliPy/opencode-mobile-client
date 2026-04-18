@@ -1,58 +1,56 @@
-# Refresh release-truth surfaces after browser-proof repair with clean evidence
+# Remove machine-specific preview host assumptions from phone testing
 
 Status: complete
 Release: v1.7.2
-Phase file: backlog:browser-proof-release-truth-revalidation
+Phase file: backlog:preview-host-portability-hardening
 
 ## Goal
-Refresh browser-proof release-truth surfaces so the repo records fresh evidence from the repaired runner instead of stale claims.
+Remove machine-specific preview host assumptions so phone testing stays portable while preserving the current localhost and `127.0.0.1` preview behavior.
 
 ## Why this phase is next
-The `browser-proof-command-surface-alignment` follow-up is already complete, and the next highest-priority selectable backlog candidate in the same browser-validation module is to rerun proof and synchronize release-truth files with the real result.
+All listed release phases are complete, and this is the highest-priority remaining selectable backlog candidate under `candidates`.
 
 ## Primary files
-- .opencode/plans/current-phase.md
-- docs/releases/phase-14-ci-and-release-verification.md
-- docs/releases/phase-registry.md
+- vite.config.js
+- README.md
 
 ## Expected max files changed
-3
+2
 
 ## Risk
-Low. This phase is limited to fresh browser-proof evidence and release-truth synchronization.
+Low. This phase is bounded to preview-host portability and related documentation.
 
 ## Rollback note
-Revert these release-truth updates together if the fresh proof summary is recorded incorrectly.
+Revert the preview host configuration and README updates together if the change alters default local preview behavior.
 
 ## In scope
-- rerun the repaired browser-proof flow to capture fresh evidence
-- update Phase 14 release-proof documentation to match the real clean-checkout result
-- synchronize registry and phase release-truth statements with validator evidence
-- keep release notes and completion summary short and factual
+- remove the machine-specific preview host assumption from the current phone-testing path
+- preserve existing localhost and `127.0.0.1` preview behavior
+- allow alternate phone-testing hosts through explicit configuration instead of per-machine source edits
+- document the bounded operator-facing preview host setup
 
 ## Out of scope
-- browser runner implementation changes
-- product code changes
-- new proof tooling or workflow redesign
-- unrelated release metadata edits
+- unrelated product code changes
+- broader preview or dev-server redesign
+- browser-proof workflow changes outside preview host portability
+- machine-specific source edits for individual environments
 
 ## Tasks
-- run the workflow and browser-proof commands needed to capture fresh evidence
-- update `docs/releases/phase-14-ci-and-release-verification.md` with the real current proof result
-- update `docs/releases/phase-registry.md` only as needed to keep browser-proof completion claims truthful
-- record concise validation, release notes, and completion summary in this phase file
+- update preview host configuration so it no longer depends on one machine-specific hostname
+- document how operators can enable alternate phone-testing hosts explicitly
+- verify localhost and `127.0.0.1` behavior remain unchanged
 
 ## Validation command
-npm run workflow:check && npm run browser:smoke && npm run release:proof
+npm run validate:local && npm run preview:host
 
 ## Validation
 Status: PASS
 
 Evidence:
-- `npm run workflow:check` passed once the active backlog phase was aligned to the current shipped release baseline `v1.7.2`, matching the existing README, registry, package, and runtime truth surfaces.
-- `npm run browser:smoke` passed through the repaired repo-owned browser-proof flow and completed `npm run validate:local` (`workflow:check`, `lint`, `test`, and `build`) before capturing the standard six browser-proof screenshots in `playwright-artifacts/`.
-- `npm run release:proof` passed with `Status: READY_TO_SHIP` and confirmed `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
-- `docs/releases/phase-14-ci-and-release-verification.md` now records the current runner-backed browser-proof result instead of stale pre-repair detail.
+- `npm run workflow:check` passed within `npm run validate:local`, and `lint`, `test`, and `build` all succeeded after replacing the hard-coded preview host allowance with explicit `OPENCODE_ALLOWED_HOSTS` parsing.
+- `vite.config.js` now derives `server.allowedHosts` and `preview.allowedHosts` from the optional comma-separated `OPENCODE_ALLOWED_HOSTS` environment variable, removing the previous machine-specific hostname from source control.
+- `README.md` now documents the default localhost/`127.0.0.1` path and shows explicit operator examples for enabling alternate LAN or Tailscale hosts without per-machine source edits.
+- `npm run preview:host` initially failed only because port `4173` was already in use; after the bounded preview-port repair released the port, `npm run preview:host` started successfully and advertised local and network preview URLs, confirming default preview behavior still works.
 
 Blockers:
 - none
@@ -61,14 +59,14 @@ Ready to ship:
 - yes
 
 ## Release notes
-- Refreshed Phase 14 browser-proof evidence using the repaired repo-owned runner and the current six-artifact proof flow.
-- Prepared registry truth updates for the confirmed `v1.7.2` browser-proof baseline.
+- Replaced the hard-coded preview host allowlist with explicit `OPENCODE_ALLOWED_HOSTS` configuration for portable phone testing.
+- Documented how to keep default local preview behavior or opt into alternate LAN and Tailscale hosts without editing source files.
 
 ## Acceptance criteria
-- The active phase validation block records fresh PASS or FAIL evidence based on the repaired runner, not stale claims.
-- `docs/releases/phase-14-ci-and-release-verification.md` reflects the real clean-checkout validation evidence.
-- `docs/releases/phase-registry.md` no longer overstates browser-proof completion before fresh proof exists.
-- Release notes and completion summary remain short, factual, and synchronized with validator evidence.
+- Preview host configuration no longer depends on one machine-specific hostname.
+- Localhost and `127.0.0.1` preview behavior remain unchanged.
+- Alternate phone-testing hosts can be enabled through explicit configuration rather than source edits per machine.
+- The phase stays bounded to preview-host portability and documentation only.
 
 ## Completion summary
-Refreshed the `v1.7.2` browser-proof truth surfaces by rerunning the repaired proof flow and recording the current clean evidence in the release-facing workflow files.
+Removed the machine-specific preview host assumption from the Vite config, preserved default local preview behavior, and documented explicit host configuration for portable phone testing.
