@@ -31,6 +31,63 @@ This project is a mobile-first OpenCode shell optimized for:
 - staged delivery through small release phases
 - PWA-first deployment with room for a later native wrapper if justified
 
+## How to run the project right now
+
+### Quick local development
+
+1. Install dependencies:
+   - `npm install`
+2. Start the Vite dev server:
+   - `npm run dev`
+3. Open the local URL printed by Vite in your terminal.
+
+Use this path when you want the fastest edit-and-refresh loop on the same machine.
+
+### Exact repo validation and preview flow
+
+This is the current repo-owned path used before phone testing and release-proof work:
+
+1. Install dependencies:
+   - `npm install`
+2. Run the combined local gate:
+   - `npm run validate:local`
+3. Start the preview server on the fixed phone-testing port:
+   - `npm run preview:host`
+4. Open:
+   - `http://127.0.0.1:4173/`
+
+`npm run validate:local` runs `workflow:check`, `lint`, `test`, and `build`. `npm run preview:host` serves the built app on `0.0.0.0:4173`.
+
+## Phone access guide: Tailscale or Cloudflare
+
+### Option 1: open it with your Tailscale IP
+
+1. On the machine running this repo, get the Tailscale IP:
+   - `tailscale ip -4`
+2. Build and start the preview server:
+   - `npm run validate:local`
+   - `npm run preview:host`
+3. On your phone, while connected to the same tailnet, open:
+   - `http://<your-tailscale-ip>:4173/`
+
+If you use a Tailscale MagicDNS hostname instead of the raw IP, allow it explicitly when starting preview:
+
+- `OPENCODE_ALLOWED_HOSTS=your-machine.your-tailnet.ts.net npm run preview:host`
+
+### Option 2: create a Cloudflare URL
+
+1. Install `cloudflared` separately if it is not already available on your machine.
+2. In one terminal, build and start preview:
+   - `npm run validate:local`
+   - `npm run preview:host`
+3. In a second terminal, start a tunnel to the preview server:
+   - `cloudflared tunnel --url http://127.0.0.1:4173`
+4. Open the generated `https://...trycloudflare.com` URL on your phone.
+
+If you later bind a stable custom hostname to that tunnel, allow that hostname explicitly when starting preview:
+
+- `OPENCODE_ALLOWED_HOSTS=preview.example.com npm run preview:host`
+
 ## Working model
 
 This repository is operated through OpenCode phase commands.
@@ -48,7 +105,7 @@ Use `npm run repo:doctor` before starting a new phase when you want a fast healt
 
 `npm run preview:host` keeps the existing localhost and `127.0.0.1` behavior by default.
 
-If you need to open the preview from a phone through a LAN, Tailscale, or other named host, set `OPENCODE_ALLOWED_HOSTS` explicitly instead of editing `vite.config.js` for one machine.
+If you need to open the preview from a phone through a LAN, Tailscale MagicDNS, Cloudflare-backed custom hostname, or other named host, set `OPENCODE_ALLOWED_HOSTS` explicitly instead of editing `vite.config.js` for one machine.
 
 Examples:
 - `OPENCODE_ALLOWED_HOSTS=phone-preview.example.ts.net npm run preview:host`
