@@ -6,12 +6,12 @@ selection_order:
   - clearest_validation
 
 queue_rules:
-  - Only entries under `candidates` are selectable.
-  - Entries under `archived` are retained so shipped backlog references remain valid.
-  - Keep non-selected historical ideas out of `candidates` so `/next-phase` and `/autoflow` stay deterministic.
-  - Use `/autoflow` as the default execution path after `/phase-status` or `/next-phase`.
-  - Use `target_release` and `release_bump` to guide the next phase's version target.
-  - Prefer borrowing architecture and contracts from `open-agents`, not transplanting its full stack.
+  - "Only entries under `candidates` are selectable."
+  - "Entries under `archived` are retained so shipped backlog references remain valid."
+  - "Keep future local-first follow-up work under `deferred_local_first_candidates` until it is intentionally promoted."
+  - "Use `/autoflow` as the default execution path after `/phase-status` or `/next-phase`."
+  - "Use `target_release` and `release_bump` to guide the next phase's version target."
+  - "Prefer borrowing architecture and contracts from `open-agents`, not transplanting its full stack."
 
 constraints:
   max_files_changed: 6
@@ -19,91 +19,104 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  []
+  - id: session-lifecycle-actions
+    title: Add rename and delete actions so local sessions stay manageable on a phone
+    module: session-state
+    priority: 16
+    release_bump: patch
+    target_release: v1.7.3
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 4
+    drivers:
+      - "`src/ui/screens.js` currently exposes local sessions but does not let the user rename or delete them from the mobile flow."
+      - The next bounded phase should stay focused on lifecycle controls and deterministic fallback behavior, not broader search, export, or share work.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The Sessions screen exposes explicit rename and delete controls that remain usable on narrow screens.
+      - Renaming a session preserves its messages, tool results, runtime metadata, and selection state.
+      - Deleting the selected session picks a deterministic fallback session or returns Task to an honest empty state.
+      - Regression coverage proves rename/delete behavior without widening into search, export/import, or tool-drawer share work.
+
+deferred_local_first_candidates:
+  - id: session-search-filter
+    title: Add session search and empty-filter states so larger local histories remain usable
+    module: session-state
+    priority: 15
+    release_bump: patch
+    target_release: v1.7.4
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 4
+    drivers:
+      - The current Sessions view is easy to scan with a handful of items but does not scale once local history grows on-device.
+      - This phase should add search and filtered empty states without widening into rename/delete or export/import work.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The Sessions screen exposes a search input that narrows visible sessions using existing session metadata.
+      - The UI shows a distinct empty-filter state when sessions exist but none match the current query.
+      - Filtering does not corrupt selected-session state or break the current task handoff.
+      - Regression coverage proves query, clear, and empty-filter behavior without widening into export/import or tool-drawer share work.
+
+  - id: session-export-import
+    title: Add local JSON export and import so device-only sessions can be backed up and moved safely
+    module: storage
+    priority: 14
+    release_bump: patch
+    target_release: v1.7.5
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 5
+    drivers:
+      - Local-only sessions still need a bounded backup and restore path before the phone workflow is trustworthy for longer-lived work.
+      - The phase should stay focused on JSON export/import, validation, and normalization rather than cloud sync or multi-device merge behavior.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/storage.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The app can export local session data to a bounded JSON payload without mutating existing sessions.
+      - The import path validates and normalizes incoming JSON before persisting any changes.
+      - Invalid imports fail honestly and leave the current stored sessions untouched.
+      - Regression coverage proves export/import success and failure paths without widening into cloud sync or account features.
+
+  - id: tool-drawer-copy-share
+    title: Add copy and share actions for file and diff output so generated results are reusable on mobile
+    module: tool-results
+    priority: 13
+    release_bump: patch
+    target_release: v1.7.6
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 4
+    drivers:
+      - The current tool drawer renders readable file and diff output but does not let the user reuse those results through copy or share actions.
+      - This phase should stay bounded to result serialization and mobile share/copy affordances, not broader editing or export workflows.
+    files:
+      - src/main.js
+      - src/ui/tool-drawer.js
+      - src/lib/tool-results.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The tool drawer exposes copy and share actions for file and diff results.
+      - Copied or shared text preserves enough filename and diff context to remain useful outside the app.
+      - Unsupported share targets or clipboard failures fail honestly without breaking drawer navigation.
+      - Regression coverage proves file and diff reuse behavior without widening into editing or cloud export features.
 
 archived:
-  - id: browser-proof-clean-checkout-runner
-    title: Restore clean-checkout browser proof with repo-owned Playwright resolution
-    module: browser-validation
-    shipped: true
-
   - id: browser-proof-automation
     title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
     module: browser-validation
-    shipped: true
-
-  - id: workflow-validation-metadata-alignment
-    title: Normalize workflow validation metadata so phase state parses consistently
-    module: workflow
-    priority: 12
-    release_bump: patch
-    target_release: v2.2.1
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`workflow:check`, `repo:doctor`, and `autoflow inspect` currently disagree because active-phase validation metadata is not parsed consistently."
-      - Workflow automation must become trustworthy again before later backlog selection, release proof, or product work continues.
-    files:
-      - .opencode/commands/next-phase.md
-      - scripts/dev/workflow-check.sh
-      - scripts/dev/doctor.sh
-      - scripts/dev/autoflow.sh
-    validation: npm run workflow:check && npm run repo:doctor && bash scripts/dev/autoflow.sh inspect
-    acceptance:
-      - The canonical active-phase validation keys are consistent across phase templates and workflow parsers.
-      - "`npm run workflow:check` and `npm run repo:doctor` both read the active validation status correctly."
-      - "`bash scripts/dev/autoflow.sh inspect` reports a non-empty validation status and ready-to-ship value when present."
-      - The phase stays bounded to workflow metadata and parser alignment only.
-    shipped: true
-
-  - id: backlog-selection-determinism
-    title: Repair backlog selection so only true candidates remain selectable
-    module: workflow
-    priority: 11
-    release_bump: patch
-    target_release: v2.2.2
-    execution_flow: /autoflow
-    expected_max_files_changed: 5
-    drivers:
-      - Completed backlog work is still present in selectable backlog state, and deferred ideas are too close to active selection surfaces.
-      - "`/autoflow` should only count real selectable candidates so completed or deferred work cannot be reselected accidentally."
-    files:
-      - .opencode/backlog/candidates.yaml
-      - scripts/dev/autoflow.sh
-      - scripts/dev/repair-backlog-selection.sh
-      - scripts/dev/workflow-check.sh
-      - .opencode/commands/next-phase.md
-    validation: npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
-    acceptance:
-      - Only entries under `candidates` are treated as selectable backlog work.
-      - Shipped backlog items no longer remain under selectable candidates.
-      - Deferred ideas are excluded from active candidate counting and next-phase selection.
-      - The repair stays bounded to workflow state and backlog-selection logic.
-    shipped: true
-
-  - id: workflow-gate-revalidation-evidence
-    title: Re-run workflow gates and capture authoritative evidence after workflow repairs
-    module: workflow
-    priority: 10
-    release_bump: patch
-    target_release: v2.2.3
-    execution_flow: /autoflow
-    expected_max_files_changed: 1
-    drivers:
-      - The audit fix order explicitly calls for rerunning workflow gates once workflow-state repairs land.
-      - The repo should not claim repaired workflow state without fresh gate evidence.
-    files:
-      - .opencode/plans/current-phase.md
-    validation: npm run workflow:check && npm run release:proof
-    acceptance:
-      - "`npm run workflow:check` passes after the workflow repair phases."
-      - "`npm run release:proof` passes and the active phase records fresh evidence instead of stale audit assumptions."
-      - No unrelated product or tooling changes are bundled into the evidence pass.
-    shipped: true
-
-  - id: clean-install-reproducibility
-    title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
-    module: tooling
     shipped: true
 
   - id: backlog-lifecycle-gating
@@ -121,6 +134,11 @@ archived:
     module: workflow
     shipped: true
 
+  - id: clean-install-reproducibility
+    title: Restore deterministic clean installs so repo setup and workflow gates are trustworthy
+    module: tooling
+    shipped: true
+
   - id: remote-runtime-contract
     title: Define the remote runtime contract and durable run model for mobile remote coding
     module: remote-runtime
@@ -131,231 +149,64 @@ archived:
     module: remote-runtime
     shipped: true
 
+  - id: remote-backend-http-bridge
+    title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
+    module: remote-runtime
+    shipped: true
+
+  - id: repo-binding-surface
+    title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
+    module: repo-session
+    shipped: true
+
+  - id: remote-preview-share-surface
+    title: Add remote preview link and read-only share surfaces so phone-based review is practical
+    module: remote-runtime
+    shipped: true
+
+  - id: workflow-validation-metadata-alignment
+    title: Normalize workflow validation metadata so phase state parses consistently
+    module: workflow
+    shipped: true
+
+  - id: backlog-selection-determinism
+    title: Repair backlog selection so only true candidates remain selectable
+    module: workflow
+    shipped: true
+
+  - id: workflow-gate-revalidation-evidence
+    title: Re-run workflow gates and capture authoritative evidence after workflow repairs
+    module: workflow
+    shipped: true
+
   - id: vite-security-refresh
     title: Refresh Vite and related lockfile entries to reduce known development-server advisories
     module: tooling
-    priority: 9
-    release_bump: patch
-    target_release: v2.2.4
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`npm audit` currently reports moderate advisories affecting Vite and transitive esbuild in the repo's dev and preview workflow."
-      - The refresh should stay bounded to dependency and config compatibility work, not unrelated app changes.
-    files:
-      - package.json
-      - package-lock.json
-      - vite.config.js
-      - README.md
-    validation: npm audit --json && npm run validate:local
-    acceptance:
-      - The chosen Vite-related dependency set reduces or removes the currently reported moderate advisories.
-      - Local validation and preview-oriented workflow commands still work after the refresh.
-      - "Any unavoidable advisory tradeoff is documented honestly in `README.md`."
-      - The phase stays bounded to dependency and compatibility updates.
     shipped: true
 
   - id: session-state-normalization-deduplication
     title: Deduplicate session-state normalization helpers so runtime metadata cannot drift
     module: session-state
-    priority: 8
-    release_bump: patch
-    target_release: v2.2.5
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - Session runtime metadata normalization is currently duplicated across state modules, which raises drift risk.
-      - A small shared helper reduces maintenance cost without changing product behavior.
-    files:
-      - src/state/session-state.js
-      - src/state/storage.js
-      - src/state/runtime-metadata.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run lint
-    acceptance:
-      - Session runtime metadata normalization is defined in one shared helper path.
-      - Storage hydration and session-state updates still normalize legacy and remote session data safely.
-      - Existing smoke coverage still passes without changing user-visible behavior.
-      - The phase stays bounded to state normalization and related test coverage.
     shipped: true
 
   - id: main-shell-helper-extraction
     title: Extract bounded shell helpers from src/main.js to reduce maintenance risk
     module: shell
-    priority: 7
-    release_bump: patch
-    target_release: v2.2.6
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`src/main.js` currently carries too many responsibilities for safe review and bounded follow-up work."
-      - A small helper extraction is safer than a broad shell redesign and keeps future mobile changes reviewable.
-    files:
-      - src/main.js
-      - src/lib/remote-links.js
-      - src/lib/ui-notices.js
-      - tests/quality-gates.smoke.test.js
-    validation: npm run workflow:check && npm run test && npm run build
-    acceptance:
-      - "A bounded set of pure helpers moves out of `src/main.js` without changing current shell behavior."
-      - Remote link validation and UI notice behavior remain honest and covered by smoke tests.
-      - The phase avoids speculative architecture changes or broader shell refactors.
-      - The resulting extraction keeps the task shell readable and mobile-safe.
     shipped: true
-- id: remote-backend-http-bridge
-  title: Add the first real backend bridge so the mobile shell can talk to a remote coding runtime
-  module: remote-runtime
-  priority: 8
-  release_bump: major
-  target_release: v2.0.0
-  execution_flow: /autoflow
-  expected_max_files_changed: 5
-  inspired_by_open_agents:
-  - hosted durable agent runtime
-  - backend-owned execution lifecycle
-  - remote sandbox orchestration through tools instead of local device execution
-  drivers:
-  - This is the transition from mock-only behavior to the first real remote coding capability.
-  - A major version bump is appropriate because the product stops being only a local shell and begins acting as a true remote client.
-  files:
-  - package.json
-  - README.md
-  - src/adapters/remote-runtime.js
-  - src/main.js
-  - tests/quality-gates.smoke.test.js
-  validation: npm run workflow:check && npm run test && npm run build
-  acceptance:
-  - The remote runtime adapter can call a configured backend base URL for start, resume, cancel, and status operations.
-  - The app preserves a mock fallback when remote configuration is missing so local development is still usable.
-  - Failure states are explicit and do not masquerade as successful local execution.
-  - '`package.json` and `README.md` are updated to target `v2.0.0`.'
-  shipped: true
-- id: repo-binding-surface
-  title: Add repo, branch, and workspace binding surfaces so remote sessions are tied to real coding targets
-  module: repo-session
-  priority: 7
-  release_bump: minor
-  target_release: v2.1.0
-  execution_flow: /autoflow
-  expected_max_files_changed: 6
-  inspired_by_open_agents:
-  - installation-based repo access
-  - per-session repo metadata
-  - branch-aware coding sessions
-  drivers:
-  - A real remote coding client needs to show which repo and branch a session is operating on.
-  - '`open-agents` demonstrates that repo metadata belongs to the session layer, not just the backend.'
-  files:
-  - package.json
-  - README.md
-  - src/main.js
-  - src/ui/screens.js
-  - src/state/session-state.js
-  - tests/quality-gates.smoke.test.js
-  validation: npm run workflow:check && npm run test && npm run build
-  acceptance:
-  - A session can persist repo name, owner, branch, and workspace metadata.
-  - The mobile UI shows whether a session is unbound, bound to a repo, or bound to a repo plus active run.
-  - Existing local sessions remain readable and upgrade safely to the new metadata shape.
-  - '`package.json` and `README.md` are updated to target `v2.1.0`.'
-  shipped: true
-- id: remote-preview-share-surface
-  title: Add remote preview link and read-only share surfaces so phone-based review is practical
-  module: remote-runtime
-  priority: 6
-  release_bump: minor
-  target_release: v2.2.0
-  execution_flow: /autoflow
-  expected_max_files_changed: 5
-  inspired_by_open_agents:
-  - exposed preview ports
-  - read-only session sharing
-  - long-running run inspection without direct laptop involvement
-  drivers:
-  - Once remote runs exist, the mobile client needs a first-class way to open preview links and share read-only session state.
-  - This is one of the most valuable phone-native benefits from the open-agents model.
-  files:
-  - package.json
-  - README.md
-  - src/main.js
-  - src/ui/screens.js
-  - tests/quality-gates.smoke.test.js
-  validation: npm run workflow:check && npm run test && npm run build
-  acceptance:
-  - The app can render and open remote preview links from a bound remote run.
-  - The UI can display a read-only share link surface without claiming backend support that does not exist.
-  - Preview and share surfaces fail honestly when the backend does not return them.
-  - '`package.json` and `README.md` are updated to target `v2.2.0`.'
-  shipped: true
-- id: mobile-voice-prompt-entry
-  title: Add optional voice prompt entry for remote coding requests on iPhone
-  module: input
-  priority: 5
-  release_bump: minor
-  target_release: v2.3.0
-  execution_flow: /autoflow
-  expected_max_files_changed: 5
-  inspired_by_open_agents:
-  - optional ElevenLabs-powered voice transcription
-  - mobile-friendly prompt capture
-  drivers:
-  - Voice input is one of the few open-agents features that is directly more valuable on a phone than on desktop.
-  - It should come after the remote runtime path exists so spoken prompts feed a real coding workflow.
-  files:
-  - package.json
-  - README.md
-  - src/main.js
-  - src/ui/screens.js
-  - tests/quality-gates.smoke.test.js
-  validation: npm run workflow:check && npm run test && npm run build
-  acceptance:
-  - The mobile shell can accept a dictated prompt through an explicit voice entry action.
-  - Voice entry is clearly optional and degrades honestly when transcription is unavailable.
-  - The resulting prompt lands in the same composer path as typed input and does not fork a separate workflow.
-  - '`package.json` and `README.md` are updated to target `v2.3.0`.'
-  shipped: true
+
+  - id: mobile-voice-prompt-entry
+    title: Add optional voice prompt entry for remote coding requests on iPhone
+    module: input
+    shipped: true
 
   - id: remote-response-ownership
     title: Make remote runs own assistant responses instead of the local mock path
     module: workflow
     shipped: true
 
-deferred_local_first_candidates:
-
-  - id: session-lifecycle-actions
-    title: Add rename and delete actions so local sessions stay manageable on a phone
-
-  - id: session-search-filter
-    title: Add session search and empty-filter states so larger local histories remain usable
-
-  - id: session-export-import
-    title: Add local JSON export and import so device-only sessions can be backed up and moved safely
-
-  - id: tool-drawer-copy-share
-    title: Add copy and share actions for file and diff output so generated results are reusable on mobile
-
-  - id: preview-host-portability-hardening
-    title: Remove machine-specific preview host assumptions from phone testing
-    module: tooling
-    priority: 17
-    release_bump: patch
-    target_release: v1.7.4
-    execution_flow: /autoflow
-    expected_max_files_changed: 2
-    drivers:
-      - "`vite.config.js` currently hard-codes a machine-specific host allowance, which makes phone testing less portable across environments."
-      - The preview path should stay safe by default while allowing explicit operator configuration for alternate LAN or Tailscale hosts.
-    files:
-      - vite.config.js
-      - README.md
-    validation: npm run validate:local && npm run preview:host
-    acceptance:
-      - Preview host configuration no longer depends on one machine-specific hostname.
-      - Localhost and `127.0.0.1` preview behavior remain unchanged.
-      - Alternate phone-testing hosts can be enabled through explicit configuration rather than source edits per machine.
-      - The phase stays bounded to preview-host portability and documentation only.
-
-archived:
+  - id: browser-proof-clean-checkout-runner
+    title: Restore clean-checkout browser proof with repo-owned Playwright resolution
+    module: browser-validation
     shipped: true
 
   - id: browser-proof-command-surface-alignment
@@ -368,28 +219,12 @@ archived:
     module: browser-validation
     shipped: true
 
+  - id: preview-host-portability-hardening
+    title: Remove machine-specific preview host assumptions from phone testing
+    module: tooling
+    shipped: true
+
   - id: registry-complete-selection-guard-hardening
     title: Guard phase selection against registry-complete backlog ids
     module: workflow
-    priority: 19
-    release_bump: patch
-    target_release: v1.7.3
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`workflow:check` currently passes even when backlog ids already recorded as shipped in the registry remain selectable under `candidates`."
-      - "`/autoflow` and backlog-repair helpers should treat registry-complete backlog ids as non-selectable so the next phase stays deterministic."
-    files:
-      - scripts/dev/workflow-check.sh
-      - scripts/dev/autoflow.sh
-      - scripts/dev/repair-backlog-selection.sh
-      - .opencode/backlog/candidates.yaml
-    validation: npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
-    acceptance:
-      - `workflow:check` fails when a registry-complete backlog id remains under selectable `candidates`.
-      - `scripts/dev/repair-backlog-selection.sh` archives backlog ids already marked complete or shipped in the registry.
-      - `scripts/dev/autoflow.sh` reports the corrected backlog state and does not rely on stale selectable candidates.
-      - The repair stays bounded to workflow-state truth and backlog-selection guards only.
-
-archived:
     shipped: true
