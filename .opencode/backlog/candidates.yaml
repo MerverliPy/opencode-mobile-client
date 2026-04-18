@@ -22,29 +22,6 @@ candidates:
   []
 
 deferred_local_first_candidates:
-  - id: session-search-filter
-    title: Add session search and empty-filter states so larger local histories remain usable
-    module: session-state
-    priority: 15
-    release_bump: patch
-    target_release: v1.7.4
-    execution_flow: "/autoflow"
-    expected_max_files_changed: 4
-    drivers:
-      - The current Sessions view is easy to scan with a handful of items but does not scale once local history grows on-device.
-      - This phase should add search and filtered empty states without widening into rename/delete or export/import work.
-    files:
-      - src/main.js
-      - src/ui/screens.js
-      - src/state/session-state.js
-      - tests/quality-gates.smoke.test.js
-    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
-    acceptance:
-      - The Sessions screen exposes a search input that narrows visible sessions using existing session metadata.
-      - The UI shows a distinct empty-filter state when sessions exist but none match the current query.
-      - Filtering does not corrupt selected-session state or break the current task handoff.
-      - Regression coverage proves query, clear, and empty-filter behavior without widening into export/import or tool-drawer share work.
-
   - id: session-export-import
     title: Add local JSON export and import so device-only sessions can be backed up and moved safely
     module: storage
@@ -230,4 +207,28 @@ archived:
       - Renaming a session preserves its messages, tool results, runtime metadata, and selection state.
       - Deleting the selected session picks a deterministic fallback session or returns Task to an honest empty state.
       - Regression coverage proves rename/delete behavior without widening into search, export/import, or tool-drawer share work.
+    shipped: true
+
+  - id: session-search-filter
+    title: Add session search and empty-filter states so larger local histories remain usable
+    module: session-state
+    priority: 15
+    release_bump: patch
+    target_release: v1.7.4
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 4
+    drivers:
+      - The current Sessions view is easy to scan with a handful of items but does not scale once local history grows on-device.
+      - This phase should add search and filtered empty states without widening into rename/delete or export/import work.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The Sessions screen exposes a search input that narrows visible sessions using existing session metadata.
+      - The UI shows a distinct empty-filter state when sessions exist but none match the current query.
+      - Filtering does not corrupt selected-session state or break the current task handoff.
+      - Regression coverage proves query, clear, and empty-filter behavior without widening into export/import or tool-drawer share work.
     shipped: true

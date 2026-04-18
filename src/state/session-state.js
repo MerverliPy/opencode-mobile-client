@@ -91,6 +91,33 @@ export function getVisibleMessageCount(session) {
   return session.messages.filter((message) => message.role !== 'notice').length;
 }
 
+function normalizeSessionSearchQuery(query) {
+  return compactText(query).toLowerCase();
+}
+
+function getSessionSearchText(session) {
+  return [
+    getSessionEditableTitle(session),
+    getSessionPreview(session),
+    getRepoBindingLabel(session),
+    getRepoWorkspaceLabel(session),
+  ]
+    .map((value) => normalizeSessionSearchQuery(value))
+    .filter(Boolean)
+    .join('\n');
+}
+
+export function filterSessionsByQuery(sessions, query) {
+  const sessionList = Array.isArray(sessions) ? sessions : [];
+  const normalizedQuery = normalizeSessionSearchQuery(query);
+
+  if (!normalizedQuery) {
+    return sessionList;
+  }
+
+  return sessionList.filter((session) => getSessionSearchText(session).includes(normalizedQuery));
+}
+
 export function isRemoteSession(session) {
   return session?.runtimeMetadata?.runtimeId === 'remote-runtime' || Boolean(session?.remoteRun?.runId);
 }

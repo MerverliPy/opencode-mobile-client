@@ -1,6 +1,7 @@
 import { escapeHtml, formatSessionTime } from '../lib/utils.js';
 import { getDiffFiles, getToolResultKind } from '../lib/tool-results.js';
 import {
+  filterSessionsByQuery,
   getRemoteResponseLifecycleState,
   getRepoBindingLabel,
   getRepoBindingStatus,
@@ -512,6 +513,30 @@ function renderSessionCard({ appState, session }) {
   `;
 }
 
+function renderSessionSearchControls({ sessionCount, sessionSearchQuery, visibleSessionCount }) {
+  const hasActiveQuery = Boolean(sessionSearchQuery.trim());
+
+  return `
+    <div class="session-list" aria-label="Session search controls">
+      <div>
+        <label class="composer-label" for="session-search-input">Search saved sessions</label>
+        <input
+          class="composer-input"
+          id="session-search-input"
+          type="search"
+          inputmode="search"
+          maxlength="80"
+          placeholder="Search titles, previews, or repo labels"
+          value="${escapeHtml(sessionSearchQuery)}"
+          aria-describedby="session-search-hint"
+        />
+      </div>
+      ${hasActiveQuery ? '<div class="state-actions"><button class="ghost-button" type="button" data-action="clear-session-search">Clear search</button></div>' : ''}
+      <p class="session-meta" id="session-search-hint">${hasActiveQuery ? `Showing ${visibleSessionCount} of ${sessionCount} saved sessions without changing stored threads.` : 'Search narrows the visible list using local titles, previews, and repo labels only.'}</p>
+    </div>
+  `;
+}
+
 export function renderSessionsScreen({ appState }) {
   if (appState.isHydratingSessions) {
     return `
@@ -558,6 +583,10 @@ export function renderSessionsScreen({ appState }) {
     `;
   }
 
+  const sessionSearchQuery = typeof appState.ui?.sessionSearchQuery === 'string' ? appState.ui.sessionSearchQuery : '';
+  const visibleSessions = filterSessionsByQuery(appState.sessions, sessionSearchQuery);
+  const hasActiveQuery = Boolean(sessionSearchQuery.trim());
+
   return `
     ${renderShellStatusBanner(appState)}
     ${renderInstallCard(appState)}
@@ -566,9 +595,9 @@ export function renderSessionsScreen({ appState }) {
       <p class="eyebrow">Sessions</p>
       <div class="hero-heading">
         <h2 id="screen-title">Recent sessions</h2>
-        <span class="location-chip">${appState.sessions.length} saved</span>
+        <span class="location-chip">${hasActiveQuery ? `${visibleSessions.length} shown` : `${appState.sessions.length} saved`}</span>
       </div>
-      <p class="screen-copy">Recent work stays on this device so it is easy to reopen with one tap while keeping the app thumb-friendly.</p>
+      <p class="screen-copy">${hasActiveQuery ? 'Search narrows visible sessions with local metadata while keeping the selected thread and Task handoff intact.' : 'Recent work stays on this device so it is easy to reopen with one tap while keeping the app thumb-friendly.'}</p>
       <div class="state-actions">
         <button class="primary-button" type="button" data-action="create-session">New session</button>
         <button class="secondary-button" type="button" data-action="create-remote-session">Remote shell session</button>
@@ -578,11 +607,30 @@ export function renderSessionsScreen({ appState }) {
             : ''
         }
       </div>
+      ${renderSessionSearchControls({
+        sessionCount: appState.sessions.length,
+        sessionSearchQuery,
+        visibleSessionCount: visibleSessions.length,
+      })}
     </section>
 
-    <section class="session-list" aria-label="Saved sessions">
-      ${appState.sessions.map((session) => renderSessionCard({ appState, session })).join('')}
-    </section>
+    ${visibleSessions.length
+      ? `
+        <section class="session-list" aria-label="Saved sessions">
+          ${visibleSessions.map((session) => renderSessionCard({ appState, session })).join('')}
+        </section>
+      `
+      : `
+        <section class="screen-card state-card">
+          <p class="eyebrow">Filtered state</p>
+          <h3>No sessions match “${escapeHtml(sessionSearchQuery.trim())}”.</h3>
+          <p class="screen-copy">${appState.selectedSessionId ? 'The current selected session still stays available in Task. Clear the filter or try another term to browse the full saved list again.' : 'Clear the filter or try another term to browse the full saved list again.'}</p>
+          <div class="state-actions">
+            <button class="secondary-button" type="button" data-action="clear-session-search">Clear search</button>
+            ${appState.selectedSessionId ? '<button class="ghost-button" type="button" data-action="open-selected-session">Open current</button>' : ''}
+          </div>
+        </section>
+      `}
   `;
 }
 

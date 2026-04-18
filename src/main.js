@@ -160,6 +160,7 @@ const appState = {
   isHydratingSessions: true,
   ui: {
     notice: null,
+    sessionSearchQuery: '',
   },
   shell: {
     isOnline: window.navigator.onLine,
@@ -181,6 +182,7 @@ let shouldScrollTaskToEnd = false;
 let shouldFocusComposer = false;
 let shouldFocusDrawerClose = false;
 let shouldRestoreTaskFocus = false;
+let shouldFocusSessionSearch = false;
 
 function setUiNotice({ tone = 'info', title, body }) {
   appState.ui.notice = createUiNotice({ tone, title, body });
@@ -958,6 +960,21 @@ function renderApp() {
     window.requestAnimationFrame(() => composerInput.focus());
   }
 
+  if (shouldFocusSessionSearch && activeId === 'sessions') {
+    shouldFocusSessionSearch = false;
+    window.requestAnimationFrame(() => {
+      const sessionSearchInput = app.querySelector('#session-search-input');
+
+      if (!(sessionSearchInput instanceof HTMLInputElement)) {
+        return;
+      }
+
+      sessionSearchInput.focus({ preventScroll: true });
+      const queryLength = sessionSearchInput.value.length;
+      sessionSearchInput.setSelectionRange(queryLength, queryLength);
+    });
+  }
+
   if (activeId === 'task' && shouldScrollTaskToEnd) {
     shouldScrollTaskToEnd = false;
     const screenArea = app.querySelector('.screen-area');
@@ -969,6 +986,13 @@ function renderApp() {
 }
 
 app.addEventListener('input', (event) => {
+  if (event.target instanceof HTMLInputElement && event.target.id === 'session-search-input') {
+    appState.ui.sessionSearchQuery = event.target.value;
+    shouldFocusSessionSearch = true;
+    renderApp();
+    return;
+  }
+
   if (!(event.target instanceof HTMLTextAreaElement) || event.target.id !== 'composer-input') {
     return;
   }
@@ -1057,6 +1081,7 @@ app.addEventListener('click', (event) => {
   const openPreviewLinkButton = event.target.closest('[data-action="open-preview-link"]');
   const openShareLinkButton = event.target.closest('[data-action="open-share-link"]');
   const startVoiceEntryButton = event.target.closest('[data-action="start-voice-entry"]');
+  const clearSessionSearchButton = event.target.closest('[data-action="clear-session-search"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
   const renameSessionButton = event.target.closest('[data-action="rename-session"]');
   const deleteSessionButton = event.target.closest('[data-action="delete-session"]');
@@ -1170,6 +1195,13 @@ app.addEventListener('click', (event) => {
 
   if (startVoiceEntryButton) {
     startVoiceEntry();
+    return;
+  }
+
+  if (clearSessionSearchButton) {
+    appState.ui.sessionSearchQuery = '';
+    shouldFocusSessionSearch = true;
+    renderApp();
     return;
   }
 

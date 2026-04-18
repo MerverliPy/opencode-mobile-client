@@ -24,6 +24,7 @@ import {
   createRemoteAssistantMessage,
   createStarterMessages,
   deleteSessionById,
+  filterSessionsByQuery,
   findRemoteAssistantMessage,
   getRemoteResponseLifecycleState,
   getRepoBindingLabel,
@@ -497,6 +498,102 @@ describe('Phase 13 smoke coverage', () => {
     expect(html).toContain('data-action="delete-session"');
     expect(html).toContain('Rename');
     expect(html).toContain('Delete');
+  });
+
+  it('filters sessions by local metadata and restores all sessions when the query clears', () => {
+    const sessions = [
+      {
+        id: 'session-1',
+        customTitle: 'Renamed phone review flow',
+        repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+        messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Latest local shell summary' }],
+      },
+      {
+        id: 'session-2',
+        repoBinding: { owner: 'acme', repo: 'search', branch: 'main', workspace: 'ios-lab' },
+        messages: [{ id: 'msg-2', role: 'assistant', label: 'OpenCode', text: 'Repo-bound mobile handoff' }],
+      },
+    ];
+
+    expect(filterSessionsByQuery(sessions, 'review').map((session) => session.id)).toEqual(['session-1']);
+    expect(filterSessionsByQuery(sessions, 'acme/search').map((session) => session.id)).toEqual(['session-2']);
+    expect(filterSessionsByQuery(sessions, '')).toHaveLength(2);
+  });
+
+  it('renders only matching sessions and exposes a clear-search control', () => {
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-1',
+      ui: { sessionSearchQuery: 'repo-bound' },
+      sessions: [
+        {
+          id: 'session-1',
+          createdAt: 10,
+          updatedAt: 30,
+          draft: '',
+          isLoading: false,
+          customTitle: 'Repo-bound handoff',
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: '' },
+          messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Matching session preview' }],
+          toolResults: [],
+        },
+        {
+          id: 'session-2',
+          createdAt: 20,
+          updatedAt: 40,
+          draft: '',
+          isLoading: false,
+          customTitle: 'Draft inbox',
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+          messages: [{ id: 'msg-2', role: 'assistant', label: 'OpenCode', text: 'Non-matching session preview' }],
+          toolResults: [],
+        },
+      ],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+    };
+
+    const html = renderSessionsScreen({ appState });
+
+    expect(html).toContain('value="repo-bound"');
+    expect(html).toContain('data-action="clear-session-search"');
+    expect(html).toContain('Repo-bound handoff');
+    expect(html).not.toContain('Draft inbox');
+  });
+
+  it('renders a distinct empty-filter state without dropping the current task handoff', () => {
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-1',
+      ui: { sessionSearchQuery: 'no-match' },
+      sessions: [
+        {
+          id: 'session-1',
+          createdAt: 10,
+          updatedAt: 30,
+          draft: '',
+          isLoading: false,
+          customTitle: 'Phone review thread',
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+          messages: [{ id: 'msg-1', role: 'assistant', label: 'OpenCode', text: 'Saved thread preview' }],
+          toolResults: [],
+        },
+      ],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+    };
+
+    const html = renderSessionsScreen({ appState });
+
+    expect(html).toContain('Filtered state');
+    expect(html).toContain('No sessions match');
+    expect(html).toContain('data-action="clear-session-search"');
+    expect(html).toContain('data-action="open-selected-session"');
+    expect(html).not.toContain('No local sessions yet.');
   });
 
   it('renames a session without altering its stored content or selected state', () => {

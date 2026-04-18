@@ -1,49 +1,50 @@
-# Add rename and delete actions so local sessions stay manageable on a phone
+# Add session search and empty-filter states so larger local histories remain usable
 
 Status: complete
 Release: v1.7.2
-Phase file: backlog:session-lifecycle-actions
+Phase file: backlog:session-search-filter
 
 ## Goal
-Add bounded rename and delete session lifecycle actions so local phone-based session history remains manageable without losing session integrity.
+Add a bounded session search input and filtered empty state to the Sessions screen so larger local histories remain usable on a phone without changing session lifecycle or storage scope.
 
 ## Why this phase is next
-The prior active phase is complete, all listed release phases in `docs/releases/phase-registry.md` are already complete, and `session-lifecycle-actions` is the highest-priority selectable item under `.opencode/backlog/candidates.yaml`. It is a single-module follow-up with clear validation and a smaller safer scope than deferred search, export/import, or tool-result sharing work.
+- The prior active phase is complete.
+- All listed release phases are already complete in `docs/releases/phase-registry.md`.
+- `session-search-filter` is the highest-priority selectable item under `.opencode/backlog/candidates.yaml`.
+- It is a same-module follow-up with smaller safer scope and clearer validation than deferred export/import or tool-result sharing work.
 
 ## Primary files
 - src/main.js
 - src/ui/screens.js
 - src/state/session-state.js
-- src/state/storage.js
 - tests/quality-gates.smoke.test.js
 
 ## Expected max files changed
-5
+4
 
 ## Risk
-Medium. Session rename and delete flows can accidentally corrupt selection or local history if state transitions are not kept deterministic.
+Medium. Search/filter wiring can accidentally desync visible sessions from selected-session state or create misleading empty states on narrow screens.
 
 ## Rollback note
-Revert the session lifecycle UI and state changes together if rename/delete causes session loss, incorrect fallback selection, or an inconsistent empty-task state.
+Revert the Sessions search/filter UI and related state updates together if filtering breaks selection, current task handoff, or honest empty-filter behavior.
 
 ## In scope
-- add explicit rename and delete controls to the Sessions screen with narrow-screen-safe presentation
-- implement rename behavior that preserves messages, tool results, runtime metadata, and current selection state
-- implement delete behavior with deterministic fallback session selection or an honest empty Task state when no sessions remain
-- add regression coverage for rename and delete behavior only
+- add a bounded search input to the Sessions screen using existing local session metadata
+- show a distinct empty-filter state when sessions exist but no sessions match the current query
+- preserve selected-session state and current task handoff while filtering visible sessions
+- add regression coverage for query, clear, and empty-filter behavior only
 
 ## Out of scope
-- session search or filtered empty states
-- session export or import flows
+- rename/delete session lifecycle behavior beyond the already shipped controls
+- session export/import or backup flows
 - tool drawer copy/share actions
-- cloud sync, account features, or multi-device merge behavior
-- broader session list redesign beyond the bounded rename/delete controls needed for this phase
+- broader session list redesign, sorting changes, or cloud/multi-device sync behavior
 
 ## Tasks
-- add bounded rename and delete controls to the Sessions screen
-- wire rename updates through session state without changing stored session content or runtime metadata
-- wire delete behavior through session state with deterministic fallback handling
-- extend regression coverage for rename/delete success and fallback behavior
+- add a narrow-screen-safe search input and filtered empty-state UI to the Sessions screen
+- wire session filtering through existing session metadata without mutating stored sessions
+- ensure filtering does not corrupt selected-session state or break the current task handoff
+- extend regression coverage for query, clear, and empty-filter behavior
 
 ## Validation command
 npm run validate:local && npm run browser:smoke && npm run release:proof
@@ -52,27 +53,26 @@ npm run validate:local && npm run browser:smoke && npm run release:proof
 Status: PASS
 Evidence:
 - `npm run workflow:check` passed.
-- Required validation command passed: `npm run validate:local && npm run browser:smoke && npm run release:proof`.
-- Browser-facing repo proof completed with confirmed artifacts: `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
-- Scope stayed bounded to session rename/delete state, Sessions screen controls, event wiring, and regression coverage in the listed primary files.
-- Independent validation reproduction confirmed renamed titles survive hydration: persisting a session with `customTitle` and re-running `hydrateSessions()` preserved `customTitle` and the selected session id after reload.
-- Regression coverage includes stored custom-title hydration, explicit rename/delete controls, rename state preservation, and deterministic delete fallback behavior.
+- `npm run validate:local` passed (`eslint`, `vitest`, and `vite build`).
+- `npm run browser:smoke` passed and refreshed the required screenshot artifacts in `playwright-artifacts/`.
+- `npm run release:proof` returned `Status: READY_TO_SHIP` with all required proof artifacts confirmed.
 Blockers:
-- none.
+- none
 Ready to ship:
 - yes
 
 ## Acceptance criteria
-- The Sessions screen exposes explicit rename and delete controls that remain usable on narrow screens.
-- Renaming a session preserves its messages, tool results, runtime metadata, and selection state.
-- Deleting the selected session picks a deterministic fallback session or returns Task to an honest empty state.
-- Regression coverage proves rename/delete behavior without widening into search, export/import, or tool-drawer share work.
+- The Sessions screen exposes a search input that narrows visible sessions using existing session metadata.
+- The UI shows a distinct empty-filter state when sessions exist but none match the current query.
+- Filtering does not corrupt selected-session state or break the current task handoff.
+- Regression coverage proves query, clear, and empty-filter behavior without widening into export/import or tool-drawer share work.
 
 ## Release notes
-- Added explicit Rename and Delete actions to saved session cards so session history stays manageable on a phone.
-- Renamed session titles now persist across reload, and deleting a session keeps fallback selection or empty-state behavior honest.
+- Added a bounded Sessions search field that filters visible local sessions by existing titles, previews, and repo metadata on mobile.
+- Added a distinct filtered empty state with a clear-search recovery path while preserving selected-session access in Task.
+- Added smoke coverage for query matching, clear behavior, and filtered empty-state rendering.
 
 ## Completion summary
-- Added bounded rename and delete controls to the Sessions screen without widening into broader session-management redesign.
-- Preserved messages, tool results, runtime metadata, and current selection when renaming sessions, including across stored-state hydration.
-- Added deterministic delete fallback handling and focused regression coverage for rename, delete, and custom-title hydration behavior.
+- Added a bounded Sessions search input that filters visible sessions by existing local metadata without mutating stored sessions.
+- Added a distinct filtered empty state with a clear-search path while preserving selected-session handoff to Task.
+- Extended smoke coverage for search query matching, clear behavior, and the empty-filter state only.
