@@ -8,7 +8,7 @@ Legend:
 
 Authority notes:
 - `.opencode/plans/current-phase.md` and this registry are the active workflow source of truth.
-- The runtime and package metadata currently advertise the shipped `v1.7.2` release established by `browser-proof-command-surface-alignment`; `browser-proof-clean-checkout-runner` established the prior `v1.7.1` baseline, `remote-response-ownership` established the prior `v1.7.0` baseline, and Phase 14 established the earlier `v1.6.0` baseline.
+- The runtime and package metadata currently advertise the shipped `v1.7.2` release baseline. `browser-proof-release-truth-revalidation` refreshed clean browser-proof evidence for that baseline after `browser-proof-command-surface-alignment` and `browser-proof-clean-checkout-runner` repaired the command and runner surfaces; `remote-response-ownership` established the prior `v1.7.0` baseline, and Phase 14 established the earlier `v1.6.0` baseline.
 - The previously shipped `v1.1.0` skip-link follow-up that once used Phase 09 numbering is preserved at `docs/releases/phase-09-v1-1-history.md` as a superseded historical record.
 
 ## Implementation releases
@@ -48,5 +48,6 @@ Authority notes:
 - [x] browser-proof-automation — Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
 - [x] browser-proof-clean-checkout-runner — v1.7.1 — Restore clean-checkout browser proof with repo-owned Playwright resolution
 - [x] browser-proof-command-surface-alignment — v1.7.2 — Align browser-proof command surfaces with the real runner and proof flow
+- [x] browser-proof-release-truth-revalidation — v1.7.2 — Refresh release-truth surfaces after browser-proof repair with clean evidence
 
 ## In progress

@@ -131,12 +131,11 @@ If any required check fails, the validator must return FAIL.
 Status: PASS
 
 Evidence:
-- `npm run validate:local` passed: `workflow:check`, `lint`, `test`, and `build` all succeeded.
-- `npm run preview:host` served the local build at `http://127.0.0.1:4173/`.
-- Real-browser validation at a narrow mobile viewport (`390x844`) passed for `/#sessions` and `/#task`; accessibility snapshots loaded cleanly, the runtime badge showed `v1.6.0`, and layout metrics show `scrollWidth === viewport width` on both routes, so no critical primary action depended on horizontal scrolling.
-- The task flow preserved context: the tool drawer opened on `/#task`, remained readable in the narrow viewport, and closed back to the same task session without losing task context. No browser console errors were recorded.
-- Offline and recovery validation passed on `/#sessions`: the offline warning/message was visible, saved local shell content remained readable while offline, and the recovered-online success message was visible after reconnect.
-- Required browser artifacts are present in `playwright-artifacts/`: `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- Fresh repo-root browser-proof revalidation passed on the repaired runner via `npm run browser:smoke` and `npm run release:proof` from the shipped `v1.7.2` baseline.
+- `npm run browser:smoke` completed `npm run validate:local` successfully, started the preview server at `http://127.0.0.1:4173/`, opened the shell in mobile WebKit at `390x844`, and rechecked the `/#task` and `/#sessions` routes without requiring horizontal scrolling.
+- The current runner-backed proof flow confirmed task-context preservation by opening and closing the tool drawer on `/#task`, then captured the standard screenshots `task-screen.png`, `tool-drawer.png`, and `sessions-screen.png`.
+- The same runner-backed proof flow verified the offline and recovery states on `/#sessions` and captured `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- `npm run release:proof` reran `npm run validate:local`, confirmed all six required screenshots in `playwright-artifacts/`, and reported `Status: READY_TO_SHIP`.
 
 Blockers:
 - none

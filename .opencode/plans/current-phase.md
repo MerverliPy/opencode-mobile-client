@@ -1,45 +1,46 @@
-# Align browser-proof command surfaces with the real runner and proof flow
+# Refresh release-truth surfaces after browser-proof repair with clean evidence
 
 Status: complete
 Release: v1.7.2
-Phase file: backlog:browser-proof-command-surface-alignment
+Phase file: backlog:browser-proof-release-truth-revalidation
 
 ## Goal
-Make the browser-proof command docs describe the real supported repo-root execution path instead of a split MCP-versus-script story.
+Refresh browser-proof release-truth surfaces so the repo records fresh evidence from the repaired runner instead of stale claims.
 
 ## Why this phase is next
-The clean-checkout runner repair shipped on v1.7.1, so the next highest-priority selectable backlog candidate in the same browser-validation module is the bounded command-truth follow-up.
+The `browser-proof-command-surface-alignment` follow-up is already complete, and the next highest-priority selectable backlog candidate in the same browser-validation module is to rerun proof and synchronize release-truth files with the real result.
 
 ## Primary files
-- .opencode/commands/browser-smoke.md
-- .opencode/commands/browser-offline.md
-- .opencode/commands/screenshot-capture.md
-- .opencode/commands/release-proof.md
+- .opencode/plans/current-phase.md
+- docs/releases/phase-14-ci-and-release-verification.md
+- docs/releases/phase-registry.md
 
 ## Expected max files changed
-4
+3
 
 ## Risk
-Low. This is command-truth alignment only.
+Low. This phase is limited to fresh browser-proof evidence and release-truth synchronization.
 
 ## Rollback note
-Revert the four command docs together if the updated wording causes scope drift.
+Revert these release-truth updates together if the fresh proof summary is recorded incorrectly.
 
 ## In scope
-- align browser smoke, offline, screenshot, and release-proof command docs to the real repo-owned runner
-- document actual prerequisites and artifact expectations
-- keep commands single-purpose and bounded
+- rerun the repaired browser-proof flow to capture fresh evidence
+- update Phase 14 release-proof documentation to match the real clean-checkout result
+- synchronize registry and phase release-truth statements with validator evidence
+- keep release notes and completion summary short and factual
 
 ## Out of scope
-- runner implementation changes
-- phase registry edits
-- release notes edits
-- unrelated workflow refactors
+- browser runner implementation changes
+- product code changes
+- new proof tooling or workflow redesign
+- unrelated release metadata edits
 
 ## Tasks
-- rewrite the four command docs to match the repaired runner
-- remove unsupported hidden dependency claims
-- keep artifact names and route expectations consistent with the implementation
+- run the workflow and browser-proof commands needed to capture fresh evidence
+- update `docs/releases/phase-14-ci-and-release-verification.md` with the real current proof result
+- update `docs/releases/phase-registry.md` only as needed to keep browser-proof completion claims truthful
+- record concise validation, release notes, and completion summary in this phase file
 
 ## Validation command
 npm run workflow:check && npm run browser:smoke && npm run release:proof
@@ -48,11 +49,10 @@ npm run workflow:check && npm run browser:smoke && npm run release:proof
 Status: PASS
 
 Evidence:
-- Reviewed the four in-scope command docs only; changes stayed bounded to command-truth guidance with no runner, registry, or broader workflow refactors.
-- `.opencode/commands/browser-smoke.md` and `.opencode/commands/release-proof.md` now match the real repo-root helpers, including repo-root dependency/bootstrap guidance, preview URL `http://127.0.0.1:4173`, and the standard six `playwright-artifacts/` screenshots checked by the scripts.
-- `.opencode/commands/browser-offline.md` and `.opencode/commands/screenshot-capture.md` now describe targeted follow-up against the repo-root preview path and no longer depend on a hidden or split execution story.
-- `npm run workflow:check` passed before declaring PASS.
-- The stated validation command `npm run workflow:check && npm run browser:smoke && npm run release:proof` passed, and `npm run release:proof` reported `READY_TO_SHIP` after confirming `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- `npm run workflow:check` passed once the active backlog phase was aligned to the current shipped release baseline `v1.7.2`, matching the existing README, registry, package, and runtime truth surfaces.
+- `npm run browser:smoke` passed through the repaired repo-owned browser-proof flow and completed `npm run validate:local` (`workflow:check`, `lint`, `test`, and `build`) before capturing the standard six browser-proof screenshots in `playwright-artifacts/`.
+- `npm run release:proof` passed with `Status: READY_TO_SHIP` and confirmed `sessions-screen.png`, `task-screen.png`, `tool-drawer.png`, `offline-baseline.png`, `offline-state.png`, and `offline-recovered.png`.
+- `docs/releases/phase-14-ci-and-release-verification.md` now records the current runner-backed browser-proof result instead of stale pre-repair detail.
 
 Blockers:
 - none
@@ -61,14 +61,14 @@ Ready to ship:
 - yes
 
 ## Release notes
-- Browser-proof command docs now point to the repo-root `npm run browser:smoke` and `npm run release:proof` helpers.
-- Command guidance now documents the real prerequisites, preview URL, and standard screenshot artifacts without hidden dependency claims.
+- Refreshed Phase 14 browser-proof evidence using the repaired repo-owned runner and the current six-artifact proof flow.
+- Prepared registry truth updates for the confirmed `v1.7.2` browser-proof baseline.
 
 ## Acceptance criteria
-- each browser-proof command document matches the real supported repo-root execution path
-- documented prerequisites and artifact expectations match implemented runner behavior
-- the command set no longer claims an unsupported or hidden execution dependency
-- the phase stays bounded to command truth and operator guidance only
+- The active phase validation block records fresh PASS or FAIL evidence based on the repaired runner, not stale claims.
+- `docs/releases/phase-14-ci-and-release-verification.md` reflects the real clean-checkout validation evidence.
+- `docs/releases/phase-registry.md` no longer overstates browser-proof completion before fresh proof exists.
+- Release notes and completion summary remain short, factual, and synchronized with validator evidence.
 
 ## Completion summary
-Shipped `v1.7.2` by aligning the browser-proof command docs with the repo-root runner and release-proof flow, including truthful prerequisites and artifact expectations.
+Refreshed the `v1.7.2` browser-proof truth surfaces by rerunning the repaired proof flow and recording the current clean evidence in the release-facing workflow files.
