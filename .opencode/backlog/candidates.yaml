@@ -19,51 +19,10 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: browser-proof-release-truth-revalidation
-    title: Refresh release-truth surfaces after browser-proof repair with clean evidence
-    module: browser-validation
-    priority: 18
-    release_bump: patch
-    target_release: v1.7.3
-    execution_flow: /autoflow
-    expected_max_files_changed: 3
-    drivers:
-      - "The repo currently records PASS evidence for browser-proof automation that is not reproducible from a clean checkout."
-      - "Release-truth files must be corrected only after the repaired browser-proof path passes with fresh artifacts."
-    files:
-      - .opencode/plans/current-phase.md
-      - docs/releases/phase-14-ci-and-release-verification.md
-      - docs/releases/phase-registry.md
-    validation: npm run workflow:check && npm run browser:smoke && npm run release:proof
-    acceptance:
-      - The active phase validation block records fresh PASS or FAIL evidence based on the repaired runner, not stale claims.
-      - `docs/releases/phase-14-ci-and-release-verification.md` reflects the real clean-checkout validation evidence.
-      - `docs/releases/phase-registry.md` no longer overstates browser-proof completion before fresh proof exists.
-      - Release notes and completion summary remain short, factual, and synchronized with validator evidence.
-
-  - id: preview-host-portability-hardening
-    title: Remove machine-specific preview host assumptions from phone testing
-    module: tooling
-    priority: 17
-    release_bump: patch
-    target_release: v1.7.4
-    execution_flow: /autoflow
-    expected_max_files_changed: 2
-    drivers:
-      - "`vite.config.js` currently hard-codes a machine-specific host allowance, which makes phone testing less portable across environments."
-      - The preview path should stay safe by default while allowing explicit operator configuration for alternate LAN or Tailscale hosts.
-    files:
-      - vite.config.js
-      - README.md
-    validation: npm run validate:local && npm run preview:host
-    acceptance:
-      - Preview host configuration no longer depends on one machine-specific hostname.
-      - Localhost and `127.0.0.1` preview behavior remain unchanged.
-      - Alternate phone-testing hosts can be enabled through explicit configuration rather than source edits per machine.
-      - The phase stays bounded to preview-host portability and documentation only.
+  []
 
 archived:
-  - id: browser-proof-command-surface-alignment
+- id: browser-proof-command-surface-alignment
     title: Align browser-proof command surfaces with the real runner and proof flow
     module: browser-validation
     shipped: true
@@ -367,11 +326,44 @@ archived:
     shipped: true
 
 deferred_local_first_candidates:
+
   - id: session-lifecycle-actions
     title: Add rename and delete actions so local sessions stay manageable on a phone
+
   - id: session-search-filter
     title: Add session search and empty-filter states so larger local histories remain usable
+
   - id: session-export-import
     title: Add local JSON export and import so device-only sessions can be backed up and moved safely
+
   - id: tool-drawer-copy-share
     title: Add copy and share actions for file and diff output so generated results are reusable on mobile
+
+  - id: preview-host-portability-hardening
+    title: Remove machine-specific preview host assumptions from phone testing
+    module: tooling
+    priority: 17
+    release_bump: patch
+    target_release: v1.7.4
+    execution_flow: /autoflow
+    expected_max_files_changed: 2
+    drivers:
+      - "`vite.config.js` currently hard-codes a machine-specific host allowance, which makes phone testing less portable across environments."
+      - The preview path should stay safe by default while allowing explicit operator configuration for alternate LAN or Tailscale hosts.
+    files:
+      - vite.config.js
+      - README.md
+    validation: npm run validate:local && npm run preview:host
+    acceptance:
+      - Preview host configuration no longer depends on one machine-specific hostname.
+      - Localhost and `127.0.0.1` preview behavior remain unchanged.
+      - Alternate phone-testing hosts can be enabled through explicit configuration rather than source edits per machine.
+      - The phase stays bounded to preview-host portability and documentation only.
+
+archived:
+    shipped: true
+
+  - id: browser-proof-command-surface-alignment
+    title: Align browser-proof command surfaces with the real runner and proof flow
+    module: browser-validation
+    shipped: true
