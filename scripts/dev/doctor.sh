@@ -15,6 +15,48 @@ raise SystemExit(0 if re.search(pattern, text) else 1)
 PY
 }
 
+playwright_browser_readiness() {
+  python - <<'PY'
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+result = {
+    'module_installed': False,
+    'webkit_ready': False,
+    'executable_path': '',
+    'bootstrap_hint': '',
+}
+
+package_lock_present = Path('node_modules/playwright/package.json').is_file()
+cli_present = Path('node_modules/.bin/playwright').is_file()
+result['module_installed'] = package_lock_present and cli_present
+
+if result['module_installed']:
+    probe = subprocess.run(
+        [
+            'node',
+            '--input-type=module',
+            '-e',
+            "import fs from 'node:fs'; import { webkit } from 'playwright'; const executablePath = webkit.executablePath(); if (executablePath && fs.existsSync(executablePath)) { console.log(executablePath); process.exit(0); } console.error(executablePath || ''); process.exit(1);",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if probe.returncode == 0:
+        result['webkit_ready'] = True
+        result['executable_path'] = probe.stdout.strip()
+    else:
+        result['bootstrap_hint'] = 'Run `npx playwright install webkit` from repo root before `npm run browser:smoke`.'
+else:
+    result['bootstrap_hint'] = 'Run `npm install` from repo root before browser-proof commands.'
+
+print(json.dumps(result))
+PY
+}
+
 repo_root=$(pwd)
 current_phase_file=".opencode/plans/current-phase.md"
 registry_file="docs/releases/phase-registry.md"
@@ -46,6 +88,31 @@ else:
 PY
 )
 package_version=$(node -p "require('./package.json').version")
+browser_readiness_json=$(playwright_browser_readiness)
+browser_module_installed=$(BROWSER_READINESS_JSON="$browser_readiness_json" python - <<'PY'
+import json
+import os
+print('yes' if json.loads(os.environ['BROWSER_READINESS_JSON'])['module_installed'] else 'no')
+PY
+)
+webkit_ready=$(BROWSER_READINESS_JSON="$browser_readiness_json" python - <<'PY'
+import json
+import os
+print('yes' if json.loads(os.environ['BROWSER_READINESS_JSON'])['webkit_ready'] else 'no')
+PY
+)
+webkit_executable_path=$(BROWSER_READINESS_JSON="$browser_readiness_json" python - <<'PY'
+import json
+import os
+print(json.loads(os.environ['BROWSER_READINESS_JSON'])['executable_path'])
+PY
+)
+browser_bootstrap_hint=$(BROWSER_READINESS_JSON="$browser_readiness_json" python - <<'PY'
+import json
+import os
+print(json.loads(os.environ['BROWSER_READINESS_JSON'])['bootstrap_hint'])
+PY
+)
 
 phase_display="$phase_path"
 
@@ -62,6 +129,23 @@ printf 'Current phase heading: %s\n' "$phase_title"
 printf 'Current release: %s\n' "$release_value"
 printf 'Current phase file: %s\n' "$phase_display"
 printf 'Validation status: %s\n' "$validation_status"
+
+printf '\nBrowser-proof readiness:\n'
+if [[ "$browser_module_installed" == "yes" ]]; then
+  echo '  OK  Playwright package is installed.'
+else
+  echo '  WARN Playwright package is not installed.'
+fi
+
+if [[ "$webkit_ready" == "yes" ]]; then
+  printf '  OK  WebKit runtime is installed at %s\n' "$webkit_executable_path"
+else
+  echo '  WARN WebKit runtime is not installed yet.'
+fi
+
+if [[ -n "$browser_bootstrap_hint" ]]; then
+  printf '  INFO %s\n' "$browser_bootstrap_hint"
+fi
 
 printf '\nWorkflow files:\n'
 for path in \

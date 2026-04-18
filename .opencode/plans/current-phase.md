@@ -1,78 +1,75 @@
-# Add session search and empty-filter states so larger local histories remain usable
+# Harden browser-proof bootstrap and doctor alignment so Playwright remediation is deterministic on clean machines
 
 Status: complete
 Release: v1.7.2
-Phase file: backlog:session-search-filter
+Phase file: backlog:browser-proof-playwright-bootstrap
 
 ## Goal
-Add a bounded session search input and filtered empty state to the Sessions screen so larger local histories remain usable on a phone without changing session lifecycle or storage scope.
+Make the repo-owned browser-proof flow fail with one deterministic remediation path on clean machines and keep doctor output aligned with the real helper behavior.
 
 ## Why this phase is next
-- The prior active phase is complete.
-- All listed release phases are already complete in `docs/releases/phase-registry.md`.
-- `session-search-filter` is the highest-priority selectable item under `.opencode/backlog/candidates.yaml`.
-- It is a same-module follow-up with smaller safer scope and clearer validation than deferred export/import or tool-result sharing work.
+- The current shipped release baseline remains `v1.7.2`.
+- Browser-proof is still a release-critical surface and is the highest-priority selectable follow-up under `.opencode/backlog/candidates.yaml`.
+- This phase is bounded to browser-proof bootstrap and doctor alignment and does not reopen already shipped browser-proof runner work more broadly.
 
 ## Primary files
-- src/main.js
-- src/ui/screens.js
-- src/state/session-state.js
-- tests/quality-gates.smoke.test.js
+- scripts/dev/browser-smoke.sh
+- scripts/dev/doctor.sh
+- .opencode/commands/browser-smoke.md
 
 ## Expected max files changed
-4
+3
 
 ## Risk
-Medium. Search/filter wiring can accidentally desync visible sessions from selected-session state or create misleading empty states on narrow screens.
+Medium. Browser-proof helpers are release-facing workflow surfaces, so incorrect remediation guidance can create false failures or false confidence.
 
 ## Rollback note
-Revert the Sessions search/filter UI and related state updates together if filtering breaks selection, current task handoff, or honest empty-filter behavior.
+Revert browser-smoke bootstrap messaging, doctor alignment, and command guidance together if the helper flow becomes less deterministic or less truthful.
 
 ## In scope
-- add a bounded search input to the Sessions screen using existing local session metadata
-- show a distinct empty-filter state when sessions exist but no sessions match the current query
-- preserve selected-session state and current task handoff while filtering visible sessions
-- add regression coverage for query, clear, and empty-filter behavior only
+- make `scripts/dev/browser-smoke.sh` emit one deterministic remediation path when Playwright browser binaries are missing
+- align `scripts/dev/doctor.sh` with the actual browser-proof prerequisite story
+- align `.opencode/commands/browser-smoke.md` with the repo-owned helper behavior only
 
 ## Out of scope
-- rename/delete session lifecycle behavior beyond the already shipped controls
-- session export/import or backup flows
-- tool drawer copy/share actions
-- broader session list redesign, sorting changes, or cloud/multi-device sync behavior
+- screenshot freshness policy
+- CI expansion
+- release metadata redesign
+- unrelated shell or runtime changes
 
 ## Tasks
-- add a narrow-screen-safe search input and filtered empty-state UI to the Sessions screen
-- wire session filtering through existing session metadata without mutating stored sessions
-- ensure filtering does not corrupt selected-session state or break the current task handoff
-- extend regression coverage for query, clear, and empty-filter behavior
+- tighten missing-Playwright remediation behavior in the repo-owned browser-smoke helper
+- make doctor output reflect browser-proof readiness truthfully
+- update browser-smoke command guidance so it matches the actual helper path exactly
 
 ## Validation command
-npm run validate:local && npm run browser:smoke && npm run release:proof
+npm run workflow:check && npm run repo:doctor && npm run browser:smoke && npm run release:proof
 
 ## Validation
 Status: PASS
 Evidence:
 - `npm run workflow:check` passed.
-- `npm run validate:local` passed (`eslint`, `vitest`, and `vite build`).
-- `npm run browser:smoke` passed and refreshed the required screenshot artifacts in `playwright-artifacts/`.
-- `npm run release:proof` returned `Status: READY_TO_SHIP` with all required proof artifacts confirmed.
-Blockers:
+- Required validation flow passed in the installed environment: `npm run repo:doctor`, `npm run browser:smoke`, and `npm run release:proof`; `release:proof` returned `READY_TO_SHIP` and confirmed all standard screenshots.
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/... npm run repo:doctor` reported the same WebKit remediation the helper expects: `Run \`npx playwright install webkit\` from repo root before \`npm run browser:smoke\`.`
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/... npm run browser:smoke` failed before capture with the deterministic remediation path: `Playwright WebKit runtime is missing. Run \`npx playwright install webkit\` from repo root, then retry \`npm run browser:smoke\`.`
+- `.opencode/commands/browser-smoke.md` now matches the repo-owned helper path, and browser-proof capture completed successfully through the repo flow.
+Hard blockers:
+- none
+Optional follow-ups:
 - none
 Ready to ship:
 - yes
 
 ## Acceptance criteria
-- The Sessions screen exposes a search input that narrows visible sessions using existing session metadata.
-- The UI shows a distinct empty-filter state when sessions exist but none match the current query.
-- Filtering does not corrupt selected-session state or break the current task handoff.
-- Regression coverage proves query, clear, and empty-filter behavior without widening into export/import or tool-drawer share work.
+- `npm run browser:smoke` fails with one deterministic remediation path when Playwright browser binaries are missing.
+- `npm run repo:doctor` reports browser-proof readiness in language that matches the actual helper behavior.
+- `.opencode/commands/browser-smoke.md` matches the repo-owned helper exactly.
+- The phase does not widen into CI redesign, screenshot freshness policy, or unrelated shell work.
 
 ## Release notes
-- Added a bounded Sessions search field that filters visible local sessions by existing titles, previews, and repo metadata on mobile.
-- Added a distinct filtered empty state with a clear-search recovery path while preserving selected-session access in Task.
-- Added smoke coverage for query matching, clear behavior, and filtered empty-state rendering.
+- Browser-proof now fails before capture with one explicit `npx playwright install webkit` remediation path when the Playwright WebKit runtime is missing.
+- Doctor and browser-smoke command guidance now report the same repo-root Playwright prerequisite story.
 
 ## Completion summary
-- Added a bounded Sessions search input that filters visible sessions by existing local metadata without mutating stored sessions.
-- Added a distinct filtered empty state with a clear-search path while preserving selected-session handoff to Task.
-- Extended smoke coverage for search query matching, clear behavior, and the empty-filter state only.
+- Added a Playwright WebKit readiness check to `browser:smoke` so missing runtimes fail early with one deterministic remediation path.
+- Aligned `repo:doctor`, browser-smoke command guidance, and archived backlog phase metadata with the shipped browser-proof flow.

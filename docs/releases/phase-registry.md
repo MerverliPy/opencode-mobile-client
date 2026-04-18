@@ -53,5 +53,6 @@ Authority notes:
 - [x] registry-complete-selection-guard-hardening — v1.7.2 — Guard phase selection against registry-complete backlog ids
 - [x] session-lifecycle-actions — v1.7.2 — Add bounded rename and delete controls so local session history stays manageable on a phone
 - [x] session-search-filter — v1.7.2 — Add session search and empty-filter states so larger local histories remain usable on a phone
+- [x] browser-proof-playwright-bootstrap — v1.7.2 — Harden browser-proof bootstrap and doctor alignment so Playwright remediation is deterministic on clean machines
 
 ## In progress

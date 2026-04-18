@@ -14,6 +14,68 @@ STANDARD_ARTIFACTS=(
   "offline-recovered.png"
 )
 
+probe_playwright_webkit() {
+  REPO_ROOT="$REPO_ROOT" node --input-type=module <<'EOF'
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+
+const repoRoot = process.env.REPO_ROOT;
+const require = createRequire(`${repoRoot}/package.json`);
+
+let playwright;
+
+try {
+  playwright = require('playwright');
+} catch (error) {
+  const reason = error instanceof Error ? error.message : String(error);
+  console.error(`PLAYWRIGHT_MODULE_MISSING:${reason}`);
+  process.exit(11);
+}
+
+const executablePath = playwright.webkit.executablePath();
+
+if (!executablePath || !fs.existsSync(executablePath)) {
+  console.error(`PLAYWRIGHT_WEBKIT_MISSING:${executablePath || 'unknown'}`);
+  process.exit(12);
+}
+
+console.log(executablePath);
+EOF
+}
+
+ensure_playwright_webkit() {
+  local probe_output=""
+  local probe_status=0
+
+  printf '\n%s\n' "==> Checking Playwright WebKit runtime"
+
+  if probe_output="$(probe_playwright_webkit 2>&1)"; then
+    printf '%s\n' "Playwright WebKit runtime is available."
+    printf 'Executable: %s\n' "$probe_output"
+    return 0
+  else
+    probe_status=$?
+  fi
+
+  case "$probe_status" in
+    11)
+      printf '%s\n' "Repo-owned Playwright is unavailable. Run \`npm install\` from repo root, then retry \`npm run browser:smoke\`." >&2
+      printf '%s\n' "$probe_output" >&2
+      return 1
+      ;;
+    12)
+      printf '%s\n' "Playwright WebKit runtime is missing. Run \`npx playwright install webkit\` from repo root, then retry \`npm run browser:smoke\`." >&2
+      printf '%s\n' "$probe_output" >&2
+      return 1
+      ;;
+    *)
+      printf '%s\n' "Unable to determine Playwright WebKit readiness before capture." >&2
+      printf '%s\n' "$probe_output" >&2
+      return 1
+      ;;
+  esac
+}
+
 print_usage() {
   printf '%s\n' "Usage: bash scripts/dev/browser-smoke.sh [--start-preview]"
   printf '%s\n' ""
@@ -49,6 +111,7 @@ for artifact in "${STANDARD_ARTIFACTS[@]}"; do
 done
 
 printf '%s\n' "==> Running local validation"
+ensure_playwright_webkit
 npm --prefix "$REPO_ROOT" run validate:local
 
 if [ "$START_PREVIEW" -eq 1 ]; then

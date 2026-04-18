@@ -75,6 +75,11 @@ archived:
     module: browser-validation
     shipped: true
 
+  - id: browser-proof-playwright-bootstrap
+    title: Harden browser-proof bootstrap and doctor alignment so Playwright remediation is deterministic on clean machines
+    module: workflow
+    shipped: true
+
   - id: backlog-lifecycle-gating
     title: Prevent completed backlog items from being reselected by the phase workflow
     module: workflow

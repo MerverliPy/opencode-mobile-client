@@ -14,7 +14,7 @@ Process:
    - `AGENTS.md`
 2. Confirm the repo-root browser prerequisites are truthful:
    - run `npm install` from repo root if dependencies are missing
-   - run `npx playwright install webkit` from repo root if the helper reports missing WebKit browser binaries
+   - if WebKit browser binaries are missing, expect `npm run browser:smoke` to fail before capture with one remediation path: `npx playwright install webkit` from repo root
 3. Run the repo-root browser smoke helper:
    - `npm run browser:smoke`
 4. Treat the helper as the source of truth for the standard browser-proof set:
