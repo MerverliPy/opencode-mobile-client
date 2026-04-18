@@ -70,6 +70,7 @@ export function hydrateSessions({ appState, renderApp, setUiNotice }) {
           id: session.id,
           createdAt: Number(session.createdAt) || Date.now(),
           updatedAt: Number(session.updatedAt) || Date.now(),
+          customTitle: typeof session.customTitle === 'string' ? session.customTitle : undefined,
           draft: typeof session.draft === 'string' ? session.draft : '',
           isLoading: false,
           runtimeMetadata: createRuntimeMetadata(session),

@@ -19,28 +19,7 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: session-lifecycle-actions
-    title: Add rename and delete actions so local sessions stay manageable on a phone
-    module: session-state
-    priority: 16
-    release_bump: patch
-    target_release: v1.7.3
-    execution_flow: "/autoflow"
-    expected_max_files_changed: 4
-    drivers:
-      - "`src/ui/screens.js` currently exposes local sessions but does not let the user rename or delete them from the mobile flow."
-      - The next bounded phase should stay focused on lifecycle controls and deterministic fallback behavior, not broader search, export, or share work.
-    files:
-      - src/main.js
-      - src/ui/screens.js
-      - src/state/session-state.js
-      - tests/quality-gates.smoke.test.js
-    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
-    acceptance:
-      - The Sessions screen exposes explicit rename and delete controls that remain usable on narrow screens.
-      - Renaming a session preserves its messages, tool results, runtime metadata, and selection state.
-      - Deleting the selected session picks a deterministic fallback session or returns Task to an honest empty state.
-      - Regression coverage proves rename/delete behavior without widening into search, export/import, or tool-drawer share work.
+  []
 
 deferred_local_first_candidates:
   - id: session-search-filter
@@ -227,4 +206,28 @@ archived:
   - id: registry-complete-selection-guard-hardening
     title: Guard phase selection against registry-complete backlog ids
     module: workflow
+    shipped: true
+
+  - id: session-lifecycle-actions
+    title: Add rename and delete actions so local sessions stay manageable on a phone
+    module: session-state
+    priority: 16
+    release_bump: patch
+    target_release: v1.7.3
+    execution_flow: "/autoflow"
+    expected_max_files_changed: 4
+    drivers:
+      - "`src/ui/screens.js` currently exposes local sessions but does not let the user rename or delete them from the mobile flow."
+      - The next bounded phase should stay focused on lifecycle controls and deterministic fallback behavior, not broader search, export, or share work.
+    files:
+      - src/main.js
+      - src/ui/screens.js
+      - src/state/session-state.js
+      - tests/quality-gates.smoke.test.js
+    validation: "npm run validate:local && npm run browser:smoke && npm run release:proof"
+    acceptance:
+      - The Sessions screen exposes explicit rename and delete controls that remain usable on narrow screens.
+      - Renaming a session preserves its messages, tool results, runtime metadata, and selection state.
+      - Deleting the selected session picks a deterministic fallback session or returns Task to an honest empty state.
+      - Regression coverage proves rename/delete behavior without widening into search, export/import, or tool-drawer share work.
     shipped: true

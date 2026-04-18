@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMockRuntimeAdapter } from '../src/adapters/mock-runtime.js';
 import { createRemoteRuntimeAdapter } from '../src/adapters/remote-runtime.js';
 import { currentSessionRemoteLinks, createRemoteLinkState, normalizeExternalLink } from '../src/lib/remote-links.js';
-import { renderTaskScreen } from '../src/ui/screens.js';
+import { renderSessionsScreen, renderTaskScreen } from '../src/ui/screens.js';
 import {
   createBlockedLinkNotice,
   createInvalidLinkNotice,
@@ -23,12 +23,14 @@ import {
 import {
   createRemoteAssistantMessage,
   createStarterMessages,
+  deleteSessionById,
   findRemoteAssistantMessage,
   getRemoteResponseLifecycleState,
   getRepoBindingLabel,
   getRepoBindingStatus,
   getRepoWorkspaceLabel,
   createRuntimeMetadata,
+  getSessionEditableTitle,
   getSelectedSession,
   getSessionPreview,
   getSessionTitle,
@@ -36,6 +38,7 @@ import {
   getToolResults,
   getVisibleMessageCount,
   isRemoteSession,
+  renameSessionById,
 } from '../src/state/session-state.js';
 import {
   getConnectionLabel,
@@ -250,6 +253,49 @@ describe('Phase 13 smoke coverage', () => {
     expect(appState.selectedSessionId).toBe('legacy-session');
   });
 
+  it('hydrates stored custom session titles so renamed sessions survive reload', () => {
+    const renderApp = vi.fn();
+    const setUiNotice = vi.fn();
+    const appState = {
+      sessions: [],
+      selectedSessionId: null,
+      isHydratingSessions: true,
+    };
+    const storedState = JSON.stringify({
+      selectedSessionId: 'session-1',
+      sessions: [
+        {
+          id: 'session-1',
+          createdAt: 10,
+          updatedAt: 20,
+          customTitle: 'Renamed phone review flow',
+          draft: '',
+          toolResults: [],
+          messages: [{ id: 'msg-1', role: 'user', label: 'You', text: 'Original prompt title' }],
+        },
+      ],
+    });
+
+    withWindow(
+      {
+        localStorage: createLocalStorage({ 'opencode-mobile.phase-05': storedState }),
+        setTimeout(callback) {
+          callback();
+          return 1;
+        },
+      },
+      () => {
+        hydrateSessions({ appState, renderApp, setUiNotice });
+      },
+    );
+
+    expect(setUiNotice).not.toHaveBeenCalled();
+    expect(appState.sessions).toHaveLength(1);
+    expect(appState.sessions[0].customTitle).toBe('Renamed phone review flow');
+    expect(getSessionEditableTitle(appState.sessions[0])).toBe('Renamed phone review flow');
+    expect(getSessionTitle(appState.sessions[0])).toBe('Renamed phone review flow');
+  });
+
   it('reads and persists shell state with safe mobile fallbacks', () => {
     const localStorage = createLocalStorage({
       'opencode-mobile.shell-v1': JSON.stringify({ lastScreenId: 'task' }),
@@ -421,6 +467,131 @@ describe('Phase 13 smoke coverage', () => {
     expect(getToolResult(session, 'tool-9')).toEqual(session.toolResults[0]);
     expect(getToolResult(session, 'missing')).toBe(null);
     expect(createStarterMessages('diff-tool-1')[1].toolResultId).toBe('diff-tool-1');
+  });
+
+  it('renders explicit rename and delete controls on saved session cards', () => {
+    const appState = {
+      isHydratingSessions: false,
+      selectedSessionId: 'session-1',
+      sessions: [
+        {
+          id: 'session-1',
+          createdAt: 10,
+          updatedAt: 30,
+          draft: '',
+          isLoading: false,
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+          messages: [{ id: 'msg-1', role: 'user', label: 'You', text: 'Review the mobile shell state' }],
+          toolResults: [],
+        },
+      ],
+      shell: { isOnline: true, isStandalone: false, installPromptEvent: null },
+    };
+
+    const html = renderSessionsScreen({ appState });
+
+    expect(html).toContain('data-action="select-session"');
+    expect(html).toContain('data-action="rename-session"');
+    expect(html).toContain('data-action="delete-session"');
+    expect(html).toContain('Rename');
+    expect(html).toContain('Delete');
+  });
+
+  it('renames a session without altering its stored content or selected state', () => {
+    const localStorage = createLocalStorage();
+    const session = {
+      id: 'session-1',
+      createdAt: 10,
+      updatedAt: 30,
+      draft: 'keep draft',
+      isLoading: false,
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-1', status: 'awaiting_input', updatedAt: 123 },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+      messages: [
+        { id: 'msg-1', role: 'user', label: 'You', text: 'Original session prompt for mobile review' },
+        { id: 'msg-2', role: 'assistant', label: 'OpenCode', text: 'Stored assistant reply' },
+      ],
+      toolResults: [{ id: 'tool-1', path: 'notes/mobile.md' }],
+    };
+    const appState = {
+      sessions: [session],
+      selectedSessionId: 'session-1',
+      toolDrawer: { isOpen: false, view: 'list', toolId: null, changePath: null },
+    };
+
+    let updatedSession;
+    withWindow({ localStorage }, () => {
+      updatedSession = renameSessionById(appState, 'session-1', 'Renamed phone review flow');
+    });
+
+    expect(appState.selectedSessionId).toBe('session-1');
+    expect(updatedSession).toMatchObject({
+      id: 'session-1',
+      customTitle: 'Renamed phone review flow',
+      draft: 'keep draft',
+      runtimeMetadata: { runtimeId: 'remote-runtime' },
+      remoteRun: { runId: 'run-1', status: 'awaiting_input', updatedAt: 123 },
+      repoBinding: { owner: 'acme', repo: 'mobile', branch: 'main', workspace: 'ws-1' },
+      messages: session.messages,
+      toolResults: session.toolResults,
+    });
+    expect(getSessionEditableTitle(updatedSession)).toBe('Renamed phone review flow');
+    expect(getSessionTitle(updatedSession)).toBe('Renamed phone review flow');
+  });
+
+  it('deletes the selected session with deterministic fallback and clears selection when none remain', () => {
+    const localStorage = createLocalStorage();
+    const appState = {
+      sessions: [
+        {
+          id: 'session-3',
+          createdAt: 30,
+          updatedAt: 300,
+          draft: '',
+          isLoading: false,
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+          messages: [{ id: 'msg-3', role: 'assistant', label: 'OpenCode', text: 'Newest session' }],
+          toolResults: [],
+        },
+        {
+          id: 'session-2',
+          createdAt: 20,
+          updatedAt: 200,
+          draft: '',
+          isLoading: false,
+          runtimeMetadata: { runtimeId: 'mock-local' },
+          remoteRun: { runId: null, status: 'idle', updatedAt: null },
+          repoBinding: { owner: '', repo: '', branch: '', workspace: '' },
+          messages: [{ id: 'msg-2', role: 'assistant', label: 'OpenCode', text: 'Selected session' }],
+          toolResults: [],
+        },
+      ],
+      selectedSessionId: 'session-2',
+      toolDrawer: { isOpen: true, view: 'diff', toolId: 'tool-1', changePath: 'src/main.js' },
+    };
+
+    let deletionResult;
+    withWindow({ localStorage }, () => {
+      deletionResult = deleteSessionById(appState, 'session-2');
+    });
+
+    expect(deletionResult).toEqual({ deletedSessionId: 'session-2', selectedSessionId: 'session-3' });
+    expect(appState.sessions.map((session) => session.id)).toEqual(['session-3']);
+    expect(appState.selectedSessionId).toBe('session-3');
+    expect(appState.toolDrawer).toEqual({ isOpen: false, view: 'list', toolId: null, changePath: null });
+
+    withWindow({ localStorage }, () => {
+      deletionResult = deleteSessionById(appState, 'session-3');
+    });
+
+    expect(deletionResult).toEqual({ deletedSessionId: 'session-3', selectedSessionId: null });
+    expect(appState.sessions).toEqual([]);
+    expect(appState.selectedSessionId).toBe(null);
   });
 
   it('derives repo binding labels and bounded binding status from session state', () => {

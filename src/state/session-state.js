@@ -54,6 +54,12 @@ export function getToolResult(session, toolId) {
 }
 
 export function getSessionTitle(session) {
+  const customTitle = compactText(session?.customTitle ?? '');
+
+  if (customTitle) {
+    return trimText(customTitle, 42);
+  }
+
   const firstUserMessage = session.messages.find(
     (message) => message.role === 'user' && compactText(message.text),
   );
@@ -63,6 +69,10 @@ export function getSessionTitle(session) {
   }
 
   return trimText(compactText(firstUserMessage.text), 42);
+}
+
+export function getSessionEditableTitle(session) {
+  return compactText(session?.customTitle ?? '') || getSessionTitle(session);
 }
 
 export function getSessionPreview(session) {
@@ -230,4 +240,56 @@ export function createSession(appState, runtimeAdapter) {
   resetToolDrawer(appState);
   persistSessionState(appState);
   return session;
+}
+
+export function renameSessionById(appState, sessionId, nextTitle) {
+  const normalizedTitle = compactText(nextTitle);
+
+  if (!normalizedTitle) {
+    return null;
+  }
+
+  return updateSessionById(appState, sessionId, (session) => ({
+    ...session,
+    customTitle: normalizedTitle,
+  }));
+}
+
+function getFallbackSessionId(nextSessions, deletedSessionId) {
+  if (!nextSessions.length) {
+    return null;
+  }
+
+  const deletedIndex = nextSessions.findIndex((session) => session.id === deletedSessionId);
+
+  if (deletedIndex >= 0) {
+    return nextSessions[Math.min(deletedIndex, nextSessions.length - 1)]?.id ?? null;
+  }
+
+  return nextSessions[0]?.id ?? null;
+}
+
+export function deleteSessionById(appState, sessionId) {
+  if (!appState.sessions.some((session) => session.id === sessionId)) {
+    return null;
+  }
+
+  const sessionsBeforeDelete = appState.sessions;
+  const deletedIndex = sessionsBeforeDelete.findIndex((session) => session.id === sessionId);
+  const nextSessions = sessionsBeforeDelete.filter((session) => session.id !== sessionId);
+  const selectedSessionId = appState.selectedSessionId === sessionId
+    ? nextSessions[Math.min(deletedIndex, Math.max(nextSessions.length - 1, 0))]?.id ?? null
+    : appState.selectedSessionId;
+
+  appState.sessions = nextSessions;
+  appState.selectedSessionId = nextSessions.some((session) => session.id === selectedSessionId)
+    ? selectedSessionId
+    : getFallbackSessionId(nextSessions, sessionId);
+  resetToolDrawer(appState);
+  persistSessionState(appState);
+
+  return {
+    deletedSessionId: sessionId,
+    selectedSessionId: appState.selectedSessionId,
+  };
 }

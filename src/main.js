@@ -15,6 +15,7 @@ import {
 import { createId } from './lib/utils.js';
 import {
   createRemoteAssistantMessage,
+  deleteSessionById,
   findRemoteAssistantMessage,
   createSession,
   getSessionById,
@@ -23,7 +24,9 @@ import {
   getSessionTitle,
   getToolResult,
   getToolResults,
+  getSessionEditableTitle,
   resetToolDrawer,
+  renameSessionById,
   setSelectedSession,
   updateSessionById,
 } from './state/session-state.js';
@@ -710,6 +713,73 @@ function handleCreateRemoteSession() {
   navigateTo('task');
 }
 
+function handleRenameSession(sessionId) {
+  const session = getSessionById(appState, sessionId);
+
+  if (!session) {
+    return;
+  }
+
+  const currentTitle = getSessionEditableTitle(session);
+  const nextTitle = window.prompt('Rename session', currentTitle);
+
+  if (typeof nextTitle !== 'string') {
+    return;
+  }
+
+  const renamedSession = renameSessionById(appState, sessionId, nextTitle);
+
+  if (!renamedSession) {
+    setUiNotice({
+      tone: 'warning',
+      title: 'Session name was not changed.',
+      body: 'Enter a non-empty session name to keep this saved thread manageable on mobile.',
+    });
+  } else {
+    setUiNotice({
+      tone: 'success',
+      title: 'Session renamed.',
+      body: 'The saved session name was updated without altering its messages, tools, or runtime state.',
+    });
+  }
+
+  renderApp();
+}
+
+function handleDeleteSession(sessionId) {
+  const session = getSessionById(appState, sessionId);
+
+  if (!session) {
+    return;
+  }
+
+  const confirmed = window.confirm(`Delete "${getSessionEditableTitle(session)}"? This removes the saved local session from this device.`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  const deletion = deleteSessionById(appState, sessionId);
+
+  if (!deletion) {
+    return;
+  }
+
+  setUiNotice({
+    tone: 'warning',
+    title: 'Session deleted.',
+    body: deletion.selectedSessionId
+      ? 'The saved session was removed, and the next available session is now selected.'
+      : 'The saved session was removed, and Task now returns to an honest empty state until you start or choose another session.',
+  });
+
+  if (!deletion.selectedSessionId && getActiveScreenId() === 'task') {
+    shouldRestoreTaskFocus = false;
+  }
+
+  renderApp();
+}
+
 async function handleReconnectRemoteRun() {
   const session = getSelectedSession(appState);
 
@@ -988,6 +1058,8 @@ app.addEventListener('click', (event) => {
   const openShareLinkButton = event.target.closest('[data-action="open-share-link"]');
   const startVoiceEntryButton = event.target.closest('[data-action="start-voice-entry"]');
   const sessionButton = event.target.closest('[data-action="select-session"]');
+  const renameSessionButton = event.target.closest('[data-action="rename-session"]');
+  const deleteSessionButton = event.target.closest('[data-action="delete-session"]');
 
   if (dismissNoticeButton) {
     clearUiNotice();
@@ -1098,6 +1170,26 @@ app.addEventListener('click', (event) => {
 
   if (startVoiceEntryButton) {
     startVoiceEntry();
+    return;
+  }
+
+  if (renameSessionButton instanceof HTMLElement) {
+    const { sessionId } = renameSessionButton.dataset;
+
+    if (sessionId) {
+      handleRenameSession(sessionId);
+    }
+
+    return;
+  }
+
+  if (deleteSessionButton instanceof HTMLElement) {
+    const { sessionId } = deleteSessionButton.dataset;
+
+    if (sessionId) {
+      handleDeleteSession(sessionId);
+    }
+
     return;
   }
 

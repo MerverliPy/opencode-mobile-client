@@ -5,6 +5,7 @@ import {
   getRepoBindingLabel,
   getRepoBindingStatus,
   getRepoWorkspaceLabel,
+  getSessionEditableTitle,
   getSelectedSession,
   getSessionPreview,
   getSessionTitle,
@@ -465,27 +466,49 @@ function renderSessionCard({ appState, session }) {
   const statusLabel = session.isLoading ? 'Replying' : isActive ? 'Current' : 'Open';
   const bindingStatusContent = getRepoBindingStatusContent(session);
   const repoLabel = getRepoBindingLabel(session);
+  const sessionTitle = getSessionTitle(session);
+  const editableTitle = getSessionEditableTitle(session);
 
   return `
-    <button
-      class="screen-card session-item${isActive ? ' is-active' : ''}"
-      type="button"
-      data-action="select-session"
-      data-session-id="${session.id}"
-      aria-label="${escapeHtml(`Open session ${getSessionTitle(session)}. Updated ${formatSessionTime(session.updatedAt)}.`)}"
-    >
-      <div class="session-item-header">
-        <div class="session-item-copy">
-          <p class="session-title">${escapeHtml(getSessionTitle(session))}</p>
-          <p class="session-meta">Updated ${escapeHtml(formatSessionTime(session.updatedAt))} · ${messageCount} ${
-            messageCount === 1 ? 'message' : 'messages'
-          }</p>
+    <article class="screen-card">
+      <button
+        class="session-item${isActive ? ' is-active' : ''}"
+        type="button"
+        data-action="select-session"
+        data-session-id="${session.id}"
+        aria-label="${escapeHtml(`Open session ${sessionTitle}. Updated ${formatSessionTime(session.updatedAt)}.`)}"
+      >
+        <div class="session-item-header">
+          <div class="session-item-copy">
+            <p class="session-title">${escapeHtml(sessionTitle)}</p>
+            <p class="session-meta">Updated ${escapeHtml(formatSessionTime(session.updatedAt))} · ${messageCount} ${
+              messageCount === 1 ? 'message' : 'messages'
+            }</p>
+          </div>
+          <span class="session-status${session.isLoading ? ' is-loading' : ''}">${statusLabel}</span>
         </div>
-        <span class="session-status${session.isLoading ? ' is-loading' : ''}">${statusLabel}</span>
+        <p class="session-meta">${escapeHtml(bindingStatusContent.label)}${repoLabel ? ` · ${escapeHtml(repoLabel)}` : ''}</p>
+        <p class="session-preview">${escapeHtml(getSessionPreview(session))}</p>
+      </button>
+      <div class="state-actions" aria-label="Session actions">
+        <button
+          class="secondary-button"
+          type="button"
+          data-action="rename-session"
+          data-session-id="${session.id}"
+          data-session-title="${escapeHtml(editableTitle)}"
+          aria-label="${escapeHtml(`Rename session ${sessionTitle}`)}"
+        >Rename</button>
+        <button
+          class="ghost-button"
+          type="button"
+          data-action="delete-session"
+          data-session-id="${session.id}"
+          data-session-title="${escapeHtml(sessionTitle)}"
+          aria-label="${escapeHtml(`Delete session ${sessionTitle}`)}"
+        >Delete</button>
       </div>
-      <p class="session-meta">${escapeHtml(bindingStatusContent.label)}${repoLabel ? ` · ${escapeHtml(repoLabel)}` : ''}</p>
-      <p class="session-preview">${escapeHtml(getSessionPreview(session))}</p>
-    </button>
+    </article>
   `;
 }
 
