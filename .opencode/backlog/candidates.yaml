@@ -19,14 +19,30 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  []
+  - id: registry-complete-selection-guard-hardening
+    title: Guard phase selection against registry-complete backlog ids
+    module: workflow
+    priority: 19
+    release_bump: patch
+    target_release: v1.7.3
+    execution_flow: /autoflow
+    expected_max_files_changed: 4
+    drivers:
+      - "`workflow:check` currently passes even when backlog ids already recorded as shipped in the registry remain selectable under `candidates`."
+      - "`/autoflow` and backlog-repair helpers should treat registry-complete backlog ids as non-selectable so the next phase stays deterministic."
+    files:
+      - scripts/dev/workflow-check.sh
+      - scripts/dev/autoflow.sh
+      - scripts/dev/repair-backlog-selection.sh
+      - .opencode/backlog/candidates.yaml
+    validation: npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
+    acceptance:
+      - `workflow:check` fails when a registry-complete backlog id remains under selectable `candidates`.
+      - `scripts/dev/repair-backlog-selection.sh` archives backlog ids already marked complete or shipped in the registry.
+      - `scripts/dev/autoflow.sh` reports the corrected backlog state and does not rely on stale selectable candidates.
+      - The repair stays bounded to workflow-state truth and backlog-selection guards only.
 
 archived:
-- id: browser-proof-command-surface-alignment
-    title: Align browser-proof command surfaces with the real runner and proof flow
-    module: browser-validation
-    shipped: true
-
   - id: browser-proof-clean-checkout-runner
     title: Restore clean-checkout browser proof with repo-owned Playwright resolution
     module: browser-validation
@@ -365,5 +381,10 @@ archived:
 
   - id: browser-proof-command-surface-alignment
     title: Align browser-proof command surfaces with the real runner and proof flow
+    module: browser-validation
+    shipped: true
+
+  - id: browser-proof-release-truth-revalidation
+    title: Refresh release-truth surfaces after browser-proof repair with clean evidence
     module: browser-validation
     shipped: true

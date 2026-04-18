@@ -52,3 +52,5 @@ Authority notes:
 - [x] preview-host-portability-hardening — v1.7.2 — Remove machine-specific preview host assumptions from phone testing
 
 ## In progress
+
+- [~] registry-complete-selection-guard-hardening — Guard phase selection against registry-complete backlog ids
