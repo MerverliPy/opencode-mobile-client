@@ -4,13 +4,13 @@ An iPhone-first mobile shell for OpenCode, designed for useful daily mobile use 
 
 ## Release baseline
 
-The current release baseline is `v1.7.1`, and the shipped `package.json` version `1.7.1` now matches that release.
+The current release baseline is `v1.7.2`, and the shipped `package.json` version `1.7.2` now matches that release.
 
 Phase 14 reconciled older duplicate release docs, release-proof workflow state, and browser-validation commands around that baseline. Treat `.opencode/plans/current-phase.md` and `docs/releases/phase-registry.md` as the authoritative workflow surfaces.
 
 The running app is still a local-first mobile shell with mock-backed local task replies, file viewing, diff review, installability, and offline-aware shell behavior.
 
-The latest shipped `v1.7.1` release restores clean-checkout browser proof with repo-owned Playwright resolution while preserving the app's honest local-first product scope.
+The latest shipped `v1.7.2` release aligns the browser-proof command surfaces with the real repo-root runner and proof flow while preserving the app's honest local-first product scope.
 
 ## Current product reality
 

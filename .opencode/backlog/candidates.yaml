@@ -19,29 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: browser-proof-command-surface-alignment
-    title: Align browser-proof command surfaces with the real runner and proof flow
-    module: browser-validation
-    priority: 19
-    release_bump: patch
-    target_release: v1.7.2
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "The browser-proof command docs currently describe a workflow that is split between Playwright MCP expectations and a separate repo-root runner."
-      - "The repo should expose one truthful operator path for browser smoke, offline capture, screenshot capture, and release proof."
-    files:
-      - .opencode/commands/browser-smoke.md
-      - .opencode/commands/browser-offline.md
-      - .opencode/commands/screenshot-capture.md
-      - .opencode/commands/release-proof.md
-    validation: npm run workflow:check && npm run browser:smoke && npm run release:proof
-    acceptance:
-      - Each browser-proof command document matches the real supported repo-root execution path.
-      - The documented prerequisites and artifact expectations match the implemented runner behavior.
-      - The command set no longer claims an unsupported or hidden execution dependency.
-      - The scope stays bounded to command truth and operator guidance only.
-
   - id: browser-proof-release-truth-revalidation
     title: Refresh release-truth surfaces after browser-proof repair with clean evidence
     module: browser-validation
@@ -86,6 +63,11 @@ candidates:
       - The phase stays bounded to preview-host portability and documentation only.
 
 archived:
+  - id: browser-proof-command-surface-alignment
+    title: Align browser-proof command surfaces with the real runner and proof flow
+    module: browser-validation
+    shipped: true
+
   - id: browser-proof-clean-checkout-runner
     title: Restore clean-checkout browser proof with repo-owned Playwright resolution
     module: browser-validation
