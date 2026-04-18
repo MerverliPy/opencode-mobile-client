@@ -13,4 +13,5 @@ Return:
 - what is complete
 - what remains
 - blockers, if any
+- whether the phase definition itself is clear or needs normalization
 - next recommended command

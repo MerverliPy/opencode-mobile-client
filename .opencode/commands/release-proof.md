@@ -13,6 +13,7 @@ Process:
    - `.opencode/plans/current-phase.md`
    - `docs/releases/phase-registry.md`
    - `AGENTS.md`
+   - `.opencode/AGENTS.md`
    - `package.json`
 2. Run the repo-root release proof helper:
    - `npm run release:proof`

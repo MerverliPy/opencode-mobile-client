@@ -17,6 +17,8 @@ permission:
     "npm run test*": allow
     "npm run workflow:check*": allow
     "npm run repo:doctor*": allow
+    "npm run browser:smoke*": allow
+    "npm run release:proof*": allow
   task:
     "*": deny
 ---
@@ -37,11 +39,14 @@ Validation rules:
 - fail the phase if the result is not independently usable for that release
 - run `npm run workflow:check` before declaring PASS
 - if the phase includes a `Validation command`, treat it as required evidence unless the command is invalid or out of date
+- if the phase changes user-facing shell behavior, navigation, layout, readability, drawer behavior, installability, accessibility, or offline/recovery behavior, require browser-facing proof through the repo flow before considering the phase ready to ship
 - do not request future-phase work inside validation
 - distinguish clearly between critical failures and optional follow-ups
+- remain read-only with respect to product implementation; only update the validation section of the phase file
 
 Your output must:
 - write PASS or FAIL in the Validation section of the current phase file
 - include concise evidence
 - list blockers
 - state whether the phase is ready to ship
+- clearly separate hard blockers from optional follow-ups

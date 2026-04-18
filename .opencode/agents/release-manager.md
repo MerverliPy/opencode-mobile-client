@@ -16,6 +16,9 @@ permission:
     "grep *": allow
     "rg *": allow
     "ls *": allow
+    "cat *": allow
+    "npm run workflow:check*": allow
+    "npm run release:proof*": allow
   task:
     "*": deny
 ---
@@ -43,9 +46,21 @@ Hard rules:
 - do not merge branches automatically
 - stop and report if release-state surfaces disagree
 - keep release notes short and factual
+- prefer the repo release-proof flow over informal judgment when browser proof is relevant
 
 Release surfaces to synchronize when present:
 - `docs/releases/phase-registry.md`
 - `.opencode/plans/current-phase.md`
 - runtime-visible release tag
 - `package.json` version
+
+Before shipping:
+- confirm validation is PASS
+- confirm `Ready to ship` is yes
+- run or confirm `npm run release:proof` when the phase affects user-facing behavior or release proof is otherwise required
+- stop if proof, metadata, or branch state is unsafe
+
+When shipping:
+- synchronize facts only; do not rewrite history
+- keep commit title and body factual
+- report whether the push happened or was intentionally skipped

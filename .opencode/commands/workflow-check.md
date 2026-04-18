@@ -24,4 +24,5 @@ Return:
 - PASS or FAIL
 - invariant results
 - concrete blockers
+- whether the phase definition is implementation-ready or needs normalization
 - recommended next command

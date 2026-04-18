@@ -69,6 +69,11 @@ When copying a release phase file, keep the release phase title intact.
 
 If the selected release phase was `[ ]`, mark it `[~]` in the registry.
 
+Before handing off to implementation:
+- make the selected phase concrete enough to execute
+- ensure goal, in-scope, out-of-scope, acceptance criteria, and validation command are explicit
+- keep the phase bounded; clarify it without enlarging it
+
 Then respond with:
 - active phase title
 - release tag
