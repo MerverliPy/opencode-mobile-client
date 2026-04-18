@@ -47,10 +47,11 @@ npm run validate:local && npm run preview:host
 Status: PASS
 
 Evidence:
-- `npm run workflow:check` passed within `npm run validate:local`, and `lint`, `test`, and `build` all succeeded after replacing the hard-coded preview host allowance with explicit `OPENCODE_ALLOWED_HOSTS` parsing.
-- `vite.config.js` now derives `server.allowedHosts` and `preview.allowedHosts` from the optional comma-separated `OPENCODE_ALLOWED_HOSTS` environment variable, removing the previous machine-specific hostname from source control.
-- `README.md` now documents the default localhost/`127.0.0.1` path and shows explicit operator examples for enabling alternate LAN or Tailscale hosts without per-machine source edits.
-- `npm run preview:host` initially failed only because port `4173` was already in use; after the bounded preview-port repair released the port, `npm run preview:host` started successfully and advertised local and network preview URLs, confirming default preview behavior still works.
+- `npm run workflow:check` passed before validation.
+- `npm run validate:local` passed, including `workflow:check`, `lint`, `test`, and `build`.
+- A bounded `npm run preview:host` startup succeeded and advertised the default local preview URL at `http://localhost:4173/`, confirming localhost and `127.0.0.1` preview behavior still works.
+- With `OPENCODE_ALLOWED_HOSTS=phone-preview.example.ts.net`, preview served HTTP 200 for both the default local request and a request with `Host: phone-preview.example.ts.net`, confirming alternate named hosts can be enabled explicitly without source edits.
+- `vite.config.js` and `README.md` stay within the phase scope: the hard-coded machine-specific hostname was removed from source control and replaced with documented opt-in host configuration.
 
 Blockers:
 - none
