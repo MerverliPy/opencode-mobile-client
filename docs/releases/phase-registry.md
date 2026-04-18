@@ -50,7 +50,6 @@ Authority notes:
 - [x] browser-proof-command-surface-alignment — v1.7.2 — Align browser-proof command surfaces with the real runner and proof flow
 - [x] browser-proof-release-truth-revalidation — v1.7.2 — Refresh release-truth surfaces after browser-proof repair with clean evidence
 - [x] preview-host-portability-hardening — v1.7.2 — Remove machine-specific preview host assumptions from phone testing
+- [x] registry-complete-selection-guard-hardening — v1.7.2 — Guard phase selection against registry-complete backlog ids
 
 ## In progress
-
-- [~] registry-complete-selection-guard-hardening — Guard phase selection against registry-complete backlog ids

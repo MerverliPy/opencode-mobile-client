@@ -114,16 +114,27 @@ if not path.exists():
     raise SystemExit(0)
 
 text = path.read_text()
+registry_path = Path('docs/releases/phase-registry.md')
+registry_text = registry_path.read_text() if registry_path.exists() else ''
 match = re.search(r'(?ms)^candidates:\s*(.*?)(?=^(?:deferred_local_first_candidates|archived):|\Z)', text)
 block = match.group(1) if match else ''
 pattern = re.compile(r'(?m)^\s*-\s+id:\s*([A-Za-z0-9._:-]+)\s*$')
 
-candidate_ids = pattern.findall(block)
+raw_candidate_ids = pattern.findall(block)
 all_ids = pattern.findall(text)
+
+def registry_complete(candidate_id):
+    if not candidate_id:
+        return False
+    return bool(re.search(rf'(?m)^\s*-\s+\[x\]\s+{re.escape(candidate_id)}\s+—', registry_text))
+
+candidate_ids = [candidate_id for candidate_id in raw_candidate_ids if not registry_complete(candidate_id)]
+stale_candidate_ids = [candidate_id for candidate_id in raw_candidate_ids if registry_complete(candidate_id)]
 
 print(json.dumps({
     'candidate_count': len(candidate_ids),
     'candidate_ids': candidate_ids,
+    'stale_candidate_ids': stale_candidate_ids,
     'all_ids': all_ids,
 }))
 PY
@@ -266,10 +277,11 @@ collect_state() {
   ready_to_ship="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["ready_to_ship"])' "$phase")"
   validation_command="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["validation_command"])' "$phase")"
 
-  local branch dirty_tree active_candidate_count phase_ref_type drift backlog_id backlog_exists
+  local branch dirty_tree active_candidate_count stale_candidate_count phase_ref_type drift backlog_id backlog_exists
   branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   dirty_tree="$(python -c 'import json,sys; print("yes" if json.loads(sys.argv[1])["dirty"] else "no")' "$git_state")"
   active_candidate_count="$(python -c 'import json,sys; print(json.loads(sys.argv[1])["candidate_count"])' "$backlog")"
+  stale_candidate_count="$(python -c 'import json,sys; print(len(json.loads(sys.argv[1]).get("stale_candidate_ids", [])))' "$backlog")"
   phase_ref_type="$(phase_reference_type "$phase_file")"
   drift="$(lock_drift)"
   backlog_id=""
@@ -298,6 +310,9 @@ collect_state() {
   elif [[ "$drift" == "yes" ]]; then
     next_action="repair-lockfile"
     blocker="package-lock.json drift detected"
+  elif [[ "$stale_candidate_count" -gt 0 ]]; then
+    next_action="repair-backlog-selection"
+    blocker="registry-complete backlog ids remain selectable under candidates"
   elif [[ -n "$disallowed" ]]; then
     next_action="repair-working-tree"
     blocker="dirty tree contains files outside phase scope"
@@ -334,6 +349,7 @@ CURRENT_BRANCH=$branch
 DIRTY_TREE=$dirty_tree
 DISALLOWED_DIRTY_FILES=$disallowed
 ACTIVE_CANDIDATE_COUNT=$active_candidate_count
+STALE_CANDIDATE_COUNT=$stale_candidate_count
 LOCKFILE_DRIFT=$drift
 NEXT_ACTION=$next_action
 BLOCKER=$blocker

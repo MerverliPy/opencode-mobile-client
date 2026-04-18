@@ -24,6 +24,28 @@ raise SystemExit(0 if re.search(pattern, text) else 1)
 PY
 }
 
+stale_registry_complete_candidates() {
+  python - <<'PY'
+from pathlib import Path
+import re
+
+backlog_text = Path('.opencode/backlog/candidates.yaml').read_text()
+registry_text = Path('docs/releases/phase-registry.md').read_text()
+
+match = re.search(r'(?ms)^candidates:\s*(.*?)(?=^(?:deferred_local_first_candidates|archived):|\Z)', backlog_text)
+candidate_block = match.group(1) if match else ''
+candidate_ids = re.findall(r'(?m)^\s*-\s+id:\s*([A-Za-z0-9._:-]+)\s*$', candidate_block)
+
+stale = []
+for candidate_id in candidate_ids:
+    pattern = re.compile(rf'(?m)^\s*-\s+\[x\]\s+{re.escape(candidate_id)}\s+—')
+    if pattern.search(registry_text):
+        stale.append(candidate_id)
+
+print(','.join(stale))
+PY
+}
+
 [[ -f ".opencode/plans/current-phase.md" ]] || fail "missing .opencode/plans/current-phase.md"
 [[ -f "docs/releases/phase-registry.md" ]] || fail "missing docs/releases/phase-registry.md"
 [[ -f "package.json" ]] || fail "missing package.json"
@@ -122,6 +144,9 @@ fi
 if [[ "${phase_reference_type}" == "file" ]]; then
   grep -q "${release_value}" "${phase_file}" || fail "phase file does not match current release value"
 fi
+
+stale_completed_candidates="$(stale_registry_complete_candidates)"
+[[ -z "${stale_completed_candidates}" ]] || fail "registry-complete backlog ids remain selectable under candidates: ${stale_completed_candidates}"
 
 grep -q "${release_value}" docs/releases/phase-registry.md || fail "phase registry does not mention current release value"
 [[ -n "${validation_value:-}" ]] || fail "missing validation status in current phase"

@@ -10,9 +10,11 @@ import re
 
 path = Path(".opencode/backlog/candidates.yaml")
 phase_path = Path(".opencode/plans/current-phase.md")
+registry_path = Path("docs/releases/phase-registry.md")
 
 text = path.read_text()
 phase_text = phase_path.read_text()
+registry_text = registry_path.read_text() if registry_path.exists() else ""
 
 phase_file_match = re.search(r'(?m)^Phase file:\s*(backlog:[^\s]+)\s*$', phase_text)
 status_match = re.search(r'(?m)^Status:\s*(.+)\s*$', phase_text)
@@ -42,16 +44,16 @@ elif idx_archived != -1:
     section_end = idx_archived
 
 if idx_archived == -1:
-    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip()
+    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip("\n")
     deferred_section = text[section_end:].strip() if idx_deferred != -1 else ""
     archived_section = ""
 else:
-    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip()
+    candidate_section = text[idx_candidates + len("candidates:"):section_end].strip("\n")
     deferred_section = text[idx_deferred:idx_archived].rstrip() if idx_deferred != -1 and idx_deferred < idx_archived else ""
-    archived_section = text[idx_archived + len("archived:"):].strip()
+    archived_section = text[idx_archived + len("archived:"):].strip("\n")
 
 def parse_blocks(section):
-    if not section or section == "[]":
+    if not section or section.strip() == "[]":
         return []
     lines = section.splitlines()
     blocks = []
@@ -70,11 +72,17 @@ candidate_blocks = parse_blocks(candidate_section)
 archived_blocks = parse_blocks(archived_section)
 
 def block_id(block):
-    m = re.search(r'(?m)^  - id:\s*([A-Za-z0-9._:-]+)\s*$', block)
+    m = re.search(r'(?m)^\s*- id:\s*([A-Za-z0-9._:-]+)\s*$', block)
     return m.group(1) if m else ""
 
 def shipped_true(block):
     return bool(re.search(r'(?m)^\s+shipped:\s*true\s*$', block))
+
+def registry_complete(candidate_id):
+    if not candidate_id:
+        return False
+    pattern = re.compile(rf'(?m)^\s*-\s+\[x\]\s+{re.escape(candidate_id)}\s+—')
+    return bool(pattern.search(registry_text))
 
 new_candidates = []
 moved_blocks = []
@@ -84,6 +92,9 @@ for block in candidate_blocks:
     if not cid:
         continue
     if shipped_true(block):
+        moved_blocks.append(block)
+        continue
+    if registry_complete(cid):
         moved_blocks.append(block)
         continue
     if current_backlog_id and cid == current_backlog_id and current_complete and current_ready:

@@ -1,6 +1,6 @@
 # Guard phase selection against registry-complete backlog ids
 
-Status: pending
+Status: complete
 Release: v1.7.2
 Phase file: backlog:registry-complete-selection-guard-hardening
 
@@ -47,16 +47,21 @@ Revert the workflow guard changes together if they block bounded candidate selec
 npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor
 
 ## Validation
-Status: pending
+Status: PASS
 
 Evidence:
-- not run yet
+- `npm run workflow:check` passed in the repo state.
+- Required validation command passed: `npm run workflow:check && bash scripts/dev/autoflow.sh inspect && npm run repo:doctor`.
+- Fixture evidence: `workflow-check.sh` fails when a registry-complete id remains under `candidates` (`stale-complete-id`).
+- Fixture evidence: `autoflow.sh inspect` excludes the stale completed id from `ACTIVE_CANDIDATE_COUNT` and reports `STALE_CANDIDATE_COUNT=1` with `NEXT_ACTION=repair-backlog-selection`.
+- Fixture evidence: `repair-backlog-selection.sh` moves the stale registry-complete id out of `candidates` and into `archived` with `shipped: true`.
+- Scope remained bounded to workflow-state truth and backlog-selection guards in `scripts/dev/workflow-check.sh`, `scripts/dev/autoflow.sh`, and `scripts/dev/repair-backlog-selection.sh`.
 
 Blockers:
-- not validated yet
+- none.
 
 Ready to ship:
-- no
+- yes
 
 ## Acceptance criteria
 - `workflow:check` fails when a registry-complete backlog id remains under selectable `candidates`.
@@ -64,5 +69,10 @@ Ready to ship:
 - `scripts/dev/autoflow.sh` reports corrected backlog state and does not rely on stale selectable candidates.
 - The repair stays bounded to workflow-state truth and backlog-selection guards only.
 
+## Release notes
+- `workflow:check` now fails when a registry-complete backlog id remains selectable under `candidates`.
+- Backlog repair archives registry-complete ids, and `/autoflow inspect` excludes stale completed ids from active candidate counts.
+
 ## Completion summary
-Pending.
+- Added registry-aware workflow guards in `scripts/dev/workflow-check.sh`, `scripts/dev/autoflow.sh`, and `scripts/dev/repair-backlog-selection.sh`.
+- Shipped `registry-complete-selection-guard-hardening` and finalized its backlog state so completed ids no longer remain selectable.
