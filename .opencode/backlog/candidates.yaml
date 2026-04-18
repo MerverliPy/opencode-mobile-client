@@ -19,29 +19,6 @@ constraints:
   avoid_generic_tasks: true
 
 candidates:
-  - id: browser-proof-clean-checkout-runner
-    title: Restore clean-checkout browser proof with repo-owned Playwright resolution
-    module: browser-validation
-    priority: 20
-    release_bump: patch
-    target_release: v1.7.1
-    execution_flow: /autoflow
-    expected_max_files_changed: 4
-    drivers:
-      - "`npm run browser:smoke` currently imports Playwright from `.opencode/node_modules/...`, which does not exist in a clean checkout."
-      - "Release proof cannot be trusted until the repo-owned runner resolves its own browser tooling or fails with an explicit bootstrap requirement."
-    files:
-      - scripts/dev/browser-smoke.sh
-      - package.json
-      - package-lock.json
-      - opencode.json
-    validation: npm run browser:smoke && npm run release:proof
-    acceptance:
-      - "`npm run browser:smoke` no longer imports Playwright from hidden tool-managed paths."
-      - The runner uses repo-owned dependency or config resolution, or exits with a clear actionable bootstrap failure message.
-      - Running `npm run browser:smoke` writes the six standard screenshot artifacts to `playwright-artifacts/`.
-      - "`npm run release:proof` passes immediately after a successful browser smoke run."
-
   - id: browser-proof-command-surface-alignment
     title: Align browser-proof command surfaces with the real runner and proof flow
     module: browser-validation
@@ -109,6 +86,11 @@ candidates:
       - The phase stays bounded to preview-host portability and documentation only.
 
 archived:
+  - id: browser-proof-clean-checkout-runner
+    title: Restore clean-checkout browser proof with repo-owned Playwright resolution
+    module: browser-validation
+    shipped: true
+
   - id: browser-proof-automation
     title: Replace manual browser-proof handoff with a repeatable repo-owned screenshot capture path
     module: browser-validation

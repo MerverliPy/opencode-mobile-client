@@ -99,17 +99,40 @@ EOF
 printf '%s\n' "==> Capturing standard browser-proof artifacts"
 REPO_ROOT="$REPO_ROOT" ARTIFACT_DIR="$ARTIFACT_DIR" BASE_URL="$PREVIEW_URL" node --input-type=module <<'EOF'
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 
 const repoRoot = process.env.REPO_ROOT;
 const artifactDir = process.env.ARTIFACT_DIR;
 const baseUrl = process.env.BASE_URL;
 
-const playwrightModuleUrl = pathToFileURL(path.join(repoRoot, '.opencode/node_modules/playwright/index.mjs')).href;
-const { webkit } = await import(playwrightModuleUrl);
+async function loadRepoOwnedPlaywright() {
+  try {
+    return await import('playwright');
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Repo-owned Playwright is unavailable. Run \`npm install\` from repo root, then retry \`npm run browser:smoke\`.\nOriginal error: ${reason}`,
+    );
+  }
+}
+
+const { webkit } = await loadRepoOwnedPlaywright();
 
 const artifactPath = (filename) => path.join(artifactDir, filename);
-const browser = await webkit.launch();
+let browser;
+
+try {
+  browser = await webkit.launch();
+} catch (error) {
+  const reason = error instanceof Error ? error.message : String(error);
+
+  if (reason.includes('Executable doesn\'t exist')) {
+    throw new Error(
+      `Playwright WebKit browser binaries are missing. Run \`npx playwright install webkit\` from repo root, then retry \`npm run browser:smoke\`.\nOriginal error: ${reason}`,
+    );
+  }
+
+  throw error;
+}
 const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
   isMobile: true,

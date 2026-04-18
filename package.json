@@ -1,7 +1,7 @@
 {
   "name": "opencode-mobile-client",
   "private": true,
-  "version": "1.7.0",
+  "version": "1.7.1",
   "opencode": {
     "targetRelease": "v2.3.0"
   },
@@ -26,6 +26,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.2.0",
     "globals": "^17.5.0",
+    "playwright": "^1.59.1",
     "vite": "^6.4.2",
     "vitest": "^4.1.4"
   }
