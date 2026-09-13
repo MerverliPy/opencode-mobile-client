@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -16,7 +15,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: selfrunners
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
